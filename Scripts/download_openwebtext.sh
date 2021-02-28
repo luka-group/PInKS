@@ -12,9 +12,7 @@ echo "Decompressing openwebtext.tar.xz"
 tar -xvf openwebtext.tar.xz
 
 # Decompress each section
-for i in `find openwebtext/ -name "*.xz" -type f`; do
-    echo "Decompressing: $i"
-    xz --decompress ${i}
-done
+find openwebtext/ -name "urlsf_subset*.xz" -type f -maxdepth 2 \
+  -exec sh -c 'xz --decompress "$1"' sh {} ';'
 
 
