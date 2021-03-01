@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 @hydra.main(config_path='../Configs/lookup_pattern_config.yaml')
 def main(config: omegaconf.dictconfig.DictConfig):
     # files_patter = os.path.join([config.corpus_path, 'urlsf_subset*'])
-    files_patern = '/urlsf_subset*'
+    files_patern = '/urlsf_subset'
 
     matches = {}
     for pat in PatternUtils.SINGLE_SENTENCE_DISABLING_PATTERNS:
