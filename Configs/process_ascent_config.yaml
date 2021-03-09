@@ -1,0 +1,9 @@
+ascent_path: "/nas/home/qasemi/CQplus/Outputs/Corpora/ASCENT/data/kb-05-02-2021.jsonl"
+output_name: "matches.json"
+predicate: 'used'
+
+json_chunck_size: 1000
+
+hydra:
+  run:
+    dir: /nas/home/qasemi/CQplus/Outputs/${hydra.job.name}

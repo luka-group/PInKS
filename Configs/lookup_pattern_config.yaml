@@ -1,2 +1,7 @@
 corpus_path:
 output_name: matches.json
+
+
+hydra:
+  run:
+    dir: /nas/home/qasemi/CQplus/Outputs/${hydra.job.name}
