@@ -1,3 +1,4 @@
+import os
 import pathlib
 import re
 from typing import List, Dict
@@ -49,14 +50,16 @@ class PatternUtils:
         pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
         replacements = {k: PatternUtils.REPLACEMENT_REGEX[k] for k in pattern_keys}
         regex_pattern = pattern.format(**replacements)
-        with open(f'temp_bash.sh', 'w') as fp:
+
+        with open(pathlib.Path(os.getcwd()) / f'temp_bash.sh', 'w') as fp:
             fp.write(" ".join([
-                'grep', '-i', fr'"{regex_pattern}"', files_pattern, '-a',
+                'grep', '-i', fr'"{regex_pattern}"', os.path.join(base_path, files_pattern), '-a',
                 # '> temp_bash_output'
             ]))
 
         IPython.embed()
         exit()
+
         out = subprocess.run(['sh', 'temp_bash.sh'],
                              check=True,
                              stdout=subprocess.PIPE,
