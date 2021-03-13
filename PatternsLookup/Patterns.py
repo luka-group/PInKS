@@ -7,6 +7,7 @@ import IPython
 import nltk
 from tqdm import tqdm
 from allennlp.predictors.predictor import Predictor
+import allennlp_models.tagging
 
 
 class PatternUtils:
@@ -53,7 +54,9 @@ class PatternUtils:
 
         with open(pathlib.Path(os.getcwd()) / f'temp_bash.sh', 'w') as fp:
             fp.write(" ".join([
-                'grep', '-i', fr'"{regex_pattern}"', os.path.join(base_path, files_pattern), '-a',
+                'grep', '-iE', fr'"{regex_pattern}"',
+                os.path.join(base_path, files_pattern),
+                '-a', '> OUT'
                 # '> temp_bash_output'
             ]))
 
@@ -65,23 +68,25 @@ class PatternUtils:
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
 
+        all_matches = []
+        for line in out:
+            m_list = re.findall(regex_pattern, line)
+            for m in m_list:
+                all_matches.append({
+                    'line': line,
+                    'pattern': pattern,
+                    **{k: v for k, v in zip(pattern_keys, m)},
+                })
+
     @staticmethod
-    def check_pattern_in_file(pattern: str, base_path: str, files_pattern: str) -> List[str]:
+    def check_pattern_in_files(pattern: str, base_path: str, files_pattern: str) -> List[str]:
         pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
         replacements = {k: PatternUtils.REPLACEMENT_REGEX[k] for k in pattern_keys}
         regex_pattern = pattern.format(
             **replacements
-            # precondition=PatternUtils.PRECONDITION_REGEX,
-            # action=PatternUtils.FACT_REGEX
         )
 
-        # out = subprocess.run(['grep', '-i', fr'"{regex_pattern}"', files_pattern, '-a'],
-        #                      check=True,
-        #                      stdout=subprocess.PIPE,
-        #                      stderr=subprocess.PIPE)
         all_matches = []
-
-
         for f in tqdm(pathlib.Path(base_path).iterdir(), desc='files'):
             if files_pattern is not None and files_pattern not in str(f):
                 continue
@@ -94,7 +99,7 @@ class PatternUtils:
                             'pattern': pattern,
                             **{k: v for k, v in zip(pattern_keys, m)},
                         })
-        IPython.embed()
+
         parser = Predictor.from_path(
             "https://storage.googleapis.com/allennlp-public-models/structured-prediction-srl-bert.2020.12.15.tar.gz",
             import_plugins=True
@@ -108,17 +113,22 @@ class PatternUtils:
         return all_matches
 
     SINGLE_SENTENCE_DISABLING_PATTERNS = [
-        "{action} unless {precondition}.",
-        "{negative_precondition} (?:so|hence|consequently) {action}.",
+        r"^{action} unless {precondition}\.",
+        r"\. {action} unless {precondition}\.",
+        r"^{any_word} unless {precondition}, {action}\.",
+        r"^{any_word} unless {precondition}, {action}\.",
+        r"{negative_precondition} (?:so|hence|consequently) {action}\.",
     ]
 
+    FACT_REGEX = FACT_REGEX
     REPLACEMENT_REGEX = {
-        'action': r'([\w\-\\\/\+\* ,\']+)',
-        'precondition': r'([\w\-\\\/\+\* ,\']+)',
-        'negative_precondition': r'([\w\-\\\/\+\* ,\']+)',
+        'action': FACT_REGEX,
+        'precondition': FACT_REGEX,
+        'negative_precondition': FACT_REGEX,
+        'any_word': r'[^ ]+',
     }
-    FACT_REGEX = r'([\w\-\\\/\+\* ,\']+)'
-    PRECONDITION_REGEX = r'([\w\-\\\/\+\* ,\']+)'
+
+    # PRECONDITION_REGEX = r'([\w\-\\\/\+\* ,\']+)'
 
     ENABLING_PATTERNS = [
         "{action} only if {precondition}.",
@@ -129,3 +139,7 @@ class PatternUtils:
     DISABLING_WORDS = [
         "unless",
     ]
+
+
+FACT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\* ,\'’%]+)'
+

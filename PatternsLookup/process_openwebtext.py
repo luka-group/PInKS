@@ -17,7 +17,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     files_patern = 'urlsf_subset'
     matches = {}
     for pat in PatternUtils.SINGLE_SENTENCE_DISABLING_PATTERNS:
-        # matches[pat] = PatternUtils.check_pattern_in_file(pat, config.corpus_path, files_patern)
+        # matches[pat] = PatternUtils.check_pattern_in_files(pat, config.corpus_path, files_patern)
         matches[pat] = PatternUtils.check_pattern_in_file_grep(pat, config.corpus_path, files_patern)
     with open(config.output_name, 'w') as fp:
         json.dump(matches, fp)
