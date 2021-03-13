@@ -155,20 +155,24 @@ def extract_all_sentences(config: omegaconf.dictconfig.DictConfig):
 def process_all_sentences(config: omegaconf.dictconfig.DictConfig):
     from Patterns import PatternUtils
     all_sents_path = pathlib.Path(os.getcwd())/pathlib.Path(config.output_names.extract_all_sentences)
-    if not all_sents_path.exists():
-        extract_all_sentences(config)
+
+    assert all_sents_path.exists(), all_sents_path
+    # if not all_sents_path.exists():
+    #     logger.warning(f'Did not find {all_sents_path}')
+    #     extract_all_sentences(config)
 
     # df = pd.read_csv('all_sentences.csv', index_col=False)
     matches = {}
     for p in [
-        r'{action} unless {precondition}\.',
-        # r'{any_word} unless {precondition}, {action}\.',
-        # r'{negative_precondition} (?:so|hence|consequently) {action}\.\.',
+        r'\"{action} unless {precondition}\.\"',
+        r'\"{any_word} unless {precondition}, {action}\.\"',
+        r'\"{any_word} unless {precondition_action}\.\"',
+        # r'\"{negative_precondition} {ENB_CONJ} {action}\.\"',
     ]:
         matches[p] = PatternUtils.check_pattern_in_files(
-            p, base_path=os.getcwd(), files_pattern=all_sents_path
+            p, base_path=os.getcwd(), files_pattern=config.output_names.extract_all_sentences
         )
-        logger.info(f'Found {len(matches[p])} hits on {p}')
+        logger.warning(f'Found {len(matches[p])} hits on {p}')
 
     logger.info(f'Dumping match results')
     with open(config.output_names.process_all_sentences, 'w') as fp:

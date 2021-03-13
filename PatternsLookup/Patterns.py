@@ -10,6 +10,9 @@ from allennlp.predictors.predictor import Predictor
 import allennlp_models.tagging
 
 
+FACT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\* \'’%]{10,})'
+
+
 class PatternUtils:
     @staticmethod
     def get_roles_from_desc(desc: str, prefix: str) -> Dict:
@@ -18,8 +21,9 @@ class PatternUtils:
         else:
             args_dict = dict(re.findall(r'\[([^:]+): ([^\]]+)]', desc))
         return {
-            f'{prefix}_verbs': args_dict.get('V', ''),
-            **{f'{prefix}_arg{i}': args_dict.get(f'ARG{i}', '') for i in range(1, 3)},
+            # f'{prefix}_verbs': args_dict.get('V', ''),
+            **{f'{prefix}_{k}': args_dict.get(k, '') for k in args_dict.keys()},
+            # **{f'{prefix}_arg{p}': args_dict.get(f'ARG{p}', '') for p in ['M-PRD']},
         }
 
     @staticmethod
@@ -105,11 +109,12 @@ class PatternUtils:
             import_plugins=True
         )
 
+        # IPython.embed()
         for match in tqdm(all_matches, desc='SRL'):
             for k in pattern_keys:
                 match[f'parsed_{k}'] = PatternUtils.clean_srl(parser.predict(sentence=match[k]))
 
-        IPython.embed()
+        # IPython.embed()
         return all_matches
 
     SINGLE_SENTENCE_DISABLING_PATTERNS = [
@@ -125,7 +130,11 @@ class PatternUtils:
         'action': FACT_REGEX,
         'precondition': FACT_REGEX,
         'negative_precondition': FACT_REGEX,
-        'any_word': r'[^ ]+',
+        'precondition_action': FACT_REGEX,
+        'any_word': r'[^ \[]{,10}',
+        'ENB_CONJ': r'(?:so|hence|consequently|thus|therefore|'
+                    r'as a result|thus|accordingly|because of that|'
+                    r'as a consequence|as a result)',
     }
 
     # PRECONDITION_REGEX = r'([\w\-\\\/\+\* ,\']+)'
@@ -141,5 +150,5 @@ class PatternUtils:
     ]
 
 
-FACT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\* ,\'’%]+)'
+
 

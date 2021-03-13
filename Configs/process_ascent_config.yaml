@@ -3,8 +3,8 @@ ascent_path: "/nas/home/qasemi/CQplus/Outputs/Corpora/ASCENT/data/kb-05-02-2021.
 method:
 
 output_names:
-  extract_all_sentences: 'all_sentences.jsonl'
-  process_all_sentences: 'matched_sentences.jsonl'
+  extract_all_sentences: 'all_sentences.json'
+  process_all_sentences: 'matched_sentences.json'
   extract_usedfor_sentences: 'usedfor_sentences.csv'
   extract_usedfor_assertions: 'usedfor_assertions.csv'
 
