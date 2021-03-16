@@ -163,16 +163,28 @@ def process_all_sentences(config: omegaconf.dictconfig.DictConfig):
 
     # df = pd.read_csv('all_sentences.csv', index_col=False)
     matches = {}
-    for p in [
-        r'\"{action} unless {precondition}\.\"',
-        r'\"{any_word} unless {precondition}, {action}\.\"',
-        r'\"{any_word} unless {precondition_action}\.\"',
-        # r'\"{negative_precondition} {ENB_CONJ} {action}\.\"',
+    for p, label in [
+
+        [r'{any_word} unless {precondition}, {action}\.', 'CONTRADICT'],
+        [r'{any_word} unless {precondition_action}\.', 'CONTRADICT'],
+        # [r'\"{negative_precondition} {ENB_CONJ} {action}\.\"', 'CONTRADICT'],
+
+        [r'{action} only if {precondition}.', 'ENTAILMENT'],
+        [r'{precondition} {ENB_CONJ} {action}.', 'ENTAILMENT'],
+        [r'{precondition} makes {action} possible.', 'ENTAILMENT'],
+        [r'{action} unless {precondition}\.', 'CONTRADICT'],
     ]:
-        matches[p] = PatternUtils.check_pattern_in_files(
-            p, base_path=os.getcwd(), files_pattern=config.output_names.extract_all_sentences
-        )
-        logger.warning(f'Found {len(matches[p])} hits on {p}')
+        matches[p] = {
+            'examples': PatternUtils.check_pattern_in_files(
+                p, base_path=os.getcwd(), files_pattern=config.output_names.extract_all_sentences
+            ),
+            'labels': label
+        }
+        # IPython.embed()
+        # exit()
+        p_len = len(matches[p]['examples'])
+        # matches[p]['labels'] = label
+        logger.warning(f'Found {p_len} hits on {p}')
 
     logger.info(f'Dumping match results')
     with open(config.output_names.process_all_sentences, 'w') as fp:

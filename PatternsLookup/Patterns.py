@@ -8,6 +8,9 @@ import nltk
 from tqdm import tqdm
 from allennlp.predictors.predictor import Predictor
 import allennlp_models.tagging
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 FACT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\* \'’%]{10,})'
@@ -27,23 +30,24 @@ class PatternUtils:
         }
 
     @staticmethod
-    def clean_srl(d: Dict, prefix: str = '') -> Dict:
+    def clean_srl(d: Dict, prefix: str = '') -> List[Dict]:
         if len(d['verbs']) == 0:
             # print('unable to parse {}'.format(d['words']))
-            return PatternUtils.get_roles_from_desc('', prefix=prefix)
-        elif len(d['verbs']) == 1:
-            return PatternUtils.get_roles_from_desc(d['verbs'][0]['description'], prefix=prefix)
+            return [PatternUtils.get_roles_from_desc('', prefix=prefix)]
+        # elif len(d['verbs']) == 1:
+        #     return PatternUtils.get_roles_from_desc(d['verbs'][0]['description'], prefix=prefix)
 
-        filtered_d = sorted(list(
-            filter(lambda v: v['verb'] not in [],
-                   filter(lambda v: 'description' in v.keys() and 'tags' in v.keys(),
-                          d['verbs']
-                          )
-                   )
-        ),
+        filtered_d = sorted(list(filter(
+            lambda v: v['verb'] not in [],
+            filter(
+                lambda v: 'description' in v.keys() and 'tags' in v.keys(),
+                d['verbs']
+            ))),
             key=lambda v: v['tags'].count('O')
         )
-        return PatternUtils.get_roles_from_desc(filtered_d[0]['description'], prefix=prefix)
+
+        # return PatternUtils.get_roles_from_desc(filtered_d[0]['description'], prefix=prefix)
+        return [PatternUtils.get_roles_from_desc(d['description'], prefix=prefix)for d in filtered_d]
 
     @staticmethod
     def split_sentences(matches: List[str]):
@@ -84,11 +88,18 @@ class PatternUtils:
 
     @staticmethod
     def check_pattern_in_files(pattern: str, base_path: str, files_pattern: str) -> List[str]:
+        logger.info(f'Checking pattern ({pattern}) in files {files_pattern}')
+
         pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
         replacements = {k: PatternUtils.REPLACEMENT_REGEX[k] for k in pattern_keys}
         regex_pattern = pattern.format(
             **replacements
         )
+        try:
+            pattern_keys.remove('{any_word}')
+            pattern_keys.remove('{ENB_CONJ}')
+        except ValueError:
+            pass
 
         all_matches = []
         for f in tqdm(pathlib.Path(base_path).iterdir(), desc='files'):
@@ -98,6 +109,10 @@ class PatternUtils:
                 for line in fp:
                     m_list = re.findall(regex_pattern, line)
                     for m in m_list:
+                        # if (('negative_precondition' in pattern_keys) and
+                        #         not any([nw in line for nw in PatternUtils.NEGATIVE_WORDS])
+                        # ):
+                        #     continue
                         all_matches.append({
                             'line': line,
                             'pattern': pattern,
@@ -112,18 +127,10 @@ class PatternUtils:
         # IPython.embed()
         for match in tqdm(all_matches, desc='SRL'):
             for k in pattern_keys:
-                match[f'parsed_{k}'] = PatternUtils.clean_srl(parser.predict(sentence=match[k]))
+                match[f'parsed_{k}'] = PatternUtils.clean_srl(parser.predict(sentence=match.get(k, '')))
 
         # IPython.embed()
         return all_matches
-
-    SINGLE_SENTENCE_DISABLING_PATTERNS = [
-        r"^{action} unless {precondition}\.",
-        r"\. {action} unless {precondition}\.",
-        r"^{any_word} unless {precondition}, {action}\.",
-        r"^{any_word} unless {precondition}, {action}\.",
-        r"{negative_precondition} (?:so|hence|consequently) {action}\.",
-    ]
 
     FACT_REGEX = FACT_REGEX
     REPLACEMENT_REGEX = {
@@ -137,7 +144,21 @@ class PatternUtils:
                     r'as a consequence|as a result)',
     }
 
+    NEGATIVE_WORDS = [
+        ' not ',
+        ' cannot ',
+        'n\'t ',
+    ]
+
     # PRECONDITION_REGEX = r'([\w\-\\\/\+\* ,\']+)'
+    SINGLE_SENTENCE_DISABLING_PATTERNS = [
+        r"^{action} unless {precondition}\.",
+        r"\. {action} unless {precondition}\.",
+        r"^{any_word} unless {precondition}, {action}\.",
+        r"^{any_word} unless {precondition}, {action}\.",
+        r"{negative_precondition} (?:so|hence|consequently) {action}\.",
+    ]
+
 
     ENABLING_PATTERNS = [
         "{action} only if {precondition}.",
@@ -148,6 +169,8 @@ class PatternUtils:
     DISABLING_WORDS = [
         "unless",
     ]
+
+
 
 
 
