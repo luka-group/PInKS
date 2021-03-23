@@ -8,6 +8,9 @@ output_names:
   extract_usedfor_sentences: 'usedfor_sentences.csv'
   extract_usedfor_assertions: 'usedfor_assertions.csv'
 
+process_all_sentences:
+  do_srl: false
+
 
 predicate: 'used'
 

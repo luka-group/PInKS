@@ -1,3 +1,4 @@
+import json
 import os
 import pathlib
 import re
@@ -11,7 +12,6 @@ import allennlp_models.tagging
 import logging
 
 logger = logging.getLogger(__name__)
-
 
 FACT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\* \'’%]{10,})'
 
@@ -47,7 +47,7 @@ class PatternUtils:
         )
 
         # return PatternUtils.get_roles_from_desc(filtered_d[0]['description'], prefix=prefix)
-        return [PatternUtils.get_roles_from_desc(d['description'], prefix=prefix)for d in filtered_d]
+        return [PatternUtils.get_roles_from_desc(d['description'], prefix=prefix) for d in filtered_d]
 
     @staticmethod
     def split_sentences(matches: List[str]):
@@ -55,7 +55,9 @@ class PatternUtils:
             nltk.sent_tokenize(m)
 
     @staticmethod
-    def check_pattern_in_file_grep(pattern: str, base_path: str, files_pattern: str) -> List[str]:
+    def check_pattern_in_file_grep(pattern: str, base_path: str, files_pattern: str,
+                                   do_srl: bool = False, label: str = '') \
+            -> List[Dict[str, str]]:
         pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
         replacements = {k: PatternUtils.REPLACEMENT_REGEX[k] for k in pattern_keys}
         regex_pattern = pattern.format(**replacements)
@@ -64,30 +66,21 @@ class PatternUtils:
             fp.write(" ".join([
                 'grep', '-iE', fr'"{regex_pattern}"',
                 os.path.join(base_path, files_pattern),
-                '-a', '> OUT'
+                '-a', '> ',
+                os.path.join(os.getcwd(), 'OUT.tmp')
                 # '> temp_bash_output'
             ]))
 
-        IPython.embed()
-        exit()
-
-        out = subprocess.run(['sh', 'temp_bash.sh'],
-                             check=True,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-
-        all_matches = []
-        for line in out:
-            m_list = re.findall(regex_pattern, line)
-            for m in m_list:
-                all_matches.append({
-                    'line': line,
-                    'pattern': pattern,
-                    **{k: v for k, v in zip(pattern_keys, m)},
-                })
+        subprocess.run(['sh', 'temp_bash.sh'], check=True)
+        return PatternUtils.check_pattern_in_files(
+            pattern, base_path=os.getcwd(), files_pattern='OUT.tmp',
+            do_srl=do_srl, label=label
+        )
 
     @staticmethod
-    def check_pattern_in_files(pattern: str, base_path: str, files_pattern: str) -> List[str]:
+    def check_pattern_in_files(pattern: str, base_path: str, files_pattern: str,
+                               do_srl: bool = False, label: str = '') \
+            -> List[Dict[str, str]]:
         logger.info(f'Checking pattern ({pattern}) in files {files_pattern}')
 
         pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
@@ -95,43 +88,92 @@ class PatternUtils:
         regex_pattern = pattern.format(
             **replacements
         )
-        try:
-            pattern_keys.remove('{any_word}')
-            pattern_keys.remove('{ENB_CONJ}')
-        except ValueError:
-            pass
+
+        for k in ['any_word', 'ENB_CONJ']:
+            try:
+                pattern_keys.remove(k)
+            except ValueError:
+                pass
 
         all_matches = []
         for f in tqdm(pathlib.Path(base_path).iterdir(), desc='files'):
             if files_pattern is not None and files_pattern not in str(f):
                 continue
             with open(f, 'r') as fp:
-                for line in fp:
-                    m_list = re.findall(regex_pattern, line)
-                    for m in m_list:
-                        # if (('negative_precondition' in pattern_keys) and
-                        #         not any([nw in line for nw in PatternUtils.NEGATIVE_WORDS])
-                        # ):
-                        #     continue
-                        all_matches.append({
-                            'line': line,
-                            'pattern': pattern,
-                            **{k: v for k, v in zip(pattern_keys, m)},
-                        })
+                for line in tqdm(fp, desc='lines'):
+                    # m_list = re.findall(regex_pattern, line)
+                    # jline = json.loads(line)
+                    # for m in m_list:
+                    #     flags = []
+                    #     if (('negative_precondition' in pattern_keys) and
+                    #             not any([nw in line for nw in PatternUtils.NEGATIVE_WORDS])):
+                    #         flags.append('NO_NEG')
+                    #
+                    #     match_sent = line
+                    #     for sent in jline['sources']:
+                    #         if all([ps in sent for ps in m]):
+                    #             match_sent = sent
+                    #
+                    #     new_match = {
+                    #         'line': match_sent,
+                    #         'pattern': pattern,
+                    #         'label': label,
+                    #         **jline,
+                    #         **{k: v for k, v in zip(pattern_keys, m)},
+                    #         'flags': flags,
+                    #     }
+                    fix_d = {
+                        'pattern': pattern,
+                        'label': label
+                    }
+                    for new_match in PatternUtils.find_matches_in_line(line=line, regex_pattern=regex_pattern,
+                                                                       pattern_keys=pattern_keys):
+                        all_matches.append({**new_match, **fix_d})
 
+        if do_srl:
+            PatternUtils.process_matches_with_srl(all_matches, pattern_keys)
+        else:
+            logger.warning(f'Skipping SRL')
+
+        return all_matches
+
+    @staticmethod
+    def process_matches_with_srl(all_matches, pattern_keys):
         parser = Predictor.from_path(
             "https://storage.googleapis.com/allennlp-public-models/structured-prediction-srl-bert.2020.12.15.tar.gz",
             import_plugins=True
         )
-
         # IPython.embed()
         for match in tqdm(all_matches, desc='SRL'):
             for k in pattern_keys:
                 match[f'parsed_{k}'] = PatternUtils.clean_srl(parser.predict(sentence=match.get(k, '')))
 
-        # IPython.embed()
-        return all_matches
+    @staticmethod
+    def find_matches_in_line(line: str, regex_pattern: str, pattern_keys: List[str]):
+        m_list = re.findall(regex_pattern, line)
+        jline = json.loads(line)
+        for m in m_list:
+            flags = []
+            if any([nw in line for nw in PatternUtils.NEGATIVE_WORDS]):
+                if 'negative_precondition' not in pattern_keys:
+                    flags.append('HAS_NEG')
+            else:
+                if 'negative_precondition' in pattern_keys:
+                    flags.append('NO_NEG')
 
+            match_sent = jline['sources']
+            for sent in jline['sources']:
+                if all([ps in sent for ps in m]):
+                    match_sent = sent
+
+            yield {
+                'line': match_sent,
+                **jline,
+                **{k: v for k, v in zip(pattern_keys, m)},
+                'flags': flags,
+            }
+
+    #################################################################################
     FACT_REGEX = FACT_REGEX
     REPLACEMENT_REGEX = {
         'action': FACT_REGEX,
@@ -148,6 +190,7 @@ class PatternUtils:
         ' not ',
         ' cannot ',
         'n\'t ',
+        ' don\\u2019t '
     ]
 
     # PRECONDITION_REGEX = r'([\w\-\\\/\+\* ,\']+)'
@@ -159,7 +202,6 @@ class PatternUtils:
         r"{negative_precondition} (?:so|hence|consequently) {action}\.",
     ]
 
-
     ENABLING_PATTERNS = [
         "{action} only if {precondition}.",
         "{precondition} (?:so|hence|consequently) {action}.",
@@ -169,9 +211,3 @@ class PatternUtils:
     DISABLING_WORDS = [
         "unless",
     ]
-
-
-
-
-
-

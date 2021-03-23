@@ -157,38 +157,31 @@ def process_all_sentences(config: omegaconf.dictconfig.DictConfig):
     all_sents_path = pathlib.Path(os.getcwd())/pathlib.Path(config.output_names.extract_all_sentences)
 
     assert all_sents_path.exists(), all_sents_path
-    # if not all_sents_path.exists():
-    #     logger.warning(f'Did not find {all_sents_path}')
-    #     extract_all_sentences(config)
 
-    # df = pd.read_csv('all_sentences.csv', index_col=False)
     matches = {}
     for p, label in [
-
-        [r'{any_word} unless {precondition}, {action}\.', 'CONTRADICT'],
-        [r'{any_word} unless {precondition_action}\.', 'CONTRADICT'],
-        # [r'\"{negative_precondition} {ENB_CONJ} {action}\.\"', 'CONTRADICT'],
+        [r'{negative_precondition} {ENB_CONJ} {action}\.', 'CONTRADICT'],
+        [r'\. {any_word} unless {precondition}, {action}\.', 'CONTRADICT'],
+        [r'{precondition} makes {action} impossible.', 'CONTRADICT'],
+        [r'{action} unless {precondition}\.', 'CONTRADICT'],
+        # [r'{any_word} unless {precondition_action}\.', 'CONTRADICT'],
 
         [r'{action} only if {precondition}.', 'ENTAILMENT'],
         [r'{precondition} {ENB_CONJ} {action}.', 'ENTAILMENT'],
         [r'{precondition} makes {action} possible.', 'ENTAILMENT'],
-        [r'{action} unless {precondition}\.', 'CONTRADICT'],
     ]:
-        matches[p] = {
-            'examples': PatternUtils.check_pattern_in_files(
-                p, base_path=os.getcwd(), files_pattern=config.output_names.extract_all_sentences
-            ),
-            'labels': label
-        }
-        # IPython.embed()
-        # exit()
-        p_len = len(matches[p]['examples'])
-        # matches[p]['labels'] = label
+        matches[p] = PatternUtils.check_pattern_in_file_grep(
+                p, base_path=os.getcwd(), files_pattern=config.output_names.extract_all_sentences,
+                do_srl=config.process_all_sentences.do_srl, label=label)
+
+        p_len = len(matches[p])
         logger.warning(f'Found {p_len} hits on {p}')
 
     logger.info(f'Dumping match results')
     with open(config.output_names.process_all_sentences, 'w') as fp:
         json.dump(matches, fp)
+
+    df = pd.DataFrame()
 
 
 @hydra.main(config_path='../Configs/process_ascent_config.yaml')
