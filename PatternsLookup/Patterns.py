@@ -2,7 +2,7 @@ import json
 import os
 import pathlib
 import re
-from typing import List, Dict
+from typing import List, Dict, Generator
 import subprocess
 import IPython
 import nltk
@@ -71,7 +71,12 @@ class PatternUtils:
                 # '> temp_bash_output'
             ]))
 
-        subprocess.run(['sh', 'temp_bash.sh'], check=True)
+        try:
+            subprocess.run(['sh', 'temp_bash.sh'], check=True)
+        except subprocess.CalledProcessError as e:
+            logger.error(f'Failed grep (code {e}). Search using iterative method.')
+            return PatternUtils.check_pattern_in_files(pattern, base_path, files_pattern, do_srl, label)
+
         return PatternUtils.check_pattern_in_files(
             pattern, base_path=os.getcwd(), files_pattern='OUT.tmp',
             do_srl=do_srl, label=label
@@ -101,27 +106,6 @@ class PatternUtils:
                 continue
             with open(f, 'r') as fp:
                 for line in tqdm(fp, desc='lines'):
-                    # m_list = re.findall(regex_pattern, line)
-                    # jline = json.loads(line)
-                    # for m in m_list:
-                    #     flags = []
-                    #     if (('negative_precondition' in pattern_keys) and
-                    #             not any([nw in line for nw in PatternUtils.NEGATIVE_WORDS])):
-                    #         flags.append('NO_NEG')
-                    #
-                    #     match_sent = line
-                    #     for sent in jline['sources']:
-                    #         if all([ps in sent for ps in m]):
-                    #             match_sent = sent
-                    #
-                    #     new_match = {
-                    #         'line': match_sent,
-                    #         'pattern': pattern,
-                    #         'label': label,
-                    #         **jline,
-                    #         **{k: v for k, v in zip(pattern_keys, m)},
-                    #         'flags': flags,
-                    #     }
                     fix_d = {
                         'pattern': pattern,
                         'label': label
@@ -149,29 +133,50 @@ class PatternUtils:
                 match[f'parsed_{k}'] = PatternUtils.clean_srl(parser.predict(sentence=match.get(k, '')))
 
     @staticmethod
-    def find_matches_in_line(line: str, regex_pattern: str, pattern_keys: List[str]):
+    def find_matches_in_line(line: str, regex_pattern: str, pattern_keys: List[str]) \
+            -> Generator[Dict[str, str], None, None]:
         m_list = re.findall(regex_pattern, line)
         jline = json.loads(line)
         for m in m_list:
-            flags = []
-            if any([nw in line for nw in PatternUtils.NEGATIVE_WORDS]):
-                if 'negative_precondition' not in pattern_keys:
-                    flags.append('HAS_NEG')
-            else:
-                if 'negative_precondition' in pattern_keys:
-                    flags.append('NO_NEG')
-
-            match_sent = jline['sources']
+            match_full_sent = jline['sources']
             for sent in jline['sources']:
                 if all([ps in sent for ps in m]):
-                    match_sent = sent
+                    match_full_sent = sent
+
+            match_dict = dict(zip(pattern_keys, m))
+
+            flags = []
+            if 'negative_precondition' in pattern_keys:
+                if any([nw in match_dict['negative_precondition'] for nw in PatternUtils.NEGATIVE_WORDS]):
+                    flags.append('NEG_TO_POS')
+                    match_full_sent = PatternUtils.make_sentence_positive(match_full_sent)
+                    match_dict['precondition'] = PatternUtils.make_sentence_positive(match_dict['negative_precondition'])
+                    match_dict.pop('negative_precondition')
+                else:
+                    continue
 
             yield {
-                'line': match_sent,
+                'line': match_full_sent,
                 **jline,
-                **{k: v for k, v in zip(pattern_keys, m)},
+                **match_dict,
                 'flags': flags,
             }
+
+    @staticmethod
+    def make_sentence_positive(sent: str) -> str:
+        negative_dict = {
+            ' not ': ' ',
+            ' cannot ': ' can ',
+            'n\'t ': ' ',
+            ' don\\u2019t ': ' do ',
+            ' doesn\\u2019t ': ' does ',
+        }
+        assert len(negative_dict) == len(PatternUtils.NEGATIVE_WORDS)
+        for kn, pv in negative_dict.items():
+            if kn in sent:
+                sent = sent.replace(kn, pv)
+
+        return sent
 
     #################################################################################
     FACT_REGEX = FACT_REGEX
@@ -190,8 +195,10 @@ class PatternUtils:
         ' not ',
         ' cannot ',
         'n\'t ',
-        ' don\\u2019t '
+        ' don\\u2019t ',
+        ' doesn\\u2019t ',
     ]
+
 
     # PRECONDITION_REGEX = r'([\w\-\\\/\+\* ,\']+)'
     SINGLE_SENTENCE_DISABLING_PATTERNS = [

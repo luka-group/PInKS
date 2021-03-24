@@ -159,6 +159,7 @@ def process_all_sentences(config: omegaconf.dictconfig.DictConfig):
     assert all_sents_path.exists(), all_sents_path
 
     matches = {}
+    df_matches = []
     for p, label in [
         [r'{negative_precondition} {ENB_CONJ} {action}\.', 'CONTRADICT'],
         [r'\. {any_word} unless {precondition}, {action}\.', 'CONTRADICT'],
@@ -177,12 +178,14 @@ def process_all_sentences(config: omegaconf.dictconfig.DictConfig):
         p_len = len(matches[p])
         logger.warning(f'Found {p_len} hits on {p}')
 
-    logger.info(f'Dumping match results')
-    with open(config.output_names.process_all_sentences, 'w') as fp:
-        json.dump(matches, fp)
+        df_matches.append(pd.DataFrame(matches[p]))
 
-    df = pd.DataFrame()
+        logger.info(f'Dumping match results')
+        with open(config.output_names.process_all_sentences, 'w') as fp:
+            json.dump(matches, fp)
 
+    logger.info("Dumping csv file")
+    pd.concat(df_matches, axis=0).to_csv(config.output_names.process_all_sentences.replace('.json', '.csv'))
 
 @hydra.main(config_path='../Configs/process_ascent_config.yaml')
 def main(config: omegaconf.dictconfig.DictConfig):
