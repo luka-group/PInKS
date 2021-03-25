@@ -1,6 +1,9 @@
 weak_cq_path:
 cq_path:
 
+data_stats:
+  counts: [8161,0,48451]
+
 model_setup:
   model_name: ""
   max_length: 400
@@ -8,10 +11,10 @@ model_setup:
 hardware:
   gpus: '3'
   cpu_limit: 16
-  distributed_backend: #'dp' # None
+#  distributed_backend: #'dp' # None
 
 train_setup:
-  do_train: true
+  do_train: false
   batch_size: 4
   accumulate_grad_batches: 4
   max_epochs: 1

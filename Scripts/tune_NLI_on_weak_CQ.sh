@@ -3,6 +3,8 @@
 cd ../Models
 
 python NLIEvaluator.py \
-    benchmark_path='/nas/home/qasemi/CQplus/Outputs/process_ascent' \
+    weak_cq_path='/nas/home/qasemi/CQplus/Outputs/process_ascent/matched_sentences.csv' \
+    cq_path='/nas/home/qasemi/Mowgli-CoreQuisite/outputs/EvaluateBatch/MCQ-2000/BasicBenchmark/test.csv' \
     model_setup.model_name="roberta-large-mnli" \
-    train_setup.do_train=true
+    train_setup.do_train=false \
+    train_setup.batch_size=2

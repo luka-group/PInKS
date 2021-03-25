@@ -187,6 +187,7 @@ def process_all_sentences(config: omegaconf.dictconfig.DictConfig):
     logger.info("Dumping csv file")
     pd.concat(df_matches, axis=0).to_csv(config.output_names.process_all_sentences.replace('.json', '.csv'))
 
+
 @hydra.main(config_path='../Configs/process_ascent_config.yaml')
 def main(config: omegaconf.dictconfig.DictConfig):
     logger.warning(f'Config: {config}')
