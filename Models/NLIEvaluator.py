@@ -41,6 +41,7 @@ class NLIModule(pl.LightningModule):
 
         np_counts = np.array(self.hparams['data_stats']['counts'])
         loss_weights = 1.0-(np_counts/np_counts.sum())
+        logger.info(f'Using weights ({loss_weights}) for the loss function.')
         self.loss_func = nn.CrossEntropyLoss(ignore_index=-1, reduction="mean",
                                              weight=torch.from_numpy(loss_weights).float())
 
@@ -181,7 +182,7 @@ class NLIModule(pl.LightningModule):
         # },
         df['label'] = df['label'].apply(lambda l: {'CONTRADICT': 0, 'ENTAILMENT': 2}[l])
         return DataLoader(
-            ClassificationDataset(df[["text", "label"]].to_dict("record")),
+            ClassificationDataset(df[["text", "label"]].to_dict("records")),
             batch_size=self.hparams['train_setup']['batch_size'], collate_fn=self.collate,
             num_workers=self.hparams['hardware']['cpu_limit']
         )
@@ -204,7 +205,7 @@ class NLIModule(pl.LightningModule):
         df['label'] = df['label'].apply(lambda l: {0: 0, 1: 2}[int(l)])
 
         return DataLoader(
-            ClassificationDataset(df[["text", "label"]].to_dict("record")),
+            ClassificationDataset(df[["text", "label"]].sample(frac=1).to_dict("records")),
             batch_size=self.hparams['train_setup']['batch_size'], collate_fn=self.collate,
             num_workers=self.hparams['hardware']['cpu_limit']
         )
