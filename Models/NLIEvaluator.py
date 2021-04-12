@@ -163,8 +163,26 @@ class NLIModule(pl.LightningModule):
         }
 
     def configure_optimizers(self):
-        optimizer = AdamW(self.parameters(), lr=float(self.hparams['train_setup']["learning_rate"]),
-                          eps=float(self.hparams['train_setup']["adam_epsilon"]))
+        model = self.embedder
+        no_decay = ["bias", "LayerNorm.weight"]
+        optimizer_grouped_parameters = [
+            {
+                "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
+                "weight_decay": self.hparams['train_setup']["weight_decay"],
+            },
+            {
+                "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
+                "weight_decay": 0.0,
+            },
+        ]
+        optimizer = AdamW(optimizer_grouped_parameters,
+                          lr=float(self.hparams['train_setup']["learning_rate"]),
+                          eps=float(self.hparams['train_setup']["adam_epsilon"]),
+                          betas=(0.9, 0.98),
+                          )
+
+        # optimizer = AdamW(self.parameters(), lr=float(self.hparams['train_setup']["learning_rate"]),
+        #                   eps=float(self.hparams['train_setup']["adam_epsilon"]))
 
         return optimizer
 
