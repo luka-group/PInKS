@@ -1,0 +1,35 @@
+lm_module:
+  model_name_or_path: 'distilbert-base-cased'
+#  model_name_or_path: 'distilbert-base-uncased'
+  learning_rate: 5e-5
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1e-8
+
+hardware:
+  gpus: '3'
+
+data_module:
+  train_file:
+  train_batch_size: 2 #4
+
+  validation_file:
+  val_batch_size: 8
+
+  line_by_line: true
+  pad_to_max_length: false
+  preprocessing_num_workers: 4
+  overwrite_cache: false
+  max_seq_length: 256
+  mlm_probability: 0.15 # It is not important
+
+  dataloader_num_workers: 1 #4
+
+  datasetloader_kwargs:
+      skiprows: 0
+  #    column_names: ["line"]
+
+
+hydra:
+  run:
+    dir: /nas/home/qasemi/CQplus/Outputs/${hydra.job.name}

@@ -7,7 +7,7 @@ data_stats:
 
 model_setup:
   model_name: ""
-  max_length: 400
+  max_length: 64
 
 hardware:
   gpus: '3'

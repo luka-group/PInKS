@@ -5,10 +5,10 @@ from functools import partial
 import IPython
 import hydra
 from typing import *
+import omegaconf
 from itertools import cycle
 import os
 
-import omegaconf
 import torch
 import pytorch_lightning as pl
 import torch.nn as nn
@@ -287,26 +287,45 @@ class NLIModule(pl.LightningModule):
 
     # @pl.data_loader
     def train_dataloader(self):
+        logger.info('Loading training data from {}'.format(self.hparams['weak_cq_path']))
+        df: pd.DataFrame = pd.read_csv(self.hparams['weak_cq_path']).fillna('')
+        df["text"] = df.apply(
+            axis=1,
+            func=lambda r: "{} </s></s> {}".format(r['action'], r['precondition'])
+        )
+        # "id2label": {
+        #     "0": "CONTRADICTION",
+        #     "1": "NEUTRAL",
+        #     "2": "ENTAILMENT"
+        # },
+        df['label'] = df['label'].apply(lambda l: {'CONTRADICT': 0, 'ENTAILMENT': 2}[l])
         return DataLoader(
-            self.dataloader(pathlib.Path(self.hparams["benchmark_path"]) / 'train.csv'),
-            batch_size=self.hparams["batch_size"], collate_fn=self.collate,
-            num_workers=self.hparams['cpu_limit']
+            ClassificationDataset(df[["text", "label"]].to_dict("records")),
+            batch_size=self.hparams['train_setup']['batch_size'], collate_fn=self.collate,
+            num_workers=self.hparams['hardware']['cpu_limit']
         )
 
-    # @pl.data_loader
     def val_dataloader(self):
-        return DataLoader(
-            self.dataloader(pathlib.Path(self.hparams["benchmark_path"]) / 'eval.csv'),
-            batch_size=self.hparams["batch_size"], collate_fn=self.collate,
-            num_workers=self.hparams['cpu_limit']
-        )
+        return itertools.islice(self.test_dataloader(label='Validation (10)'), 10)
 
-    # @pl.data_loader
-    def test_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
+    def test_dataloader(self, label='Testing') -> Union[DataLoader, List[DataLoader]]:
+        logger.info('Loading {} data from {}'.format(label, self.hparams['cq_path']))
+        df: pd.DataFrame = pd.read_csv(self.hparams['cq_path']).fillna('')
+        df["text"] = df.apply(
+            axis=1,
+            func=lambda r: "{} </s></s> {}".format(r['question'], r['context'])
+        )
+        # "id2label": {
+        #     "0": "CONTRADICTION",
+        #     "1": "NEUTRAL",
+        #     "2": "ENTAILMENT"
+        # },
+        df['label'] = df['label'].apply(lambda l: {0: 0, 1: 2}[int(l)])
+
         return DataLoader(
-            self.dataloader(pathlib.Path(self.hparams["benchmark_path"]) / 'test.csv'),
-            batch_size=self.hparams["batch_size"], collate_fn=self.collate,
-            num_workers=self.hparams['cpu_limit']
+            ClassificationDataset(df[["text", "label"]].sample(frac=1).to_dict("records")),
+            batch_size=self.hparams['train_setup']['batch_size'], collate_fn=self.collate,
+            num_workers=self.hparams['hardware']['cpu_limit']
         )
 
     def collate(self, examples):
