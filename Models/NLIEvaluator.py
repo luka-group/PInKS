@@ -18,7 +18,7 @@ import numpy as np
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, Dataset
 from transformers import AutoModel, AutoTokenizer, AdamW, get_linear_schedule_with_warmup, \
-    AutoModelForSequenceClassification
+    AutoModelForSequenceClassification, RobertaForSequenceClassification
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score
 
 import logging
@@ -34,32 +34,31 @@ class NLIModule(pl.LightningModule):
         super().__init__()
         self.hparams = dict(config)
 
-        if self.hparams['is_model_path'] is True:
-            self.hparams['model'] = "/nas/home/qasemi/model_cache/{}".format(self.hparams['model'].split('/')[-1])
-
         self.root_path = pathlib.Path(__file__).parent.absolute()
 
-        self.tokenizer = AutoTokenizer.from_pretrained(config["model"], cache_dir="/nas/home/qasemi/model_cache", use_fast=False)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            config["model_setup.model_name"],
+            cache_dir="/nas/home/qasemi/model_cache",
+            use_fast=False
+        )
 
-        self.loss = nn.CrossEntropyLoss(ignore_index=-1, reduction="mean")
+        # self.loss = nn.CrossEntropyLoss(ignore_index=-1, reduction="mean")
 
         self.embedder = AutoModelForSequenceClassification.from_pretrained(
-            config["model"],
+            config["model_setup.model_name"],
             cache_dir="/nas/home/qasemi/model_cache"
         )
 
     def forward(self, batch):
 
         additional_params = {}
-        if "roberta" in self.hparams['model']:
+        if "roberta" in self.hparams['model_setup.model_name']:
             additional_params["token_type_ids"] = None
-        elif "bart" in self.hparams['model']:
+        elif "bart" in self.hparams['model_setup.model_name']:
             pass
         else:
             additional_params["token_type_ids"] = batch["token_type_ids"]
         # batch["token_type_ids"] = None if "roberta" in self.hparams['model'] else batch["token_type_ids"]
-
-
 
         label_dict = {}
         if 'labels' in batch:
@@ -81,7 +80,7 @@ class NLIModule(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         results = self.forward(batch)
         loss = results.loss
-        logits = results.logits
+        # logits = results.logits
         # weighted_loss = self.loss_func(logits, batch["labels"])
         if self.logger is not None:
             self.logger.experiment.add_scalar('train_loss', loss)
@@ -275,9 +274,12 @@ class NLIModule(pl.LightningModule):
             },
         ]
         optimizer = AdamW(optimizer_grouped_parameters,
-                          lr=float(self.hparams.learning_rate),
-                          eps=float(self.hparams.adam_epsilon),
-                          betas=(0.9, 0.98),
+                          lr=float(self.hparams['train_setup.learning_rate']),
+                          eps=float(self.hparams['train_setup.adam_epsilon']),
+                          betas=(
+                              self.hparams['train_setup.beta1'],
+                              self.hparams['train_setup.beta2']
+                            ),
                           )
 
         # optimizer = AdamW(self.parameters(), lr=float(self.hparams["learning_rate"]),
@@ -301,8 +303,8 @@ class NLIModule(pl.LightningModule):
         df['label'] = df['label'].apply(lambda l: {'CONTRADICT': 0, 'ENTAILMENT': 2}[l])
         return DataLoader(
             ClassificationDataset(df[["text", "label"]].to_dict("records")),
-            batch_size=self.hparams['train_setup']['batch_size'], collate_fn=self.collate,
-            num_workers=self.hparams['hardware']['cpu_limit']
+            batch_size=self.hparams['train_setup.batch_size'], collate_fn=self.collate,
+            num_workers=self.hparams['hardware.cpu_limit']
         )
 
     def val_dataloader(self):
@@ -324,8 +326,8 @@ class NLIModule(pl.LightningModule):
 
         return DataLoader(
             ClassificationDataset(df[["text", "label"]].sample(frac=1).to_dict("records")),
-            batch_size=self.hparams['train_setup']['batch_size'], collate_fn=self.collate,
-            num_workers=self.hparams['hardware']['cpu_limit']
+            batch_size=self.hparams['train_setup.batch_size'], collate_fn=self.collate,
+            num_workers=self.hparams['hardware.cpu_limit']
         )
 
     def collate(self, examples):
@@ -335,7 +337,7 @@ class NLIModule(pl.LightningModule):
             df['text'].values.tolist(),
             add_special_tokens=True,
             padding='max_length',
-            max_length=self.hparams["max_length"],
+            max_length=self.hparams["model_setup.max_length"],
             return_tensors='pt',
             return_token_type_ids=True,
             truncation=True,

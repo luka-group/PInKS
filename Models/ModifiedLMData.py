@@ -28,7 +28,7 @@ class LMDataModule(pl.LightningDataModule):
         self.eval_dataset = None
         self.data_collator = None
 
-    def setup(self, stage):
+    def setup(self, stage: Optional[str] = None):
         tokenizer = AutoTokenizer.from_pretrained(
             self.config.lm_module.model_name_or_path,
             cache_dir="/nas/home/qasemi/model_cache",
@@ -96,6 +96,13 @@ class LMDataModule(pl.LightningDataModule):
             num_workers=self.config.data_module.dataloader_num_workers,
         )
 
+    def test_dataloader(self):
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self.config.data_module.train_batch_size,
+            collate_fn=self.data_collator,
+            num_workers=self.config.data_module.dataloader_num_workers,
+        )
     # def val_dataloader(self):
     #     return DataLoader(
     #         self.eval_dataset,

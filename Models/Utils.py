@@ -1,6 +1,9 @@
 from itertools import chain
-from typing import Callable, Union, List, Generator, Iterable
+from typing import Callable, Union, List, Generator, Iterable, Dict
 
+import IPython
+import omegaconf
+import torch
 from torch.utils.data import Dataset
 import pandas as pd
 from tqdm import tqdm
@@ -33,3 +36,24 @@ def my_df_flatmap(df: pd.DataFrame,
         for rr in multrows:
             rows.append(rr)
     return pd.DataFrame.from_records(rows)
+
+
+def config_to_hparams(config) -> Dict[str, Union[str, int, float]]:
+    hparams = {}
+
+    def _setup_hparams(d_conf, prefix: str = ''):
+        key = lambda k: (f'{prefix}.' if prefix != '' else '') + f'{k}'
+        for k, v in dict(d_conf).items():
+            if any([isinstance(v, t) for t in [int, float, str, bool, torch.Tensor]]):
+                hparams[key(k)] = v
+            elif isinstance(v, omegaconf.listconfig.ListConfig):
+                hparams[key(k)] = v
+            elif v is None:
+                hparams[key(k)] = ''
+            elif isinstance(v, omegaconf.dictconfig.DictConfig):
+                _setup_hparams(v, prefix=k)
+            else:
+                raise ValueError(f'invalid config type: [{k}]={v} with type {type(v)}')
+
+    _setup_hparams(config)
+    return hparams

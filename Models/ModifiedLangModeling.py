@@ -24,7 +24,7 @@ from sklearn.metrics import confusion_matrix, f1_score, accuracy_score
 
 # from LMBenchmarkEvaluator import BaseEvaluationModule
 from ModifiedLMData import LMDataModule
-from Utils import ClassificationDataset
+from Utils import ClassificationDataset, config_to_hparams
 
 import logging
 logger = logging.getLogger(__name__)
@@ -33,25 +33,27 @@ logger = logging.getLogger(__name__)
 class ModifiedLMModule(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
-        self._setup_hparams(config)
+        self.hparams = config_to_hparams(config)
+        logger.info(f'hparams: {self.hparams}')
+        self.save_hyperparameters()
 
         self.model = AutoModelForMaskedLM.from_pretrained(
-            config['lm_module']["model_name_or_path"],
+            self.hparams['lm_module.model_name_or_path'],
             cache_dir="/nas/home/qasemi/model_cache"
         )
 
-    def _setup_hparams(self, config, prefix: str = ''):
-        key = lambda k: (f'{prefix}.' if prefix != '' else '') + f'{k}'
-        for k, v in dict(config).items():
-            if any([isinstance(v, t) for t in [int, float, str, bool, torch.Tensor]]):
-                self.hparams[key(k)] = v
-            elif v is None:
-                self.hparams[key(k)] = ''
-            elif isinstance(v, omegaconf.dictconfig.DictConfig):
-                # [self.hparams.__setitem__(f'{k}.{kk}', vv) for kk, vv in v.items()]
-                self._setup_hparams(v, prefix=k)
-            else:
-                raise ValueError(f'invalid config type: [{k}]={v} with type {type(v)}')
+    # def _setup_hparams(self, config, prefix: str = ''):
+    #     key = lambda k: (f'{prefix}.' if prefix != '' else '') + f'{k}'
+    #     for k, v in dict(config).items():
+    #         if any([isinstance(v, t) for t in [int, float, str, bool, torch.Tensor]]):
+    #             self.hparams[key(k)] = v
+    #         elif v is None:
+    #             self.hparams[key(k)] = ''
+    #         elif isinstance(v, omegaconf.dictconfig.DictConfig):
+    #             # [self.hparams.__setitem__(f'{k}.{kk}', vv) for kk, vv in v.items()]
+    #             self._setup_hparams(v, prefix=k)
+    #         else:
+    #             raise ValueError(f'invalid config type: [{k}]={v} with type {type(v)}')
 
     def forward(self, x):
         return self.model(x).logits
@@ -95,23 +97,26 @@ def main(config: omegaconf.dictconfig.DictConfig):
     # out = lmmodel.training_step(batch, 0)
     # IPython.embed()
     # exit()
-
+    # lmmodel.load_from_checkpoint('~/CQplus/Outputs/ModifiedLangModeling/lightning_logs/version_1/checkpoints/epoch=0-step=28305.ckpt')
 
     # ------------
     # training
     # ------------
     trainer = pl.Trainer(
         gradient_clip_val=0,
-        # gpus=config['hardware']['gpus'],
+        gpus=config['hardware']['gpus'],
         # gpus='',
         max_epochs=1,
         min_epochs=1,
         resume_from_checkpoint=None,
         distributed_backend=None,
+        accumulate_grad_batches=config['trainer_args']['accumulate_grad_batches'],
+        limit_train_batches=config['trainer_args']['limit_train_batches'],
     )
 
     trainer.fit(lmmodel, datamodule=data_module)
-    # trainer.test(lmmodel, datamodule=data_module)
+    trainer.save_checkpoint('Checkpoint/ModifiedLMModule.ckpt')
+    trainer.test(lmmodel, datamodule=data_module)
 
 
 if __name__ == '__main__':
