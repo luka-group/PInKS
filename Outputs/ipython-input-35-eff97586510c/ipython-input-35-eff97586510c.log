@@ -1,0 +1,10 @@
+[2021-06-21 13:02:19,462][Patterns][INFO] - Checking pattern (^{action} unless {precondition}\.) in files test
+[2021-06-21 13:02:19,754][Patterns][WARNING] - Skipping SRL
+[2021-06-21 13:02:19,757][Patterns][INFO] - Checking pattern (\. {action} unless {precondition}\.) in files test
+[2021-06-21 13:02:20,163][Patterns][WARNING] - Skipping SRL
+[2021-06-21 13:02:20,166][Patterns][INFO] - Checking pattern (^{any_word} unless {precondition}, {action}\.) in files test
+[2021-06-21 13:02:20,528][Patterns][WARNING] - Skipping SRL
+[2021-06-21 13:02:20,530][Patterns][INFO] - Checking pattern (^{any_word} unless {precondition}, {action}\.) in files test
+[2021-06-21 13:02:21,302][Patterns][WARNING] - Skipping SRL
+[2021-06-21 13:02:21,305][Patterns][INFO] - Checking pattern ({negative_precondition} (?:so|hence|consequently) {action}\.) in files test
+[2021-06-21 13:02:22,633][Patterns][WARNING] - Skipping SRL
