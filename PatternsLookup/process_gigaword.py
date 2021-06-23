@@ -28,36 +28,3 @@ def main(config: omegaconf.dictconfig.DictConfig):
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-# base_path=r"C:\Users\Dell\Desktop\Piyush\USC-CQ\Gigaword10k_msft\org_data\test_src"
-
-
-# for f in tqdm(pathlib.Path(base_path).iterdir(), desc='files'):
-#     if files_pattern is not None and files_pattern not in str(f):
-#         continue
-#     with open(f, 'r') as fp:
-#         for line in tqdm(fp, desc='lines'):
-#             print(line)
-#             for sent in line:
-#                 print(sent)
-#                 # for ps in sent:
-#                 #     print(ps)
-#                 break
-                
-                
-#             fix_d = {
-#                 'pattern': pattern,
-#                 'label': label
-#             }
-#             for new_match in PatternUtils.find_matches_in_line(line=line, regex_pattern=regex_pattern,
-#                                                                pattern_keys=pattern_keys):
-#                 all_matches.append({**new_match, **fix_d})
-
-
-# for f in tqdm(pathlib.Path(base_path).iterdir(), desc='files'):
-#     if files_pattern is not None and files_pattern not in str(f):
-#         continue
