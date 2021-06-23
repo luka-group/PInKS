@@ -28,6 +28,13 @@ REPLACEMENT_REGEX = {
 
 # pattern = "{action} unless {precondition}"
 
+NEGATIVE_WORDS = [
+    ' not ',
+    ' cannot ',
+    'n\'t ',
+    ' don\\u2019t ',
+    ' doesn\\u2019t ',
+]
 
 
 
@@ -55,6 +62,10 @@ def pattern_exists(pattern,sent):
     replacements = {k: REPLACEMENT_REGEX[k] for k in pattern_keys}    
     regex_pattern = pattern.format(**replacements)
     m_list = re.findall(regex_pattern, sent)
+    
+    if 'negative_precondition' in pattern_keys:
+                if not(any([nw in sent for nw in PatternUtils.NEGATIVE_WORDS])):
+                    return False
     if len(m_list)>0:
         return True
     return False
