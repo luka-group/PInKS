@@ -7,8 +7,10 @@ import hydra
 import omegaconf
 import pytorch_lightning as pl
 import torch
+
 from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from transformers.models.roberta.modeling_roberta import RobertaClassificationHead
 
 from ModifiedLangModeling import ModifiedLMModule
 from NLIEvaluator import NLIModule
@@ -31,7 +33,7 @@ class NLILMModule(NLIModule):
             use_fast=False
         )
 
-        # self.loss = nn.CrossEntropyLoss(ignore_index=-1, reduction="mean")
+        # self.loss = torch.nn.CrossEntropyLoss(ignore_index=-1, reduction="mean")
 
         self.embedder = AutoModelForSequenceClassification.from_pretrained(
             self.hparams["model_setup.model_name"],
@@ -40,8 +42,55 @@ class NLILMModule(NLIModule):
 
         assert self.hparams['model_setup.tuned_model_path'] is not None
         assert 'roberta' in self.hparams["model_setup.model_name"]
-        tuned_lm = ModifiedLMModule.load_from_checkpoint(self.hparams['model_setup.tuned_model_path'])
-        self.embedder.roberta = tuned_lm.model
+        self.tuned_lm = ModifiedLMModule.load_from_checkpoint(self.hparams['model_setup.tuned_model_path'])
+
+        # self._test_method()
+        self.embedder.roberta = self.tuned_lm.model.roberta
+
+    # def _test_method(self):
+    #     loader = self.train_dataloader()
+    #     batch = next(iter(loader))
+    #     input_ids = batch["input_ids"]
+    #     attention_mask = batch["attention_mask"]
+    #     token_type_ids = None
+    #     position_ids = None
+    #     head_mask = None
+    #     inputs_embeds = None
+    #     labels = batch['labels']
+    #     output_attentions = None
+    #     output_hidden_states = None
+    #     return_dict = None
+    #     return_dict = return_dict if return_dict is not None else self.embedder.config.use_return_dict
+    #
+    #     IPython.embed()
+    #     exit()
+    #     orig_output = self.embedder.roberta(
+    #         input_ids,
+    #         attention_mask=attention_mask,
+    #         token_type_ids=token_type_ids,
+    #         position_ids=position_ids,
+    #         head_mask=head_mask,
+    #         inputs_embeds=inputs_embeds,
+    #         output_attentions=output_attentions,
+    #         output_hidden_states=output_hidden_states,
+    #         return_dict=return_dict,
+    #     )
+    #
+    #     modf_output = self.tuned_lm.model(
+    #         input_ids,
+    #         attention_mask=attention_mask,
+    #         token_type_ids=token_type_ids,
+    #         position_ids=position_ids,
+    #         head_mask=head_mask,
+    #         inputs_embeds=inputs_embeds,
+    #         output_attentions=output_attentions,
+    #         output_hidden_states=output_hidden_states,
+    #         return_dict=return_dict,
+    #     )
+    #
+    #
+    #     exit()
+    #
 
 
 class Weak2CqNliData(pl.LightningDataModule):
@@ -97,15 +146,6 @@ class Weak2CqNliData(pl.LightningDataModule):
 def main(config: omegaconf.dictconfig.DictConfig):
     _module = NLILMModule(config)
 
-    loader = _module.train_dataloader()
-    batch = next(iter(loader))
-    IPython.embed()
-    exit()
-    # IPython.embed()
-    # exit()
-    output = _module.forward(batch)
-    output = _module.training_step(batch, 0)
-
     trainer = pl.Trainer(
         gradient_clip_val=0,
         gpus=config['hardware']['gpus'],
@@ -119,9 +159,17 @@ def main(config: omegaconf.dictconfig.DictConfig):
         distributed_backend=None,
     )
 
+    # logger.info(f'Zero shot results')
+    # _module.extra_tag = 'zero'
+    # trainer.test(_module)
+
+    logger.info('Tuning')
+    _module.extra_tag = 'fit'
     if config['train_setup']['do_train'] is True:
         trainer.fit(_module)
 
+    logger.info('Tuned Results')
+    _module.extra_tag = 'tuned'
     trainer.test(_module)
 
 

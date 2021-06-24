@@ -24,7 +24,7 @@ from sklearn.metrics import confusion_matrix, f1_score, accuracy_score
 import logging
 
 # from LMBenchmarkEvaluator import BaseEvaluationModule
-from Utils import ClassificationDataset
+from Utils import ClassificationDataset, config_to_hparams
 
 logger = logging.getLogger(__name__)
 
@@ -32,20 +32,17 @@ logger = logging.getLogger(__name__)
 class NLIModule(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
-        self.hparams = dict(config)
-
-        self.root_path = pathlib.Path(__file__).parent.absolute()
+        self.hparams = config_to_hparams(config)
+        self.extra_tag = ''
 
         self.tokenizer = AutoTokenizer.from_pretrained(
-            config["model_setup.model_name"],
+            self.hparams["model_setup.model_name"],
             cache_dir="/nas/home/qasemi/model_cache",
             use_fast=False
         )
 
-        # self.loss = nn.CrossEntropyLoss(ignore_index=-1, reduction="mean")
-
         self.embedder = AutoModelForSequenceClassification.from_pretrained(
-            config["model_setup.model_name"],
+            self.hparams["model_setup.model_name"],
             cache_dir="/nas/home/qasemi/model_cache"
         )
 
@@ -106,11 +103,11 @@ class NLIModule(pl.LightningModule):
         }
 
     def validation_epoch_end(self, outputs: List[Any]) -> None:
-        mytag = 'val'
+        mytag = f'val'
         self._collect_evaluation_results(outputs, mytag)
 
     def test_epoch_end(self, outputs: List[Any]) -> None:
-        mytag = 'test'
+        mytag = f'test'
         self._collect_evaluation_results(outputs, mytag)
 
     def _get_predicate_from_text(self, text: str) -> str:
@@ -204,19 +201,19 @@ class NLIModule(pl.LightningModule):
         )
 
         # terminal logs
-        logger.info(f'{spl_name}_{predicate}_acc={_val_acc}')
-        logger.info(f'{spl_name}_{predicate}_loss={_loss_mean}')
-        logger.info(f'{spl_name}_{predicate}_f1={_f1_score}')
-        logger.info(f'{spl_name}_{predicate}_conf_matrx: \n{_conf_matrix}')
+        logger.info(f'{self.extra_tag}_{spl_name}_{predicate}_acc={_val_acc}')
+        logger.info(f'{self.extra_tag}_{spl_name}_{predicate}_loss={_loss_mean}')
+        logger.info(f'{self.extra_tag}_{spl_name}_{predicate}_f1={_f1_score}')
+        logger.info(f'{self.extra_tag}_{spl_name}_{predicate}_conf_matrx: \n{_conf_matrix}')
 
         # PL logs
-        self.logger.experiment.add_scalar(f'total_{spl_name}_{predicate}_loss', _loss_mean)
-        self.logger.experiment.add_scalar(f'total_{spl_name}_{predicate}_acc', _val_acc)
-        self.logger.experiment.add_scalar(f'{spl_name}_{predicate}_f1_macro', _f1_score)
+        self.logger.experiment.add_scalar(f'{self.extra_tag}_total_{spl_name}_{predicate}_loss', _loss_mean)
+        self.logger.experiment.add_scalar(f'{self.extra_tag}_total_{spl_name}_{predicate}_acc', _val_acc)
+        self.logger.experiment.add_scalar(f'{self.extra_tag}_{spl_name}_{predicate}_f1_macro', _f1_score)
 
         # dump csv files
-        df_errors.to_csv(f'{spl_name}_{predicate}_errors.csv')
-        df.to_csv(f"{spl_name}_{predicate}_dump.csv")
+        df_errors.to_csv(f'{self.extra_tag}_{spl_name}_{predicate}_errors.csv')
+        df.to_csv(f"{self.extra_tag}_{spl_name}_{predicate}_dump.csv")
 
         # preparing output
         per_predicate_results = {
@@ -266,7 +263,7 @@ class NLIModule(pl.LightningModule):
         optimizer_grouped_parameters = [
             {
                 "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
-                "weight_decay": self.hparams.weight_decay,
+                "weight_decay": self.hparams['train_setup.weight_decay'],
             },
             {
                 "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
@@ -357,18 +354,9 @@ class NLIModule(pl.LightningModule):
 def main(config: omegaconf.dictconfig.DictConfig):
     _module = NLIModule(config)
 
-    # loader = _module.train_dataloader()
-    # IPython.embed()
-    # exit()
-    # batch = next(iter(loader))
-    # IPython.embed()
-    # exit()
-    # output = _module.forward(batch)
-    # output = _module.training_step(batch, 0)
-
     trainer = pl.Trainer(
         gradient_clip_val=0,
-        gpus=config['hardware']['gpus'],
+        gpus=str(config['hardware']['gpus']),
         accumulate_grad_batches=config['train_setup']["accumulate_grad_batches"],
         max_epochs=config['train_setup']["max_epochs"],
         min_epochs=1,
@@ -379,9 +367,17 @@ def main(config: omegaconf.dictconfig.DictConfig):
         distributed_backend=None,
     )
 
+    logger.info(f'Zero shot results')
+    _module.extra_tag = 'zero'
+    trainer.test(_module)
+
+    logger.info('Tuning')
+    _module.extra_tag = 'fit'
     if config['train_setup']['do_train'] is True:
         trainer.fit(_module)
 
+    logger.info('Tuned Results')
+    _module.extra_tag = 'tuned'
     trainer.test(_module)
 
 
