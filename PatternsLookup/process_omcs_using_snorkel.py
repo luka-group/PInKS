@@ -127,7 +127,10 @@ def main(config: omegaconf.dictconfig.DictConfig):
     omcs_df["label"] = label_model.predict(L=L_omcs, tie_break_policy="abstain")
     
     omcs_df = omcs_df[omcs_df.label != ABSTAIN]
-    
+        
+    print("Config output name:")
+    print(config.output_name)
+
     omcs_df.to_csv(config.output_name)
     
     count = omcs_df["label"].value_counts()
