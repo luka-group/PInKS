@@ -5,4 +5,4 @@ snorkel_epochs: 200
 
 hydra:
   run:
-    dir: /nas/home/pkhanna/Outputs/snorkel_${hydra.job.name}
+    dir: /nas/home/pkhanna/CQplus/Outputs/snorkel_${hydra.job.name}
