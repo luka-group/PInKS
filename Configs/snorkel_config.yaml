@@ -1,0 +1,8 @@
+corpus_path: \nas\home\pkhanna\omcs\omcs-sentences-more.txt
+output_name: snorkel_matches.csv
+snorkel_epochs: 200
+
+
+hydra:
+  run:
+    dir: ../Outputs/snorkel_${hydra.job.name}
