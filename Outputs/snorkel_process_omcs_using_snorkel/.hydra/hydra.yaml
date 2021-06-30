@@ -1,6 +1,6 @@
 hydra:
   run:
-    dir: ../Outputs/snorkel_${hydra.job.name}
+    dir: /nas/home/pkhanna/CQplus/Outputs/snorkel_${hydra.job.name}
   sweep:
     dir: multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
     subdir: ${hydra.job.num}
