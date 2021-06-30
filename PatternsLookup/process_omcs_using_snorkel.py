@@ -77,7 +77,7 @@ def pattern_exists(pattern,sent):
     pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
     replacements = {k: REPLACEMENT_REGEX[k] for k in pattern_keys}    
     regex_pattern = pattern.format(**replacements)
-    m_list = re.findall(regex_pattern, sent)
+    m_list = re.findall(regex_pattern, str(sent))
     
     if 'negative_precondition' in pattern_keys:
                 if not(any([nw in sent for nw in PatternUtils.NEGATIVE_WORDS])):
@@ -90,7 +90,7 @@ def pattern_exists(pattern,sent):
 
 @labeling_function()
 def is_a_kind_of(x):
-    return NOT_RELEVANT if "is a kind of" in x.text.lower() else ABSTAIN
+    return NOT_RELEVANT if "is a kind of" in str(x.text).lower() else ABSTAIN
 
 @labeling_function()
 def single_sent_disabling_pat1(x):
