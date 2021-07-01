@@ -124,6 +124,7 @@ lfs = [single_sent_disabling_pat1, single_sent_disabling_pat2,is_a_kind_of]
 @hydra.main(config_path="../Configs", config_name="snorkel_config")
 def main(config: omegaconf.dictconfig.DictConfig):
     omcs_df = pd.read_csv(config.corpus_path, sep="\t", error_bad_lines=False)
+    omcs_df['text'] = omcs_df['text'].astype(str)
     
     applier = PandasLFApplier(lfs)
     L_omcs = applier.apply(omcs_df)
