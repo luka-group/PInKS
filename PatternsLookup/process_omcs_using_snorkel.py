@@ -73,15 +73,23 @@ NOT_RELEVANT = 0
 RELEVANT = 1
 
 
-def pattern_exists(pattern,sent):
+def pattern_exists(pattern,line):
     pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
     replacements = {k: REPLACEMENT_REGEX[k] for k in pattern_keys}    
     regex_pattern = pattern.format(**replacements)
-    m_list = re.findall(regex_pattern, str(sent))
+    m_list = re.findall(regex_pattern, line)
     
-    if 'negative_precondition' in pattern_keys:
-                if not(any([nw in sent for nw in PatternUtils.NEGATIVE_WORDS])):
-                    return False
+    
+    for m in m_list:
+        match_full_sent = line
+        for sent in line:
+            if all([ps in sent for ps in m]):
+                match_full_sent = sent
+    
+        match_dict = dict(zip(pattern_keys, m))
+        if 'negative_precondition' in pattern_keys:
+                    if not(any([nw in match_dict['negative_precondition'] for nw in PatternUtils.NEGATIVE_WORDS])):
+                        return False
     if len(m_list)>0:
         return True
     return False
@@ -90,7 +98,7 @@ def pattern_exists(pattern,sent):
 
 @labeling_function()
 def is_a_kind_of(x):
-    return NOT_RELEVANT if "is a kind of" in str(x.text).lower() else ABSTAIN
+    return NOT_RELEVANT if "is a kind of" in x.text.lower() else ABSTAIN
 
 @labeling_function()
 def single_sent_disabling_pat1(x):
@@ -116,7 +124,6 @@ lfs = [single_sent_disabling_pat1, single_sent_disabling_pat2,is_a_kind_of]
 @hydra.main(config_path="../Configs", config_name="snorkel_config")
 def main(config: omegaconf.dictconfig.DictConfig):
     omcs_df = pd.read_csv(config.corpus_path, sep="\t", error_bad_lines=False)
-    omcs_df['text'] = omcs_df['text'].astype(str)
     
     applier = PandasLFApplier(lfs)
     L_omcs = applier.apply(omcs_df)
@@ -127,10 +134,8 @@ def main(config: omegaconf.dictconfig.DictConfig):
     omcs_df["label"] = label_model.predict(L=L_omcs, tie_break_policy="abstain")
     
     omcs_df = omcs_df[omcs_df.label != ABSTAIN]
-        
-    print("Config output name:")
+    
     print(config.output_name)
-
     omcs_df.to_csv(config.output_name)
     
     count = omcs_df["label"].value_counts()
