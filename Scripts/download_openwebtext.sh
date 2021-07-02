@@ -1,7 +1,7 @@
 mkdir -p ../Outputs/Corpora/OpenWebText
 
 # Download openwebtext from google drive
-./gdown.pl https://drive.google.com/u/0/uc?export=download&confirm=DUDo&id=1EA5V0oetDCOke7afsktL_JDQ-ETtNOvx openwebtext.tar.xz
+wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1EA5V0oetDCOke7afsktL_JDQ-ETtNOvx' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1EA5V0oetDCOke7afsktL_JDQ-ETtNOvx" -O openwebtext.tar.xz && rm -rf /tmp/cookies.txt
 mv openwebtext.tar.xz ../Outputs/Corpora/OpenWebText/
 
 # Go to the outputs folder
