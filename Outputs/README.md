@@ -1,5 +1,6 @@
 "Unless" count in datasets:
 1. omcs-sentences-more.txt= 271
+2. omcs-sentences-free.txt= 270
 
 The output folder contains results of the experiments:
 1. dev_ipython-input-40-c2ac3a0f9482= Regex matches on the Gigaword dev set.
