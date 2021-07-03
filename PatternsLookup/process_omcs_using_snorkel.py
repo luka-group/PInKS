@@ -65,12 +65,23 @@ SINGLE_SENTENCE_DISABLING_PATTERNS2 = [
     r"{negative_precondition} (?:so|hence|consequently) {action}\.",
 ]
 
+ENABLING_PATTERNS = [
+    "{action} only if {precondition}.",
+    "{precondition} (?:so|hence|consequently) {action}.",
+    "{precondition} makes {action} possible.",
+]
+
+DISABLING_WORDS = [
+    "unless",
+]
+
+
 
 
 
 ABSTAIN = -1
-NOT_RELEVANT = 0
-RELEVANT = 1
+DISABLING = 0
+ENABLING = 1
 
 
 def pattern_exists(pattern,line):
@@ -96,29 +107,54 @@ def pattern_exists(pattern,line):
 
 
 
-@labeling_function()
-def is_a_kind_of(x):
-    return NOT_RELEVANT if "is a kind of" in x.text.lower() else ABSTAIN
+# @labeling_function()
+# def is_a_kind_of(x):
+#     return NOT_RELEVANT if "is a kind of" in x.text.lower() else ABSTAIN
 
 @labeling_function()
-def single_sent_disabling_pat1(x):
+def disabling1(x):
     for pat in SINGLE_SENTENCE_DISABLING_PATTERNS1:
         if pattern_exists(pat,x.text):
-            return RELEVANT
+            return DISABLING
         else:
             return ABSTAIN
 
 
 @labeling_function()
-def single_sent_disabling_pat2(x):
+def disabling2(x):
     for pat in SINGLE_SENTENCE_DISABLING_PATTERNS2:
         if pattern_exists(pat,x.text):
-            return RELEVANT
+            return DISABLING
         else:
             return ABSTAIN
+        
+        
+@labeling_function()
+def enabling_onlyif(x):
+    pat="{action} only if {precondition}."
+    if pattern_exists(pat,x.text):
+        return ENABLING
+    else:
+        return ABSTAIN
+        
+@labeling_function()
+def enabling_so_hence_conseq(x):
+    pat="{precondition} (?:so|hence|consequently) {action}."
+    if pattern_exists(pat,x.text):
+        return ENABLING
+    else:
+        return ABSTAIN
               
+@labeling_function()
+def enabling_makespossible(x):
+    pat="{precondition} makes {action} possible."
+    if pattern_exists(pat,x.text):
+        return ENABLING
+    else:
+        return ABSTAIN
 
-lfs = [single_sent_disabling_pat1, single_sent_disabling_pat2,is_a_kind_of]
+
+lfs = [disabling1, disabling2,enabling_onlyif,enabling_so_hence_conseq,enabling_makespossible]
 
 
 @hydra.main(config_path="../Configs", config_name="snorkel_config")
