@@ -1,3 +1,3 @@
 cd ../Outputs/Corpora/OpenWebText/
-find openwebtext/ -name "urlsf_subset*.xz" -type f -maxdepth 2 \
+find openwebtext/ -maxdepth 2 -name "urlsf_subset*.xz" -type f \
   -exec sh -c 'xz --decompress "$1"' sh {} ';'
