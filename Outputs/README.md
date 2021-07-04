@@ -1,8 +1,8 @@
 Enabling-Disabling pattern on omcs-sentences-more.txt:
 
-_Label         Count_
-Enabling      1514
-Disabling      44
+_Label         Count_  
+Enabling      1514  
+Disabling      44  
 
 "Unless" count in datasets:
 1. omcs-sentences-more.txt= 271
