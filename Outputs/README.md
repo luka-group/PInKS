@@ -4,6 +4,8 @@ _Label         Count_
 Enabling      1514  
 Disabling      44 
 
+When using Enabling-Disabling 24 conflicts arise due to the {negative_precondition} (?:so|hence|consequently) {action}\. pattern (disabling) and "{precondition} (?:so|hence|consequently) {action}." (enabling).
+
                           j Polarity  Coverage      Overlaps     Conflicts
 disabling1                0      [0]  0.000023  9.651340e-07  9.651340e-07
 disabling2                1      [0]  0.000012  1.158161e-05  1.158161e-05
