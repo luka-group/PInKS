@@ -1,4 +1,5 @@
 Enabling-Disabling pattern on omcs-sentences-more.txt:
+
 _Label         Count_
 Enabling      1514
 Disabling      44
