@@ -8,6 +8,10 @@ Disabling      44
 1. omcs-sentences-more.txt= 271
 2. omcs-sentences-free.txt= 270
 
+[Disabling] OMCS Simple Regex: 72 matches.
+
+[Disabling] OMCS Snorkel Matches: 219 matches.
+
 The output folder contains results of the experiments:
 1. dev_ipython-input-40-c2ac3a0f9482= Regex matches on the Gigaword dev set.
 2. test_ipython-input-22-c2ac3a0f9482= Regex matches on the Gigaword test set.
