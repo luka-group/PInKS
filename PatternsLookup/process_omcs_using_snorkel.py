@@ -116,17 +116,16 @@ def disabling1(x):
     for pat in SINGLE_SENTENCE_DISABLING_PATTERNS1:
         if pattern_exists(pat,x.text):
             return DISABLING
-        else:
-            return ABSTAIN
+    return ABSTAIN
 
 
 @labeling_function()
 def disabling2(x):
-    for pat in SINGLE_SENTENCE_DISABLING_PATTERNS2:
-        if pattern_exists(pat,x.text):
-            return DISABLING
-        else:
-            return ABSTAIN
+    pat=r"{negative_precondition} (?:so|hence|consequently) {action}\."
+    if pattern_exists(pat,x.text):
+        return DISABLING
+    else:
+        return ABSTAIN
         
         
 @labeling_function()
@@ -154,7 +153,7 @@ def enabling_makespossible(x):
         return ABSTAIN
 
 
-lfs = [disabling1, disabling2,enabling_onlyif,enabling_so_hence_conseq,enabling_makespossible]
+lfs = [disabling1, disabling2, enabling_onlyif, enabling_so_hence_conseq, enabling_makespossible]
 
 
 @hydra.main(config_path="../Configs", config_name="snorkel_config")
@@ -164,6 +163,8 @@ def main(config: omegaconf.dictconfig.DictConfig):
     
     applier = PandasLFApplier(lfs)
     L_omcs = applier.apply(omcs_df)
+    
+    print(LFAnalysis(L_omcs, lfs).lf_summary())
     
     # Train the label model and compute the training labels
     label_model = LabelModel(cardinality=2, verbose=True)
