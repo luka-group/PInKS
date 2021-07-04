@@ -21,6 +21,7 @@ from snorkel.labeling import labeling_function
 
 from snorkel.labeling.model import LabelModel
 from snorkel.labeling import PandasLFApplier
+from snorkel.labeling import LFAnalysis
 
 
 
