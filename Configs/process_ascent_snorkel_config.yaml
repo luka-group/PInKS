@@ -11,7 +11,7 @@ process_all_sentences:
 
 
 predicate: 'used'
-
+snorkel_epochs: 300
 json_chunck_size: 1000
 
 hydra:
