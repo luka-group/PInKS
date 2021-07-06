@@ -1,0 +1,19 @@
+ascent_path: "/nas/home/pkhanna/CQplus/Outputs/Corpora/ASCENT/data/kb-05-02-2021.jsonl"
+#output_name: "matches.json"
+method: 'extract_all_sentences_df'
+
+output_names:
+  extract_all_sentences_df: 'all_sentences_df.csv'
+  process_all_sentences_snorkel: 'snorkel_processed.csv'
+
+process_all_sentences:
+  do_srl: false
+
+
+predicate: 'used'
+
+json_chunck_size: 1000
+
+hydra:
+  run:
+    dir: /nas/home/pkhanna/CQplus/Outputs/${hydra.job.name}
