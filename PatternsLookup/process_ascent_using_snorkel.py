@@ -16,6 +16,11 @@ import json
 from tqdm import tqdm
 from Patterns import PatternUtils
 
+from snorkel.labeling import labeling_function
+
+from snorkel.labeling.model import LabelModel
+from snorkel.labeling import PandasLFApplier
+
 import logging
 
 logger = logging.getLogger(__name__)
