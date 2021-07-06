@@ -199,6 +199,8 @@ def process_all_sentences_snorkel(config: omegaconf.dictconfig.DictConfig):
 
     assert all_sents_path.exists(), all_sents_path
     
+    print("Processing via Snorkel")
+    
     df = pd.read_csv(all_sents_path)
     df['text'] = df['text'].astype(str)
     
