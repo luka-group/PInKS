@@ -6,6 +6,7 @@ Created on Tue Jul  6 23:17:50 2021
 """
 import os
 import pathlib
+import re
 from typing import Dict, Generator
 
 import pandas as pd
