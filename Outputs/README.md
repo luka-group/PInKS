@@ -5,6 +5,8 @@
 | Disabling | 2363   |  
 |           |        | 
 
+ASCENT "unable" count: 13722
+
 LF_Analysis-ASCENT
 
 |                          | j  | Polarity | Coverage | Overlaps     | Conflicts    |
