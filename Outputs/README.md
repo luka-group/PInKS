@@ -1,7 +1,9 @@
 **Enabling-Disabling pattern ASCENT**
-_Label  Count_  
-Enabling    86097  
-Disabling     2363  
+| _Label    | Count_ |   |   |   |
+|-----------|--------|---|---|---|
+| Enabling  | 86097  |   |   |   |
+| Disabling | 2363   |   |   |   |
+|           |        |   |   |   |  
 
 LF_Analysis-ASCENT
                           j Polarity  Coverage      Overlaps     Conflicts
