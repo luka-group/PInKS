@@ -217,15 +217,19 @@ def process_all_sentences_snorkel(config: omegaconf.dictconfig.DictConfig):
     
     df = df[df.label != ABSTAIN]
     
-    print(config.output_names.process_all_sentences_df)
-    df.to_csv(config.output_names.process_all_sentences_df)
+
     
     count = df["label"].value_counts()
     print("Label  Count")
     print(count)
     
+    print(config.output_names.process_all_sentences_snorkel)
+    df.to_csv(config.output_names.process_all_sentences_snorkel)
+    
     print("LF_Analysis")
     print(LFAnalysis(L_data, lfs).lf_summary())
+    
+
 
 
 
