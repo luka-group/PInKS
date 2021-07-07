@@ -1,3 +1,19 @@
+**Enabling-Disabling pattern ASCENT**
+_Label  Count_  
+Enabling    86097  
+Disabling     2363  
+
+LF_Analysis-ASCENT
+                          j Polarity  Coverage      Overlaps     Conflicts
+disabling1                0      [0]  0.000308  7.603244e-06  7.603244e-06
+disabling2                1      [0]  0.000224  2.242957e-04  2.242957e-04
+disabling3                2      [0]  0.000009  1.310904e-07  1.310904e-07
+enabling_onlyif           3      [1]  0.000302  4.325984e-06  0.000000e+00
+enabling_so_hence_conseq  4      [1]  0.010977  2.353073e-04  2.309813e-04
+enabling_makespossible    5      [1]  0.000013  0.000000e+00  0.000000e+00
+
+
+
 **Enabling-Disabling pattern on omcs-sentences-more.txt:**
 
 _Label         Count_  
