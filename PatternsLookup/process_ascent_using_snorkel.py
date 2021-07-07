@@ -21,6 +21,7 @@ from snorkel.labeling import labeling_function
 
 from snorkel.labeling.model import LabelModel
 from snorkel.labeling import PandasLFApplier
+from snorkel.labeling import LFAnalysis
 
 import logging
 
@@ -208,7 +209,6 @@ def process_all_sentences_snorkel(config: omegaconf.dictconfig.DictConfig):
     applier = PandasLFApplier(lfs)
     L_data = applier.apply(df)
     
-    print(LFAnalysis(L_data, lfs).lf_summary())
     
     # Train the label model and compute the training labels
     label_model = LabelModel(cardinality=2, verbose=True)
@@ -223,6 +223,9 @@ def process_all_sentences_snorkel(config: omegaconf.dictconfig.DictConfig):
     count = df["label"].value_counts()
     print("Label  Count")
     print(count)
+    
+    print("LF_Analysis")
+    print(LFAnalysis(L_data, lfs).lf_summary())
 
 
 
