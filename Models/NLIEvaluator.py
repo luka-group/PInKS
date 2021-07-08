@@ -1,29 +1,18 @@
 import itertools
+import logging
 import pathlib
 from functools import partial
-
-import IPython
-import hydra
 from typing import *
+
+import hydra
 import omegaconf
-from itertools import cycle
-import os
-
-import torch
-import pytorch_lightning as pl
-import torch.nn as nn
 import pandas as pd
-import numpy as np
-# from loguru import logger
-from torch.nn import functional as F
-from torch.utils.data import DataLoader, Dataset
-from transformers import AutoModel, AutoTokenizer, AdamW, get_linear_schedule_with_warmup, \
-    AutoModelForSequenceClassification, RobertaForSequenceClassification
+import pytorch_lightning as pl
+import torch
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score
+from torch.utils.data import DataLoader
+from transformers import AutoTokenizer, AdamW, AutoModelForSequenceClassification
 
-import logging
-
-# from LMBenchmarkEvaluator import BaseEvaluationModule
 from Utils import ClassificationDataset, config_to_hparams
 
 logger = logging.getLogger(__name__)
@@ -236,26 +225,26 @@ class NLIModule(pl.LightningModule):
                 return partial(lambda t, q, c: t.format(question=q, context=c), temp)
         raise ValueError(f'Invalid model name: {model_name}')
 
-    def dataloader(self, x_path: Union[str, pathlib.Path]):
-        df: pd.DataFrame = pd.read_csv(x_path).fillna('')
-
-        _pred_func = self._get_preprocess_func_4_model()
-
-        df["text"] = df.apply(
-            axis=1,
-            func=lambda r: _pred_func(r['question'], r['context'])
-        )
-        # "id2label": {
-        #     "0": "CONTRADICTION",
-        #     "1": "NEUTRAL",
-        #     "2": "ENTAILMENT"
-        # },
-        df['label'] = df['label'].apply(lambda l: {0: 0, 1: 2}[int(l)])
-
-        counts = df['label'].value_counts()
-        logger.info(f'Label distribution of {x_path}: {counts}')
-
-        return ClassificationDataset(df[["text", "label"]].to_dict("record"))
+    # def dataloader(self, x_path: Union[str, pathlib.Path]):
+    #     df: pd.DataFrame = pd.read_csv(x_path).fillna('')
+    #
+    #     _pred_func = self._get_preprocess_func_4_model()
+    #
+    #     df["text"] = df.apply(
+    #         axis=1,
+    #         func=lambda r: _pred_func(r['question'], r['context'])
+    #     )
+    #     # "id2label": {
+    #     #     "0": "CONTRADICTION",
+    #     #     "1": "NEUTRAL",
+    #     #     "2": "ENTAILMENT"
+    #     # },
+    #     df['label'] = df['label'].apply(lambda l: {0: 0, 1: 2}[int(l)])
+    #
+    #     counts = df['label'].value_counts()
+    #     logger.info(f'Label distribution of {x_path}: {counts}')
+    #
+    #     return ClassificationDataset(df[["text", "label"]].to_dict("record"))
 
     def configure_optimizers(self):
         model = self.embedder
@@ -288,9 +277,10 @@ class NLIModule(pl.LightningModule):
     def train_dataloader(self):
         logger.info('Loading training data from {}'.format(self.hparams['weak_cq_path']))
         df: pd.DataFrame = pd.read_csv(self.hparams['weak_cq_path']).fillna('')
+        _pred_func = self._get_preprocess_func_4_model()
         df["text"] = df.apply(
             axis=1,
-            func=lambda r: "{} </s></s> {}".format(r['action'], r['precondition'])
+            func=lambda r: _pred_func(r['action'], r['precondition'])
         )
         # "id2label": {
         #     "0": "CONTRADICTION",
@@ -310,9 +300,11 @@ class NLIModule(pl.LightningModule):
     def test_dataloader(self, label='Testing') -> Union[DataLoader, List[DataLoader]]:
         logger.info('Loading {} data from {}'.format(label, self.hparams['cq_path']))
         df: pd.DataFrame = pd.read_csv(self.hparams['cq_path']).fillna('')
+
+        _pred_func = self._get_preprocess_func_4_model()
         df["text"] = df.apply(
             axis=1,
-            func=lambda r: "{} </s></s> {}".format(r['question'], r['context'])
+            func=lambda r: _pred_func(r['question'], r['context'])
         )
         # "id2label": {
         #     "0": "CONTRADICTION",
