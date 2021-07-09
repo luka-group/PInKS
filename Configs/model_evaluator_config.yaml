@@ -1,5 +1,6 @@
 weak_cq_path:
 cq_path:
+mnli_path:
 
 data_stats:
   counts: [8161,0,48451]
@@ -40,6 +41,8 @@ train_setup:
   beta1: 0.9
   beta2: 0.998
 
+  batch_size: ${data_module.train_batch_size}
+
 trainer_args:
   accumulate_grad_batches: ${train_setup.accumulate_grad_batches}
   limit_train_batches: ${train_setup.limit_train_batches}
@@ -56,9 +59,6 @@ data_module:
   dataloader_num_workers: 4
 
   max_seq_length: 256
-
-
-
 
 
 hydra:

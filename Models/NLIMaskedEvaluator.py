@@ -72,29 +72,6 @@ class NLIMaskedModule(ModifiedLMModule):
 
         accuracy = ((_labels[_labels != -100]) == _logits.argmax(-1)[_labels != -100]).astype(float).mean()
         logger.info(f'acc={accuracy}')
-        # df = pd.DataFrame.from_dict({
-        #     'predicted_label': torch.argmax(_logits, dim=1).detach().cpu().numpy(),
-        #     'true_label': _labels.detach().cpu().numpy(),
-        # }, orient='columns')
-        # df['text'] = [s for o in outputs for s in o[f"{mytag}_batch_text"]]
-        # df['loss'] = list(
-        #     itertools.chain.from_iterable(itertools.repeat(x, batch_size) for x in _loss)
-        # )[:len(df)]
-        # df['predicate'] = df['text'].apply(self._get_predicate_from_text)
-        #
-        # _f1_score = f1_score(y_true=df['true_label'], y_pred=df['predicted_label'], average='micro')
-        #
-        # per_predicate_results = self._compute_metrics(df, mytag, 'All')
-        # for pred, gdf in df.groupby('predicate'):
-        #     per_predicate_results.update(self._compute_metrics(gdf, mytag, pred))
-        #
-        # return {
-        #     **per_predicate_results,
-        #     "progress_bar": {
-        #         f"{mytag}_accuracy": per_predicate_results[f'{mytag}_All_accuracy'],
-        #         f"{mytag}_f1_score": per_predicate_results[f'{mytag}_All_f1_score'],
-        #     }
-        # }
 
     def _compute_metrics(self, df: pd.DataFrame, spl_name: str, predicate: str) -> Dict[str, Any]:
 
@@ -146,12 +123,6 @@ class NLIMaskedModule(ModifiedLMModule):
 class NLIMaskedData(LMDataModule):
     @staticmethod
     def _get_preprocess_func_4_model() -> Callable[[str, str], str]:
-        # model_name = self.config['model']
-        # template = {
-        #     'roberta': '{question} {conj} {context}',
-        #     'bart': '{question} {conj} {context}',
-        #     'deberta': '[CLS] {question} {conj} {context} [SEP]'
-        # }
 
         pos_conj = ['only if', 'subject to', 'in case', 'contingent upon', 'given', 'if', 'in the case that',
                     "in case", "in the case that", "in the event", "on condition", "on the assumption",

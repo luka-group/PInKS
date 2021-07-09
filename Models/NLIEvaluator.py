@@ -1,14 +1,18 @@
+import functools
 import itertools
 import logging
 import pathlib
 from functools import partial
 from typing import *
 
+import IPython
 import hydra
 import omegaconf
 import pandas as pd
 import pytorch_lightning as pl
 import torch
+import datasets
+import transformers
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, AdamW, AutoModelForSequenceClassification
@@ -37,23 +41,26 @@ class NLIModule(pl.LightningModule):
 
     def forward(self, batch):
 
-        additional_params = {}
-        if "roberta" in self.hparams['model_setup.model_name']:
-            additional_params["token_type_ids"] = None
-        elif "bart" in self.hparams['model_setup.model_name']:
-            pass
-        else:
-            additional_params["token_type_ids"] = batch["token_type_ids"]
-        # batch["token_type_ids"] = None if "roberta" in self.hparams['model'] else batch["token_type_ids"]
+        # additional_params = {}
+        # if "roberta" in self.hparams['model_setup.model_name']:
+        #     additional_params["token_type_ids"] = None
+        # elif "bart" in self.hparams['model_setup.model_name']:
+        #     pass
+        # else:
+        #     additional_params["token_type_ids"] = batch["token_type_ids"]
+        # # batch["token_type_ids"] = None if "roberta" in self.hparams['model'] else batch["token_type_ids"]
+        #
+        # label_dict = {}
+        # if 'labels' in batch:
+        #     label_dict = {'labels': batch['labels']}
 
-        label_dict = {}
-        if 'labels' in batch:
-            label_dict = {'labels': batch['labels']}
-
-        results = self.embedder(input_ids=batch["input_ids"],
-                                attention_mask=batch["attention_mask"],
-                                **additional_params,
-                                **label_dict)
+        results = self.embedder(
+            **batch
+            # input_ids=batch["input_ids"],
+            # attention_mask=batch["attention_mask"],
+            # **additional_params,
+            # **label_dict
+        )
 
         return results
 
@@ -64,7 +71,12 @@ class NLIModule(pl.LightningModule):
         }
 
     def training_step(self, batch, batch_idx):
-        results = self.forward(batch)
+        results = self.forward({
+            'input_ids': batch['input_ids'],
+            'attention_mask': batch['attention_mask'],
+            # 'special_tokens_mask': batch['special_tokens_mask'],
+            'token_type_ids': batch['token_type_ids'],
+        })
         loss = results.loss
         # logits = results.logits
         # weighted_loss = self.loss_func(logits, batch["labels"])
@@ -74,11 +86,16 @@ class NLIModule(pl.LightningModule):
         return {
             "loss": loss,
             # "loss": weighted_loss,
-            "text": batch['text'],
+            # "text": batch['unmasked_text'],
         }
 
     def validation_step(self, batch, batch_idx):
-        results = self.forward(batch)
+        results = self.forward({
+            'input_ids': batch['input_ids'],
+            'attention_mask': batch['attention_mask'],
+            # 'special_tokens_mask': batch['special_tokens_mask'],
+            'token_type_ids': batch['token_type_ids'],
+        })
         loss = results.loss
         logits = results.logits
 
@@ -87,8 +104,8 @@ class NLIModule(pl.LightningModule):
         return {
             'val_batch_loss': loss.cpu(),
             "val_batch_logits": logits.cpu(),
-            "val_batch_labels": batch["labels"].cpu(),
-            "val_batch_text": batch['text'],
+            "val_batch_labels": batch["nli_label"].cpu(),
+            # "val_batch_text": batch['unmasked_text'],
         }
 
     def validation_epoch_end(self, outputs: List[Any]) -> None:
@@ -213,38 +230,17 @@ class NLIModule(pl.LightningModule):
         }
         return per_predicate_results
 
-    def _get_preprocess_func_4_model(self) -> Callable[[str, str], str]:
-        model_name = self.hparams['model']
-        template = {
-            'roberta': '{question} </s></s> {context}',
-            'bart': '{question} </s></s> {context}',
-            'deberta': '[CLS] {question} [SEP] {context} [SEP]'
-        }
-        for k, temp in template.items():
-            if k in model_name:
-                return partial(lambda t, q, c: t.format(question=q, context=c), temp)
-        raise ValueError(f'Invalid model name: {model_name}')
-
-    # def dataloader(self, x_path: Union[str, pathlib.Path]):
-    #     df: pd.DataFrame = pd.read_csv(x_path).fillna('')
-    #
-    #     _pred_func = self._get_preprocess_func_4_model()
-    #
-    #     df["text"] = df.apply(
-    #         axis=1,
-    #         func=lambda r: _pred_func(r['question'], r['context'])
-    #     )
-    #     # "id2label": {
-    #     #     "0": "CONTRADICTION",
-    #     #     "1": "NEUTRAL",
-    #     #     "2": "ENTAILMENT"
-    #     # },
-    #     df['label'] = df['label'].apply(lambda l: {0: 0, 1: 2}[int(l)])
-    #
-    #     counts = df['label'].value_counts()
-    #     logger.info(f'Label distribution of {x_path}: {counts}')
-    #
-    #     return ClassificationDataset(df[["text", "label"]].to_dict("record"))
+    # def _get_preprocess_func_4_model(self) -> Callable[[str, str], str]:
+    #     model_name = self.hparams['model_setup.model_name']
+    #     template = {
+    #         'roberta': '{question} </s></s> {context}',
+    #         'bart': '{question} </s></s> {context}',
+    #         'deberta': '[CLS] {question} [SEP] {context} [SEP]'
+    #     }
+    #     for k, temp in template.items():
+    #         if k in model_name:
+    #             return partial(lambda t, q, c: t.format(question=q, context=c), temp)
+    #     raise ValueError(f'Invalid model name: {model_name}')
 
     def configure_optimizers(self):
         model = self.embedder
@@ -273,78 +269,257 @@ class NLIModule(pl.LightningModule):
 
         return optimizer
 
-    # @pl.data_loader
-    def train_dataloader(self):
-        logger.info('Loading training data from {}'.format(self.hparams['weak_cq_path']))
-        df: pd.DataFrame = pd.read_csv(self.hparams['weak_cq_path']).fillna('')
-        _pred_func = self._get_preprocess_func_4_model()
-        df["text"] = df.apply(
-            axis=1,
-            func=lambda r: _pred_func(r['action'], r['precondition'])
-        )
-        # "id2label": {
-        #     "0": "CONTRADICTION",
-        #     "1": "NEUTRAL",
-        #     "2": "ENTAILMENT"
-        # },
-        df['label'] = df['label'].apply(lambda l: {'CONTRADICT': 0, 'ENTAILMENT': 2}[l])
-        return DataLoader(
-            ClassificationDataset(df[["text", "label"]].to_dict("records")),
-            batch_size=self.hparams['train_setup.batch_size'], collate_fn=self.collate,
-            num_workers=self.hparams['hardware.cpu_limit']
-        )
+    # # @pl.data_loader
+    # def train_dataloader(self):
+    #     logger.info('Loading training data from {}'.format(self.hparams['weak_cq_path']))
+    #     df_weak_cq: pd.DataFrame = pd.read_csv(self.hparams['weak_cq_path']).fillna('')
+    #     _pred_func = self._get_preprocess_func_4_model()
+    #     df_weak_cq["text"] = df_weak_cq.apply(
+    #         axis=1,
+    #         func=lambda r: _pred_func(r['action'], r['precondition'])
+    #     )
+    #     # "id2label": {
+    #     #     "0": "CONTRADICTION",
+    #     #     "1": "NEUTRAL",
+    #     #     "2": "ENTAILMENT"
+    #     # },
+    #     df_weak_cq['label'] = df_weak_cq['label'].apply(lambda l: {'CONTRADICT': 0, 'ENTAILMENT': 2}[l])
+    #
+    #     df = df_weak_cq
+    #
+    #     if self.hparams['mnli_path'] is not None and self.hparams['mnli_path'] != '':
+    #         df_mnli = pd.read_json(self.hparams['mnli_path'], lines=True)
+    #         if len(df_mnli) == 0:
+    #             logger.error('Empty MNLI data at {}'.format(self.hparams['mnli_path']))
+    #         else:
+    #             df_mnli.rename(columns={
+    #                 'sentence1': 'action',
+    #                 'sentence2': 'precondition',
+    #             }, inplace=True)
+    #
+    #             logger.info(f'mnli columns: {df_mnli.columns}')
+    #             df_mnli['label'] = df_mnli['gold_label'].apply(lambda s: {
+    #                 'entailment': 2,
+    #                 'neutral': 1,
+    #                 'contradiction': 0,
+    #             }[s.lower()])
+    #             df_mnli['text'] = df_mnli.apply(
+    #                 axis=1,
+    #                 func=lambda r: _pred_func(r['action'], r['precondition'])
+    #             )
+    #
+    #             df = pd.concat([
+    #                 df_mnli[["text", "label"]].sample(10000, axis=0),
+    #                 df_weak_cq[["text", "label"]],
+    #                 df_mnli[["text", "label"]].sample(10000, axis=0),
+    #             ])
+    #
+    #     logger.info(f'Training data shape: {df.shape}')
+    #     return DataLoader(
+    #         ClassificationDataset(df[["text", "label"]].to_dict("records")),
+    #         batch_size=self.hparams['train_setup.batch_size'], collate_fn=self.collate,
+    #         num_workers=self.hparams['hardware.cpu_limit']
+    #     )
+    #
+    # def val_dataloader(self):
+    #     return itertools.islice(self.test_dataloader(label='Validation (10)'), 10)
+    #
+    # def test_dataloader(self, label='Testing') -> Union[DataLoader, List[DataLoader]]:
+    #     logger.info('Loading {} data from {}'.format(label, self.hparams['cq_path']))
+    #     df: pd.DataFrame = pd.read_csv(self.hparams['cq_path']).fillna('')
+    #
+    #     _pred_func = self._get_preprocess_func_4_model()
+    #     df["text"] = df.apply(
+    #         axis=1,
+    #         func=lambda r: _pred_func(r['question'], r['context'])
+    #     )
+    #     # "id2label": {
+    #     #     "0": "CONTRADICTION",
+    #     #     "1": "NEUTRAL",
+    #     #     "2": "ENTAILMENT"
+    #     # },
+    #     df['label'] = df['label'].apply(lambda l: {0: 0, 1: 2, 2: 2}[int(l)])
+    #
+    #     return DataLoader(
+    #         ClassificationDataset(df[["text", "label"]].sample(frac=1).to_dict("records")),
+    #         batch_size=self.hparams['train_setup.batch_size'], collate_fn=self.collate,
+    #         num_workers=self.hparams['hardware.cpu_limit']
+    #     )
+    #
+    # def collate(self, examples):
+    #     batch_size = len(examples)
+    #     df = pd.DataFrame(examples)
+    #     results = self.tokenizer.batch_encode_plus(
+    #         df['text'].values.tolist(),
+    #         add_special_tokens=True,
+    #         padding='max_length',
+    #         max_length=self.hparams["model_setup.max_length"],
+    #         return_tensors='pt',
+    #         return_token_type_ids=True,
+    #         truncation=True,
+    #     )
+    #
+    #     assert results["input_ids"].shape[0] == batch_size, \
+    #         f"Invalid shapes {results['input_ids'].shape} {batch_size}"
+    #
+    #     return {
+    #         **results,
+    #         "labels": torch.LongTensor(df["label"]),
+    #         "text": df['text'].values,
+    #     }
+    #
 
-    def val_dataloader(self):
-        return itertools.islice(self.test_dataloader(label='Validation (10)'), 10)
 
-    def test_dataloader(self, label='Testing') -> Union[DataLoader, List[DataLoader]]:
-        logger.info('Loading {} data from {}'.format(label, self.hparams['cq_path']))
-        df: pd.DataFrame = pd.read_csv(self.hparams['cq_path']).fillna('')
+class NLIData(pl.LightningDataModule):
+    def __init__(self, config: omegaconf.dictconfig.DictConfig):
+        super().__init__()
+        self.config = config
+        self.train_dataset = None
+        self.eval_dataset = None
+        self.test_dataset = None
+        self.data_collator = None
 
-        _pred_func = self._get_preprocess_func_4_model()
-        df["text"] = df.apply(
-            axis=1,
-            func=lambda r: _pred_func(r['question'], r['context'])
-        )
-        # "id2label": {
-        #     "0": "CONTRADICTION",
-        #     "1": "NEUTRAL",
-        #     "2": "ENTAILMENT"
-        # },
-        df['label'] = df['label'].apply(lambda l: {0: 0, 1: 2}[int(l)])
-
-        return DataLoader(
-            ClassificationDataset(df[["text", "label"]].sample(frac=1).to_dict("records")),
-            batch_size=self.hparams['train_setup.batch_size'], collate_fn=self.collate,
-            num_workers=self.hparams['hardware.cpu_limit']
-        )
-
-    def collate(self, examples):
-        batch_size = len(examples)
-        df = pd.DataFrame(examples)
-        results = self.tokenizer.batch_encode_plus(
-            df['text'].values.tolist(),
-            add_special_tokens=True,
-            padding='max_length',
-            max_length=self.hparams["model_setup.max_length"],
-            return_tensors='pt',
-            return_token_type_ids=True,
-            truncation=True,
-        )
-
-        assert results["input_ids"].shape[0] == batch_size, \
-            f"Invalid shapes {results['input_ids'].shape} {batch_size}"
-
-        return {
-            **results,
-            "labels": torch.LongTensor(df["label"]),
-            "text": df['text'].values,
+    def _get_preprocess_func_4_model(self) -> Callable[[str, str], str]:
+        model_name = self.config.model_setup.model_name
+        template = {
+            'roberta': '{question} </s></s> {context}',
+            'bart': '{question} </s></s> {context}',
+            'deberta': '[CLS] {question} [SEP] {context} [SEP]'
         }
-    
+        for k, temp in template.items():
+            if k in model_name:
+                return functools.partial(lambda t, q, c: t.format(question=q, context=c), temp)
+        raise ValueError(f'Invalid model name: {model_name}')
+
+    @staticmethod
+    def tokenize_function(_examples, _tokenizer: Callable[[str], Dict[str, Any]],
+                          _to_text_func: Callable[[str, str], str]) -> Dict[str, Any]:
+        df = pd.DataFrame.from_dict(_examples).fillna('')
+        sents = df.apply(
+            axis=1,
+            func=lambda r: _to_text_func(r['action'], r['precondition'])
+        ).values.tolist()
+
+        labels = df['label'].apply({
+            # Weak CQ data
+            **{'CONTRADICT': 0, 'ENTAILMENT': 2},
+            # MNLI data
+            **{
+                'entailment': 2,
+                'neutral': 1,
+                'contradiction': 0,
+            },
+            # CQ data
+            **{0: 0, 1: 2, 2: 2}
+        }.get)
+
+        return {**_tokenizer(sents,), "unmasked_text": sents, "nli_label": labels.values.tolist()}
+
+    def setup(self, stage: Optional[str] = None):
+        tokenizer = AutoTokenizer.from_pretrained(
+            self.config.model_setup.model_name,
+            cache_dir="/nas/home/qasemi/model_cache",
+        )
+
+        # weak_cq_dataset =
+        mnli_dataset = (
+            datasets.load_dataset('json', data_files=self.config.mnli_path)['train']
+            .shuffle()
+            .select([i for i in range(20000)])
+            .rename_columns({
+                'sentence1': 'action',
+                'sentence2': 'precondition',
+                'gold_label': 'label',
+            })
+        )
+
+        all_datasets = datasets.DatasetDict({
+            'weak_cq': datasets.load_dataset(
+                'csv', data_files=self.config.weak_cq_path
+            )['train'],
+            'mnli': mnli_dataset,
+            'cq': datasets.load_dataset(
+                'csv', data_files=self.config.cq_path
+            )['train'].rename_columns({
+                'question': 'action',
+                'context': 'precondition',
+            }),
+        })
+
+        columns_names = all_datasets.column_names
+
+        _prep_func = self._get_preprocess_func_4_model()
+        # data_files["validation"] = self.config.data_module.validation_file
+
+        all_tokenized = all_datasets.map(
+            functools.partial(
+                self.tokenize_function,
+                _tokenizer=functools.partial(
+                    tokenizer.batch_encode_plus,
+                    padding=True,
+                    truncation=True,
+                    max_length=self.config.data_module.max_seq_length,
+                    # return_special_tokens_mask=True,
+                    return_tensors='np',
+                    return_token_type_ids=True,
+                    # add_special_tokens=True,
+                ),
+                _to_text_func=_prep_func
+            ),
+            batched=True,
+            num_proc=self.config.data_module.preprocessing_num_workers,
+            load_from_cache_file=not self.config.data_module.overwrite_cache,
+        )
+
+        # eval_dataset = tokenized_datasets["validation"]
+        self.train_dataset = datasets.concatenate_datasets([
+            all_tokenized['weak_cq'].remove_columns(columns_names['weak_cq']),
+            all_tokenized['mnli'].remove_columns(columns_names['mnli'])
+        ]).rename_columns({
+            'nli_label': 'labels'
+        })
+        self.test_dataset = all_tokenized['cq'].remove_columns(columns_names['cq']).rename_columns({
+            'nli_label': 'labels'
+        })
+        # Not sure if it is userfull
+        self.train_dataset.set_format(
+            type='torch',
+            columns=['input_ids', 'token_type_ids', 'attention_mask', 'labels'],
+            output_all_columns=True,
+        )
+        # self.data_collator = transformers.DataCollatorWithPadding(
+        #     tokenizer=tokenizer,
+        #     padding='max_length',
+        #     max_length=self.config.model_setup.max_length,
+        # )
+
+    def train_dataloader(self):
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self.config.data_module.train_batch_size,
+            # collate_fn=self.data_collator,
+            num_workers=self.config.data_module.dataloader_num_workers,
+        )
+
+    def test_dataloader(self):
+        return DataLoader(
+            self.test_dataset,
+            batch_size=self.config.data_module.train_batch_size,
+            # collate_fn=self.data_collator,
+            num_workers=self.config.data_module.dataloader_num_workers,
+        )
+
 
 @hydra.main(config_path='../Configs/model_evaluator_config.yaml')
 def main(config: omegaconf.dictconfig.DictConfig):
     _module = NLIModule(config)
+
+    nli_data_module = NLIData(config)
+    nli_data_module.setup('train')
+    batch = next(iter(nli_data_module.train_dataloader()))
+    output = _module.training_step(batch, 0)
+    IPython.embed()
+    exit()
 
     trainer = pl.Trainer(
         gradient_clip_val=0,
