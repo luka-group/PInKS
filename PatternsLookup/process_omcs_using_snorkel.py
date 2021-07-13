@@ -83,6 +83,11 @@ DISABLING_WORDS = [
 ]
 
 
+ABSTAIN = -1
+DISABLING = 0
+ENABLING = 1
+
+
 def pattern_exists(pattern,line):
     pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
     replacements = {k: REPLACEMENT_REGEX[k] for k in pattern_keys}    
@@ -103,15 +108,6 @@ def pattern_exists(pattern,line):
     if len(m_list)>0:
         return True
     return False
-
-
-
-
-
-ABSTAIN = -1
-DISABLING = 0
-ENABLING = 1
-
 
 
 def keyword_lookup(x, keyword, label):

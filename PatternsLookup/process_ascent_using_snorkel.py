@@ -18,6 +18,7 @@ from tqdm import tqdm
 from Patterns import PatternUtils
 
 from snorkel.labeling import labeling_function
+from snorkel.labeling import LabelingFunction
 
 from snorkel.labeling.model import LabelModel
 from snorkel.labeling import PandasLFApplier
@@ -107,9 +108,40 @@ def pattern_exists(pattern,line):
 
 
 
-# @labeling_function()
-# def is_a_kind_of(x):
-#     return NOT_RELEVANT if "is a kind of" in x.text.lower() else ABSTAIN
+
+def keyword_lookup(x, keyword, label):
+    pat="{action} " +  keyword + " {precondition}."
+    if pattern_exists(pat,x.text):
+        return label
+    else:
+        return ABSTAIN
+
+
+def make_keyword_lf(keyword, label):
+    lf_name=keyword.replace(" ","_") + f"_{label}"
+    return LabelingFunction(
+        name=lf_name,
+        f=keyword_lookup,
+        resources=dict(keyword=keyword, label=label),
+    )
+
+
+lfs=[]
+
+pos_conj = {'only if', 'contingent upon', 'given', 'if',"in case", "in the case that", "in the event", "on condition", "on the assumption",
+            "on these terms", "subject to", "supposing", "with the proviso"}
+
+neg_conj = {"but", "except", "except for", "excepting that", "if not", "lest", "saving", "without"}
+
+
+for p_conj in pos_conj:
+    lfs.append(make_keyword_lf(p_conj,ENABLING))
+    
+    
+for n_conj in neg_conj:
+   lfs.append(make_keyword_lf(n_conj,DISABLING))   
+    
+
 
 @labeling_function()
 def disabling1(x):
@@ -119,38 +151,6 @@ def disabling1(x):
     return ABSTAIN
 
 
-@labeling_function()
-def disabling2(x):
-    pat=r"{negative_precondition} (?:so|hence|consequently) {action}\."
-    if pattern_exists(pat,x.text):
-        return DISABLING
-    else:
-        return ABSTAIN
-    
-@labeling_function()
-def disabling3(x):
-    pat=r'{precondition} makes {action} impossible.'
-    if pattern_exists(pat,x.text):
-        return DISABLING
-    else:
-        return ABSTAIN
-        
-        
-@labeling_function()
-def enabling_onlyif(x):
-    pat="{action} only if {precondition}."
-    if pattern_exists(pat,x.text):
-        return ENABLING
-    else:
-        return ABSTAIN
-        
-@labeling_function()
-def enabling_so_hence_conseq(x):
-    pat="{precondition} (?:so|hence|consequently) {action}."
-    if pattern_exists(pat,x.text):
-        return ENABLING
-    else:
-        return ABSTAIN
               
 @labeling_function()
 def enabling_makespossible(x):
@@ -161,7 +161,8 @@ def enabling_makespossible(x):
         return ABSTAIN
 
 
-lfs = [disabling1, disabling2, disabling3, enabling_onlyif, enabling_so_hence_conseq, enabling_makespossible]
+lfs.extend([disabling1,enabling_makespossible])
+
 
 
 def extract_all_sentences_df(config: omegaconf.dictconfig.DictConfig):    
