@@ -188,7 +188,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     print(LFAnalysis(L_omcs, lfs).lf_summary())
     
     # Train the label model and compute the training labels
-    label_model = LabelModel(cardinality=2, verbose=True)
+    label_model = LabelModel(cardinality=3, verbose=True)
     label_model.fit(L_omcs, n_epochs=config.snorkel_epochs, log_freq=50, seed=123)
     omcs_df["label"] = label_model.predict(L=L_omcs, tie_break_policy="abstain")
     
