@@ -86,6 +86,7 @@ DISABLING_WORDS = [
 ABSTAIN = -1
 DISABLING = 0
 ENABLING = 1
+AMBIGUOUS=2
 
 
 def pattern_exists(pattern,line):
@@ -160,9 +161,18 @@ def enabling_makespossible(x):
         return ENABLING
     else:
         return ABSTAIN
+    
+    
+@labeling_function()
+def ambiguous_pat(x):
+    pat="{precondition} (?:so|hence|consequently) {action}."
+    if pattern_exists(pat,x.text):
+        return AMBIGUOUS
+    else:
+        return ABSTAIN
 
 
-lfs.extend([disabling1,enabling_makespossible])
+lfs.extend([disabling1, enabling_makespossible, ambiguous_pat])
 
 # lfs = [disabling1, disabling2, enabling_onlyif, enabling_so_hence_conseq, enabling_makespossible]
 
