@@ -222,7 +222,7 @@ def process_all_sentences_snorkel(config: omegaconf.dictconfig.DictConfig):
     
     
     # Train the label model and compute the training labels
-    label_model = LabelModel(cardinality=2, verbose=True)
+    label_model = LabelModel(cardinality=3, verbose=True)
     label_model.fit(L_data, n_epochs=config.snorkel_epochs, log_freq=50, seed=123)
     df["label"] = label_model.predict(L=L_data, tie_break_policy="abstain")
     
