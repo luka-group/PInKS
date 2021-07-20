@@ -1,6 +1,6 @@
 corpus_path: /nas/home/pkhanna/omcs/omcs-sentences-more.txt
 output_name: snorkel_matches.csv
-output_patterns: output_patterns.csv
+output_examples: output_examples.csv
 snorkel_epochs: 200
 
 
