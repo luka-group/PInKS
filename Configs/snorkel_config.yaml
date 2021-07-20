@@ -1,4 +1,4 @@
-corpus_path: C:/Users/Dell/Desktop/Piyush/USC-CQ/omcs/omcs_sample.txt
+corpus_path: /nas/home/pkhanna/omcs/omcs-sentences-more.txt
 output_name: snorkel_matches.csv
 output_patterns: output_patterns.csv
 snorkel_epochs: 200
@@ -6,4 +6,4 @@ snorkel_epochs: 200
 
 hydra:
   run:
-    dir: ../Outputs/snorkel_${hydra.job.name}
+    dir: /nas/home/pkhanna/CQplus/Outputs/snorkel_${hydra.job.name}
