@@ -14,6 +14,7 @@ import omegaconf
 import json
 import re
 from tqdm import tqdm
+import numpy as np
 
 from Patterns import PatternUtils
 
@@ -28,6 +29,7 @@ import nltk
 from nltk.corpus import wordnet as wn
 
 nltk.download("wordnet")
+
 
 
 import logging
@@ -135,18 +137,8 @@ pos_conj = {'only if', 'contingent upon', 'given', 'if',"in case", "in the case 
 
 neg_conj = {"but", "except", "except for", "excepting that", "if not", "lest", "saving", "without"}
 
-
-for p_conj in pos_conj:
-    lfs.append(make_keyword_lf(p_conj,ENABLING))
-    
-    
-for n_conj in neg_conj:
-   lfs.append(make_keyword_lf(n_conj,DISABLING))   
-    
-
-
 @labeling_function()
-def disabling1(x):
+def unless_0(x):
     for pat in SINGLE_SENTENCE_DISABLING_PATTERNS1:
         if pattern_exists(pat,x.text):
             return DISABLING
@@ -155,7 +147,7 @@ def disabling1(x):
 
               
 @labeling_function()
-def enabling_makespossible(x):
+def makespossible_1(x):
     pat="{precondition} makes {action} possible."
     if pattern_exists(pat,x.text):
         return ENABLING
@@ -164,7 +156,7 @@ def enabling_makespossible(x):
     
     
 @labeling_function()
-def ambiguous_pat(x):
+def ambiguous_pat_2(x):
     pat="{precondition} (?:so|hence|consequently) {action}."
     if pattern_exists(pat,x.text):
         return AMBIGUOUS
@@ -172,9 +164,47 @@ def ambiguous_pat(x):
         return ABSTAIN
 
 
-lfs.extend([disabling1, enabling_makespossible, ambiguous_pat])
 
-# lfs = [disabling1, disabling2, enabling_onlyif, enabling_so_hence_conseq, enabling_makespossible]
+for p_conj in pos_conj:
+    lfs.append(make_keyword_lf(p_conj,ENABLING))
+
+lfs.extend([makespossible_1])
+    
+for n_conj in neg_conj:
+   lfs.append(make_keyword_lf(n_conj,DISABLING))   
+    
+
+lfs.extend([unless_0, ambiguous_pat_2])
+
+
+
+
+
+
+
+# L_matrix=None
+
+
+
+def returnExamples(L, LFA_df, omcs_df):
+    lfs_names=list(LFA_df.index)
+    df_data=None
+    df=pd.DataFrame()
+    N=10
+    for index,row in LFA_df.iterrows():
+        s_no=int(row['j'])
+        label=int(index[-1])
+        print("Label="+str(label))
+        print("s_no="+str(s_no))
+        pat_matches=L[:, s_no] == label
+        match_count=sum(bool(x) for x in pat_matches)
+        tmp_list=list(omcsDF.iloc[L[:, s_no] == label].sample(min(match_count,N), random_state=1)['text'])
+        if len(tmp_list)<N:
+            tmp_list += [0] * (N - len(tmp_list))
+        df[str(index)]=tmp_list
+    return df
+
+
 
 
 @hydra.main(config_path="../Configs", config_name="snorkel_config")
@@ -183,9 +213,24 @@ def main(config: omegaconf.dictconfig.DictConfig):
     omcs_df['text'] = omcs_df['text'].astype(str)
     
     applier = PandasLFApplier(lfs)
+    # global L_omcs
     L_omcs = applier.apply(omcs_df)
     
+    # print(type(L_omcs))
+    # print(L_omcs)
+    
+    
+    # L_matrix=np.copy(L_omcs)
+    
     print(LFAnalysis(L_omcs, lfs).lf_summary())
+    print(type(LFAnalysis(L_omcs, lfs).lf_summary()))
+    
+    
+    LFA_df=LFAnalysis(L_omcs, lfs).lf_summary().copy()
+    
+    examples_df=returnExamples(L_omcs, LFA_df, omcs_df)
+    examples_df.to_csv(config.output_examples)
+    
     
     # Train the label model and compute the training labels
     label_model = LabelModel(cardinality=3, verbose=True)
@@ -209,4 +254,5 @@ if __name__ == '__main__':
 
 
 
-
+# LFA_df.columns
+# LFA_df.index
