@@ -207,6 +207,58 @@ def extract_all_sentences_df(config: omegaconf.dictconfig.DictConfig):
     # return df
 
 
+#Return (precondition, action) pair.
+def get_precondition_action(pattern,line):
+    pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
+    replacements = {k: REPLACEMENT_REGEX[k] for k in pattern_keys}    
+    regex_pattern = pattern.format(**replacements)
+    m_list = re.findall(regex_pattern, line)
+    for m in m_list:
+        match_full_sent = line
+        for sent in line:
+            if all([ps in sent for ps in m]):
+                match_full_sent = sent
+        match_dict = dict(zip(pattern_keys, m))  
+        return match_dict['precondition'], match_dict['action']
+
+
+#Adds Action, Precondtion columns to df.
+def addActionPrecondition(L, LFA_df, df):
+    actions=[]
+    preconditions=[]
+    lfs_names=list(LFA_df.index)
+    for index,row in df.iterrows():
+        position = np.argmax(L[index,:] > -1)
+        action=-1
+        precondition=-1
+        if position==0 and L[index,position]==-1:
+            action=-1
+            precondition=-1
+        else:
+            conj=lfs_names[position][:-2].replace("_"," ")
+            # print(conj)
+            if conj=="ambiguous pat":
+                conj="(?:so|hence|consequently)"
+            pat="{action} " +  conj + " {precondition}."
+            if conj=="makespossible":
+                pat="{precondition} makes {action} possible."
+                
+            try:
+                precondition, action= get_precondition_action(pat,row['text'])
+            except Exception as e:
+                print(e)
+                print("pattern="+pat)
+                print("text="+row['text'])
+        actions.append(action)
+        preconditions.append(precondition)
+    print("DF len="+str(len(df)))
+    print("Actions len="+str(len(actions)))
+    df['Action']=actions
+    df['Precondition']=preconditions
+    return df
+
+
+
 def process_all_sentences_snorkel(config: omegaconf.dictconfig.DictConfig):
     all_sents_path = pathlib.Path(os.getcwd())/pathlib.Path(config.output_names.extract_all_sentences_df)
 
@@ -220,11 +272,15 @@ def process_all_sentences_snorkel(config: omegaconf.dictconfig.DictConfig):
     applier = PandasLFApplier(lfs)
     L_data = applier.apply(df)
     
+    LFA_df=LFAnalysis(L_data, lfs).lf_summary().copy()
+    
     
     # Train the label model and compute the training labels
     label_model = LabelModel(cardinality=3, verbose=True)
     label_model.fit(L_data, n_epochs=config.snorkel_epochs, log_freq=50, seed=123)
     df["label"] = label_model.predict(L=L_data, tie_break_policy="abstain")
+    
+    df=addActionPrecondition(L_data, LFA_df, df)
     
     df = df[df.label != ABSTAIN]
     
