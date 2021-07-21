@@ -227,14 +227,16 @@ def addActionPrecondition(L, LFA_df, df):
     lfs_names=list(LFA_df.index)
     for index,row in df.iterrows():
         position = np.argmax(L[index,:] > -1)
-        action=None
-        precondition=None
+        action=-1
+        precondition=-1
         if position==0 and L[index,position]==-1:
             action=-1
             precondition=-1
         else:
             conj=lfs_names[position][:-2].replace("_"," ")
             print(conj)
+            if conj=="ambiguous pat":
+                conj="(?:so|hence|consequently)"
             pat="{action} " +  conj + " {precondition}."
             precondition, action= get_precondition_action(pat,row['text'])
         actions.append(action)
