@@ -234,11 +234,16 @@ def addActionPrecondition(L, LFA_df, df):
             precondition=-1
         else:
             conj=lfs_names[position][:-2].replace("_"," ")
-            print(conj)
+            # print(conj)
             if conj=="ambiguous pat":
                 conj="(?:so|hence|consequently)"
             pat="{action} " +  conj + " {precondition}."
-            precondition, action= get_precondition_action(pat,row['text'])
+            try:
+                precondition, action= get_precondition_action(pat,row['text'])
+            except Exception as e:
+                print(e)
+                print("pattern="+pat)
+                print("text="+row['text'])
         actions.append(action)
         preconditions.append(precondition)
     print("DF len="+str(len(df)))
@@ -288,7 +293,6 @@ def main(config: omegaconf.dictconfig.DictConfig):
     
     omcs_df = omcs_df[omcs_df.label != ABSTAIN]
     
-    print(config.output_name)
     omcs_df.to_csv(config.output_name)
     
     count = omcs_df["label"].value_counts()
@@ -300,12 +304,3 @@ def main(config: omegaconf.dictconfig.DictConfig):
 if __name__ == '__main__':
     main()
 
-
-
-
-
-
-
-
-# LFA_df.columns
-# LFA_df.index
