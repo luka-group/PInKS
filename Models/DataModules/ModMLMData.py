@@ -20,7 +20,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class LMDataModule(pl.LightningDataModule):
+class ModMLMDataModule(pl.LightningDataModule):
     def __init__(self, config: omegaconf.dictconfig.DictConfig):
         super().__init__()
         self.config = config

@@ -2,7 +2,7 @@
 
 cd ../Models
 
-python NLIMaskedEvaluator.py \
+python MaskedMLMNLI_Tune_Weak_Eval_CQ.py \
     weak_cq_path='/nas/home/qasemi/CQplus/Outputs/process_ascent/matched_sentences.csv' \
     cq_path='/nas/home/qasemi/CQplus/Outputs/RemoveSimplePNLI/test_filtered.csv' \
     model_setup.model_name="roberta-large" \

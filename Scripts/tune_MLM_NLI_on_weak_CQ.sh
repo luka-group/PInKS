@@ -2,10 +2,10 @@
 
 cd ../Models
 
-python NLI_Tune_Weak_Eval_CQ.py \
+python MLM_Tune_Weak_Eval_CQ.py \
     weak_cq_path='/nas/home/qasemi/CQplus/Outputs/process_ascent/matched_sentences.csv' \
     cq_path='/nas/home/qasemi/Mowgli-CoreQuisite/outputs/EvaluateBatch/MCQ-2000/BasicBenchmark/test.csv' \
     model_setup.model_name="roberta-large-mnli" \
+    model_setup.tuned_model_path="/nas/home/qasemi/CQplus/Outputs/ModifiedLangModeling/Checkpoint/ModifiedLMModule.ckpt" \
     train_setup.do_train=true \
-    hardware.gpus='2' \
     train_setup.batch_size=8
