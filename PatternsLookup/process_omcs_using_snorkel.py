@@ -97,6 +97,10 @@ def pattern_exists(pattern,line):
     regex_pattern = pattern.format(**replacements)
     m_list = re.findall(regex_pattern, line)
     
+    # print(pattern_keys)
+    # print(replacements)
+    # print(regex_pattern)
+    # print(m_list)
     
     for m in m_list:
         match_full_sent = line
@@ -111,6 +115,11 @@ def pattern_exists(pattern,line):
     if len(m_list)>0:
         return True
     return False
+
+
+    
+
+
 
 
 def keyword_lookup(x, keyword, label):
@@ -178,14 +187,6 @@ lfs.extend([unless_0, ambiguous_pat_2])
 
 
 
-
-
-
-
-# L_matrix=None
-
-
-
 def returnExamples(L, LFA_df, omcs_df):
     lfs_names=list(LFA_df.index)
     df_data=None
@@ -194,8 +195,7 @@ def returnExamples(L, LFA_df, omcs_df):
     for index,row in LFA_df.iterrows():
         s_no=int(row['j'])
         label=int(index[-1])
-        print("Label="+str(label))
-        print("s_no="+str(s_no))
+
         pat_matches=L[:, s_no] == label
         match_count=sum(bool(x) for x in pat_matches)
         tmp_list=list(omcs_df.iloc[L[:, s_no] == label].sample(min(match_count,N), random_state=1)['text'])
@@ -204,6 +204,49 @@ def returnExamples(L, LFA_df, omcs_df):
         df[str(index)]=tmp_list
     return df
 
+
+#Return (precondition, action) pair.
+def get_precondition_action(pattern,line):
+    pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
+    replacements = {k: REPLACEMENT_REGEX[k] for k in pattern_keys}    
+    regex_pattern = pattern.format(**replacements)
+    m_list = re.findall(regex_pattern, line)
+    for m in m_list:
+        match_full_sent = line
+        for sent in line:
+            if all([ps in sent for ps in m]):
+                match_full_sent = sent
+        match_dict = dict(zip(pattern_keys, m))  
+        return match_dict['precondition'], match_dict['action']
+
+
+#Adds Action, Precondtion columns to df.
+def addActionPrecondition(L, LFA_df, df):
+    actions=[]
+    preconditions=[]
+    lfs_names=list(LFA_df.index)
+    for index,row in df.iterrows():
+        position = np.argmax(L[index,:] > -1)
+        action=None
+        precondition=None
+        if position==0 and L[index,position]==-1:
+            action=-1
+            precondition=-1
+        else:
+            conj=lfs_names[position][:-2].replace("_"," ")
+            print(conj)
+            pat="{action} " +  conj + " {precondition}."
+            precondition, action= get_precondition_action(pat,row['text'])
+        actions.append(action)
+        preconditions.append(precondition)
+    print("DF len="+str(len(df)))
+    print("Actions len="+str(len(actions)))
+    df['Action']=actions
+    df['Precondition']=preconditions
+    return df
+            
+            
+    
 
 
 
@@ -237,6 +280,10 @@ def main(config: omegaconf.dictconfig.DictConfig):
     label_model.fit(L_omcs, n_epochs=config.snorkel_epochs, log_freq=50, seed=123)
     omcs_df["label"] = label_model.predict(L=L_omcs, tie_break_policy="abstain")
     
+    
+    omcs_df=addActionPrecondition(L_omcs, LFA_df, omcs_df)
+    
+    
     omcs_df = omcs_df[omcs_df.label != ABSTAIN]
     
     print(config.output_name)
@@ -250,6 +297,10 @@ def main(config: omegaconf.dictconfig.DictConfig):
 
 if __name__ == '__main__':
     main()
+
+
+
+
 
 
 
