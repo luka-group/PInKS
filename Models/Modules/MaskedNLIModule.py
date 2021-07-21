@@ -6,7 +6,9 @@ from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 from transformers import AutoTokenizer
 
 from Models.Modules.ModifiedLangModelingModule import ModifiedLMModule
-from Models.MaskedMLMNLI_Tune_Weak_Eval_CQ import logger
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class MaskedNLIModule(ModifiedLMModule):

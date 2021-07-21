@@ -1,4 +1,5 @@
 import logging
+import sys
 
 import hydra
 import omegaconf
@@ -6,8 +7,16 @@ import pytorch_lightning as pl
 
 from DataModules.BaseNLIDataModule import MnliTuneCqTestDataModule
 from Modules.NLIModuleWithTunedLM import NLIModuleWithTunedLM
+import Utils
 
 logger = logging.getLogger(__name__)
+
+
+def my_handler(type, value, tb):
+    logger.exception("Uncaught exception: {0}".format(str(value)))
+
+
+sys.excepthook = my_handler
 
 
 @hydra.main(config_path='../Configs/model_evaluator_config.yaml')
@@ -15,6 +24,8 @@ def main(config: omegaconf.dictconfig.DictConfig):
     _module = NLIModuleWithTunedLM(config)
 
     nli_data_module = MnliTuneCqTestDataModule(config)
+
+    Utils.pl_test_function(model=_module, data=nli_data_module)
 
     trainer = pl.Trainer(
         gradient_clip_val=0,
@@ -34,6 +45,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     if config['train_setup']['do_train'] is True:
         trainer.fit(_module, datamodule=nli_data_module)
 
+    logger.info(f'Save the tuned model')
     trainer.save_checkpoint(f'Checkpoint/{_module.__class__.__name__}.ckpt')
 
     logger.info('Results on CQ')

@@ -63,19 +63,19 @@ def config_to_hparams(config) -> Dict[str, Union[str, int, float]]:
 
 def pl_test_function(model: pl.LightningModule, data: pl.LightningDataModule):
 
-    data.setup('test')
-    loader = data.test_dataloader()
-    outputs = []
-    for i, batch in zip(range(4), loader):
-        IPython.embed()
-        exit()
-        outputs.append(
-            model.test_step(batch, i)
-        )
-    out = model.test_epoch_end(outputs)
+    # data.setup('test')
+    # loader = data.test_dataloader()
+    # outputs = []
+    # for i, batch in zip(range(4), loader):
+    #     IPython.embed()
+    #     exit()
+    #     outputs.append(
+    #         model.test_step(batch, i)
+    #     )
+    # out = model.test_epoch_end(outputs)
 
-    # trainer = pl.Trainer(fast_dev_run=1)
-    # trainer.fit(model, datamodule=data)
+    trainer = pl.Trainer(fast_dev_run=1)
+    trainer.fit(model, datamodule=data)
     IPython.embed()
     exit()
 

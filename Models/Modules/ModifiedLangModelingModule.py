@@ -1,8 +1,10 @@
 import pytorch_lightning as pl
 from transformers import AutoModelForMaskedLM, AdamW
 
-from Models.ModifiedLangModeling import logger
 from Models.Utils import config_to_hparams
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class ModifiedLMModule(pl.LightningModule):

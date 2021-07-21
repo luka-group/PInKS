@@ -8,7 +8,9 @@ from sklearn.metrics import f1_score, accuracy_score, confusion_matrix
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, AdamW
 
 from Models import Utils
-from Models.NLI_Tune_Weak_Eval_CQ import logger
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class NLIModule(pl.LightningModule):
