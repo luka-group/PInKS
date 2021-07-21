@@ -238,6 +238,9 @@ def addActionPrecondition(L, LFA_df, df):
             if conj=="ambiguous pat":
                 conj="(?:so|hence|consequently)"
             pat="{action} " +  conj + " {precondition}."
+            if conj=="makespossible":
+                pat="{precondition} makes {action} possible."
+                
             try:
                 precondition, action= get_precondition_action(pat,row['text'])
             except Exception as e:
