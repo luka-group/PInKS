@@ -40,7 +40,7 @@ class BaseNLIDataModule(pl.LightningDataModule):
         sents = df.apply(
             axis=1,
             func=lambda r: _to_text_func(r['action'], r['precondition'])
-        ).values.tolist()
+        ).fillna('').values.tolist()
 
         labels = df['label'].apply({
             # Weak CQ data
@@ -163,7 +163,6 @@ class BaseNLIDataModule(pl.LightningDataModule):
 
 class MnliTuneCqTestDataModule(BaseNLIDataModule):
     def _group_data_in_train_test_dev(self, columns_names):
-        super(MnliTuneCqTestDataModule, self)._group_data_in_train_test_dev(columns_names)
         self.train_dataset = self.all_tokenized['mnli'].remove_columns(columns_names['mnli']).rename_columns({
             'nli_label': 'labels'
         })
@@ -173,14 +172,31 @@ class MnliTuneCqTestDataModule(BaseNLIDataModule):
             output_all_columns=True,
         )
 
+        self.test_dataset = self.all_tokenized['cq'].remove_columns(columns_names['cq']).rename_columns({
+            'nli_label': 'labels'
+        })
+        self.test_dataset.set_format(
+            type='torch',
+            columns=['input_ids', 'token_type_ids', 'attention_mask', 'labels'],
+            output_all_columns=True,
+        )
+
 
 class WeakTuneCqTestDataModule(BaseNLIDataModule):
     def _group_data_in_train_test_dev(self, columns_names):
-        super(WeakTuneCqTestDataModule, self)._group_data_in_train_test_dev(columns_names)
         self.train_dataset = self.all_tokenized['weak_cq'].remove_columns(columns_names['weak_cq']).rename_columns({
             'nli_label': 'labels'
         })
         self.train_dataset.set_format(
+            type='torch',
+            columns=['input_ids', 'token_type_ids', 'attention_mask', 'labels'],
+            output_all_columns=True,
+        )
+
+        self.test_dataset = self.all_tokenized['cq'].remove_columns(columns_names['cq']).rename_columns({
+            'nli_label': 'labels'
+        })
+        self.test_dataset.set_format(
             type='torch',
             columns=['input_ids', 'token_type_ids', 'attention_mask', 'labels'],
             output_all_columns=True,

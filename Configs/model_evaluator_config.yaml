@@ -1,25 +1,12 @@
-weak_cq_path:
-cq_path:
-mnli_path:
-
-data_stats:
-  counts: [8161,0,48451]
-#  counts: [1,1,1]
-
+weak_cq_path: "/nas/home/qasemi/CQplus/Outputs/process_ascent/matched_sentences.csv"
+#cq_path: "/nas/home/qasemi/Mowgli-CoreQuisite/outputs/EvaluateBatch/MCQ-2000/BasicBenchmark/test.csv"
+cq_path: "/nas/home/qasemi/CQplus/Outputs/RemoveSimplePNLI/test_filtered.csv"
+mnli_path: "/nas/home/qasemi/CQplus/Outputs/Corpora/MNLI/multinli_1.0/multinli_1.0_train.jsonl"
 
 model_setup:
   model_name: ""
   tuned_model_path:
-  max_length: 64
-
-lm_module:
-  model_name_or_path: ${model_setup.model_name}
-  learning_rate: ${train_setup.learning_rate}
-  adam_epsilon: ${train_setup.adam_epsilon}
-  weight_decay: ${train_setup.weight_decay}
-  adam_beta1: ${train_setup.beta1}
-  adam_beta2: ${train_setup.beta2}
-
+  max_length: ${data_module.max_seq_length}
 
 hardware:
   gpus: '3'
@@ -43,10 +30,6 @@ train_setup:
 
   batch_size: ${data_module.train_batch_size}
 
-trainer_args:
-  accumulate_grad_batches: ${train_setup.accumulate_grad_batches}
-  limit_train_batches: ${train_setup.limit_train_batches}
-
 data_module:
   train_batch_size: 4 #4
   val_batch_size: 4
@@ -64,3 +47,17 @@ data_module:
 hydra:
   run:
     dir: /nas/home/qasemi/CQplus/Outputs/${hydra.job.name}
+
+
+# Comparitibility configs
+lm_module:
+  model_name_or_path: ${model_setup.model_name}
+  learning_rate: ${train_setup.learning_rate}
+  adam_epsilon: ${train_setup.adam_epsilon}
+  weight_decay: ${train_setup.weight_decay}
+  adam_beta1: ${train_setup.beta1}
+  adam_beta2: ${train_setup.beta2}
+
+trainer_args:
+  accumulate_grad_batches: ${train_setup.accumulate_grad_batches}
+  limit_train_batches: ${train_setup.limit_train_batches}

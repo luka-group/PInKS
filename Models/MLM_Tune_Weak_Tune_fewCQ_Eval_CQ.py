@@ -1,13 +1,11 @@
 import logging
-
-import IPython
 import hydra
 import omegaconf
 import pytorch_lightning as pl
 
 from DataModules.BaseNLIDataModule import WeakTuneCqTestDataModule
+from Models.DataModules.CQOnlyNLIDataModule import CQOnlyNLIDataModule
 from Modules.NLIModuleWithTunedLM import NLIModuleWithTunedLM
-import Models.Utils as Utils
 
 logger = logging.getLogger(__name__)
 
@@ -15,11 +13,12 @@ logger = logging.getLogger(__name__)
 @hydra.main(config_path='../Configs/model_evaluator_config.yaml')
 def main(config: omegaconf.dictconfig.DictConfig):
     _module = NLIModuleWithTunedLM(config)
-    _data = WeakTuneCqTestDataModule(config)
-    Utils.pl_test_function(model=_module, data=_data)
+    nli_data_module = WeakTuneCqTestDataModule(config)
+    cq_data_module = CQOnlyNLIDataModule(config)
+
     trainer = pl.Trainer(
         gradient_clip_val=0,
-        gpus=str(config['hardware']['gpus']),
+        gpus=config['hardware']['gpus'],
         accumulate_grad_batches=config['train_setup']["accumulate_grad_batches"],
         max_epochs=config['train_setup']["max_epochs"],
         min_epochs=1,
@@ -30,13 +29,20 @@ def main(config: omegaconf.dictconfig.DictConfig):
         distributed_backend=None,
     )
 
-    logger.info('Tuning')
-    _module.extra_tag = 'fit'
-    trainer.fit(_module, datamodule=_data)
+    logger.info('Tuning on MNLI data')
+    _module.extra_tag = 'fit_MNLI'
+    trainer.fit(_module, datamodule=nli_data_module)
 
-    logger.info('Tuned Results')
+    logger.info(f'Save the tuned model')
+    trainer.save_checkpoint(f'Checkpoint/{_module.__class__.__name__}.ckpt')
+
+    _module.extra_tag = 'fit_fewCQ'
+    logger.info(f'Tuning on 500 samples from CQ')
+    trainer.fit(_module, datamodule=cq_data_module)
+
+    logger.info('Results on CQ')
     _module.extra_tag = 'tuned'
-    trainer.test(_module, datamodule=_data)
+    trainer.test(_module, datamodule=cq_data_module)
 
 
 if __name__ == '__main__':

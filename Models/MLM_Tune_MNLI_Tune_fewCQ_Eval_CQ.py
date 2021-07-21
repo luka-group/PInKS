@@ -6,6 +6,7 @@ import omegaconf
 import pytorch_lightning as pl
 
 from DataModules.BaseNLIDataModule import MnliTuneCqTestDataModule
+from Models.DataModules.CQOnlyNLIDataModule import CQOnlyNLIDataModule
 from Modules.NLIModuleWithTunedLM import NLIModuleWithTunedLM
 import Utils
 
@@ -24,6 +25,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     _module = NLIModuleWithTunedLM(config)
 
     nli_data_module = MnliTuneCqTestDataModule(config)
+    cq_data_module = CQOnlyNLIDataModule(config)
 
     # Utils.pl_test_function(model=_module, data=nli_data_module)
 
@@ -41,16 +43,19 @@ def main(config: omegaconf.dictconfig.DictConfig):
     )
 
     logger.info('Tuning on MNLI data')
-    _module.extra_tag = 'fit'
-    if config['train_setup']['do_train'] is True:
-        trainer.fit(_module, datamodule=nli_data_module)
+    _module.extra_tag = 'fit_MNLI'
+    trainer.fit(_module, datamodule=nli_data_module)
 
     logger.info(f'Save the tuned model')
     trainer.save_checkpoint(f'Checkpoint/{_module.__class__.__name__}.ckpt')
 
+    _module.extra_tag = 'fit_fewCQ'
+    logger.info(f'Tuning on 500 samples from CQ')
+    trainer.fit(_module, datamodule=cq_data_module)
+
     logger.info('Results on CQ')
     _module.extra_tag = 'tuned'
-    trainer.test(_module, datamodule=nli_data_module)
+    trainer.test(_module, datamodule=cq_data_module)
 
 
 if __name__ == '__main__':

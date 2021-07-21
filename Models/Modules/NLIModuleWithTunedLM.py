@@ -4,6 +4,9 @@ from Models.Modules.ModifiedLangModelingModule import ModifiedLMModule
 from Models.Modules.BaseNLIModule import NLIModule
 from Models.Utils import config_to_hparams
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class NLIModuleWithTunedLM(NLIModule):
     def __init__(self, config):
@@ -31,4 +34,9 @@ class NLIModuleWithTunedLM(NLIModule):
         self.tuned_lm = ModifiedLMModule.load_from_checkpoint(self.hparams['model_setup.tuned_model_path'])
 
         # self._test_method()
-        self.embedder.roberta = self.tuned_lm.model.roberta
+        # self.embedder.roberta = self.tuned_lm.model.roberta
+        logger.info(f'Replacing the weights')
+        self.embedder.roberta.load_state_dict(self.tuned_lm.model.roberta.state_dict())
+        logger.info(f'Deleting redundant model')
+        del self.tuned_lm
+
