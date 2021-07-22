@@ -36,6 +36,54 @@ ENABLING = 1
 AMBIGUOUS=2
 
 
+FACT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\* \'’%]{10,})'
+
+REPLACEMENT_REGEX = {
+        'action': FACT_REGEX,
+        'precondition': FACT_REGEX,
+        'negative_precondition': FACT_REGEX,
+        'precondition_action': FACT_REGEX,
+        'any_word': r'[^ \[]{,10}',
+        'ENB_CONJ': r'(?:so|hence|consequently|thus|therefore|'
+                    r'as a result|thus|accordingly|because of that|'
+                    r'as a consequence|as a result)',
+    }
+
+# pattern = "{action} unless {precondition}"
+
+NEGATIVE_WORDS = [
+    ' not ',
+    ' cannot ',
+    'n\'t ',
+    ' don\\u2019t ',
+    ' doesn\\u2019t ',
+]
+
+
+
+SINGLE_SENTENCE_DISABLING_PATTERNS1 = [
+    r"^{action} unless {precondition}\.",
+    r"\. {action} unless {precondition}\.",
+    r"^{any_word} unless {precondition}, {action}\.",
+    r"^{any_word} unless {precondition}, {action}\.",
+]
+
+SINGLE_SENTENCE_DISABLING_PATTERNS2 = [
+    r"{negative_precondition} (?:so|hence|consequently) {action}\.",
+]
+
+ENABLING_PATTERNS = [
+    "{action} only if {precondition}.",
+    "{precondition} (?:so|hence|consequently) {action}.",
+    "{precondition} makes {action} possible.",
+]
+
+DISABLING_WORDS = [
+    "unless",
+]
+
+
+
 
 def disambiguate(line):    
     pattern = "{precondition} (?:so|hence|consequently) {action}."
@@ -61,7 +109,7 @@ def disambiguate(line):
 
 
 def process_df(df,text,actions,preconditions,labels):
-    for index,row in df.iterrows():
+    for index,row in tqdm(df.iterrows()):
         action=row["Action"]
         precondition=row["Precondition"]
         label=row["label"]
