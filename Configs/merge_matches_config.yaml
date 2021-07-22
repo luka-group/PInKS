@@ -1,0 +1,8 @@
+matches_path1: 
+matches_path2: 
+output_path: final_merged.csv
+
+
+hydra:
+  run:
+    dir: ../Outputs/${hydra.job.name}
