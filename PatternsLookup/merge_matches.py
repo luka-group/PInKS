@@ -100,9 +100,9 @@ def disambiguate(line):
 
         match_dict = dict(zip(pattern_keys, m))
 
-        if any([nw in match_dict['negative_precondition'] for nw in PatternUtils.NEGATIVE_WORDS]):
+        if any([nw in match_dict['precondition'] for nw in PatternUtils.NEGATIVE_WORDS]):
             match_full_sent = PatternUtils.make_sentence_positive(match_full_sent)
-            match_dict['precondition'] = PatternUtils.make_sentence_positive(match_dict['negative_precondition'])
+            match_dict['precondition'] = PatternUtils.make_sentence_positive(match_dict['precondition'])
             return match_dict['precondition'], DISABLING
 
         return match_dict['precondition'], ENABLING
