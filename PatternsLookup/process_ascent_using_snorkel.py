@@ -4,17 +4,18 @@ Created on Tue Jul  6 23:17:50 2021
 
 @author: Dell
 """
-import os
-import pathlib
-import re
-from typing import Dict, Generator
+import pandas as pd 
 
-import pandas as pd
+import os
+
 import IPython
 import hydra
 import omegaconf
 import json
+import re
 from tqdm import tqdm
+import numpy as np
+
 from Patterns import PatternUtils
 
 from snorkel.labeling import labeling_function
@@ -24,9 +25,16 @@ from snorkel.labeling.model import LabelModel
 from snorkel.labeling import PandasLFApplier
 from snorkel.labeling import LFAnalysis
 
-import logging
+import nltk
+from nltk.corpus import wordnet as wn
 
+nltk.download("wordnet")
+
+
+
+import logging
 logger = logging.getLogger(__name__)
+
 
 
 
