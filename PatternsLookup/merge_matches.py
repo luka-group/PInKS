@@ -114,6 +114,8 @@ def process_df(df,text,actions,preconditions,labels):
         precondition=row["Precondition"]
         label=row["label"]
         if label==2:
+            action=row['precondition']
+            precondition=row['action']
             precondition, label = disambiguate(row["text"])
         text.append(row["text"])
         actions.append(action)
