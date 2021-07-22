@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 df=pd.read_csv('/nas/home/pkhanna/CQplus/Outputs/merge_matches/final_merged.csv')
 
 
-for row,index in tqdm(df.iterrows()):
+for index, row in tqdm(df.iterrows()):
     if row['action']==-1 or row['precondition']==-1:
         print("Action/precondition=-1")
         print(row['text'])
