@@ -88,8 +88,8 @@ def main(config: omegaconf.dictconfig.DictConfig):
     df1=pd.read_csv(config.matches_path1)
     df2=pd.read_csv(config.matches_path2)
     
-    process_df(df1)
-    process_df(df2)
+    process_df(df1,text,actions,preconditions,labels)
+    process_df(df2,text,actions,preconditions,labels)
     
     final_df = pd.DataFrame(list(zip(text,actions,preconditions,labels)), columns =['text', 'action','precondition','label'])
     
