@@ -16,6 +16,7 @@ from tqdm import tqdm
 
 from Patterns import PatternUtils
 import pandas as pd
+import re
 
 import logging
 logger = logging.getLogger(__name__)
