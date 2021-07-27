@@ -1,6 +1,7 @@
 import functools
 from typing import Callable, Dict, Any, Optional
 
+import IPython
 import datasets
 import omegaconf
 import pandas as pd
@@ -99,7 +100,7 @@ class BaseNLIDataModule(pl.LightningDataModule):
                 self.tokenize_function,
                 _tokenizer=functools.partial(
                     tokenizer.batch_encode_plus,
-                    padding=True,
+                    padding='max_length',
                     truncation=True,
                     max_length=self.config.data_module.max_seq_length,
                     # return_special_tokens_mask=True,

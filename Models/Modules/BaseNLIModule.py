@@ -94,10 +94,12 @@ class NLIModule(pl.LightningModule):
 
         if self.trainer and self.trainer.use_dp:
             loss = loss.unsqueeze(0)
+
+
         return {
-            'val_batch_loss': loss.detach.cpu(),
-            "val_batch_logits": logits.detach.cpu(),
-            "val_batch_labels": batch["labels"].detach.cpu(),
+            'val_batch_loss': loss.detach().cpu(),
+            "val_batch_logits": logits.detach().cpu(),
+            "val_batch_labels": batch["labels"].detach().cpu(),
             "val_batch_text": batch['unmasked_text'],
         }
 

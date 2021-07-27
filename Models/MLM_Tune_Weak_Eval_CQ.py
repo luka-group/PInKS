@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def main(config: omegaconf.dictconfig.DictConfig):
     _module = NLIModuleWithTunedLM(config)
     _data = WeakTuneCqTestDataModule(config)
-    Utils.pl_test_function(model=_module, data=_data)
+    Utils.PLModelDataTest(model=_module, data=_data).run()
     trainer = pl.Trainer(
         gradient_clip_val=0,
         gpus=str(config['hardware']['gpus']),

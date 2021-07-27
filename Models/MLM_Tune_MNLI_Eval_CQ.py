@@ -25,7 +25,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
 
     nli_data_module = MnliTuneCqTestDataModule(config)
 
-    # Utils.pl_test_function(model=_module, data=nli_data_module)
+    # Utils.PLModelDataTest(model=_module, data=nli_data_module).run()
 
     trainer = pl.Trainer(
         gradient_clip_val=0,
@@ -48,6 +48,8 @@ def main(config: omegaconf.dictconfig.DictConfig):
     logger.info(f'Save the tuned model')
     trainer.save_checkpoint(f'Checkpoint/{_module.__class__.__name__}.ckpt')
 
+    # logger.info(f'Load the tuned model')
+    # _module.load_from_checkpoint(f'Checkpoint/{_module.__class__.__name__}.ckpt')
     logger.info('Results on CQ')
     _module.extra_tag = 'tuned'
     trainer.test(_module, datamodule=nli_data_module)
