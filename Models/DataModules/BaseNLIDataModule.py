@@ -75,7 +75,7 @@ class BaseNLIDataModule(pl.LightningDataModule):
             })
         )
         if 'n_MNLI_samples' in self.config and self.config.n_MNLI_samples is not None:
-            mnli_dataset = mnli_dataset.select([i for i in range(int(self.config.n_MNLI))])
+            mnli_dataset = mnli_dataset.select([i for i in range(int(self.config.n_MNLI_samples))])
 
         all_datasets = datasets.DatasetDict({
             'weak_cq': datasets.load_dataset(

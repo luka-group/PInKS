@@ -1,6 +1,7 @@
 import itertools
 from typing import Dict, List, Any
 
+import IPython
 import pandas as pd
 import pytorch_lightning as pl
 import torch
@@ -146,7 +147,11 @@ class NLIModule(pl.LightningModule):
         for pred, templs in mappings.items():
             if any([t in text for t in templs]):
                 predicate.add(pred)
-        assert len(predicate) == 1, f'Found {predicate} match for {text}'
+        try:
+            assert len(predicate) == 1, f'Found {predicate} match for {text}'
+        except AssertionError as e:
+            IPython.embed()
+            raise e
         return predicate.pop()
 
     def _collect_evaluation_results(self, outputs, mytag):
