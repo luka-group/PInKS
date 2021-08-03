@@ -5,6 +5,7 @@ method: 'process_all_sentences_snorkel'
 output_names:
   extract_all_sentences_df: 'all_sentences_df.csv'
   process_all_sentences_snorkel: 'snorkel_processed.csv'
+  output_examples: 'output_examples.csv'
 
 process_all_sentences:
   do_srl: false
