@@ -38,10 +38,12 @@ logger = logging.getLogger(__name__)
 
 
 
-FACT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\* \'’%]{10,})'
+FACT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\* \'"’%]{10,})'
+EVENT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\*\. \'’%]{10,})'
 
 REPLACEMENT_REGEX = {
         'action': FACT_REGEX,
+        'event': EVENT_REGEX,
         'precondition': FACT_REGEX,
         'negative_precondition': FACT_REGEX,
         'precondition_action': FACT_REGEX,
@@ -110,8 +112,8 @@ def pattern_exists(pattern,line):
     
         match_dict = dict(zip(pattern_keys, m))
         if 'negative_precondition' in pattern_keys:
-                    if not(any([nw in match_dict['negative_precondition'] for nw in PatternUtils.NEGATIVE_WORDS])):
-                        return False
+                    if any([nw in match_dict['negative_precondition'] for nw in PatternUtils.NEGATIVE_WORDS]):
+                        return True
     if len(m_list)>0:
         return True
     return False
@@ -141,10 +143,10 @@ def make_keyword_lf(keyword, label):
 
 lfs=[]
 
-pos_conj = {'only if', 'contingent upon', 'given', 'if',"in case", "in the case that", "in the event", "on condition", "on the assumption",
-            "on these terms", "subject to", "supposing", "with the proviso"}
+pos_conj = {'only if', 'contingent upon', 'if',"in case", "in the case that", "in the event", "on condition", "on the assumption",
+            "on these terms",  "supposing", "with the proviso"}
 
-neg_conj = {"but", "except", "except for", "excepting that", "if not", "lest", "saving", "without"}
+neg_conj = {"except", "except for", "excepting that", "if not", "lest",  "without"}
 
 @labeling_function()
 def unless_0(x):
@@ -154,10 +156,35 @@ def unless_0(x):
     return ABSTAIN
 
 
+@labeling_function()
+def but_0(x):
+    pat="{action} but {negative_precondition}"
+    if pattern_exists(pat,x.text):
+        return DISABLING
+    else:
+        return ABSTAIN
+
               
 @labeling_function()
-def makespossible_1(x):
+def makes_possible_1(x):
     pat="{precondition} makes {action} possible."
+    if pattern_exists(pat,x.text):
+        return ENABLING
+    else:
+        return ABSTAIN
+    
+@labeling_function()
+def to_understand_event_1(x):
+    pat = r'To understand the event "{event}", it is important to know that {precondition}.'
+    if pattern_exists(pat,x.text):
+        return ENABLING
+    else:
+        return ABSTAIN
+  
+    
+@labeling_function()
+def statement_is_true_1(x):
+    pat = r'The statement "{event}" is true because {precondition}.'
     if pattern_exists(pat,x.text):
         return ENABLING
     else:
@@ -173,17 +200,36 @@ def ambiguous_pat_2(x):
         return ABSTAIN
 
 
+enabling_dict={}
+disabling_dict={}
+
+disabling_dict={
+    'but' : "{action} but {negative_precondition}",
+    'unless' : "{action} unless {precondition}",
+    }
+
+
+enabling_dict={
+    'makes_possible' : "{precondition} makes {action} possible.",
+    'to_understand_event' : r'To understand the event "{event}", it is important to know that {precondition}.',
+    'statement_is_true' : r'The statement "{event}" is true because {precondition}.',
+    }
+
+
+
 
 for p_conj in pos_conj:
     lfs.append(make_keyword_lf(p_conj,ENABLING))
+    enabling_dict[p_conj]="{action} " +  p_conj + " {precondition}."
 
-lfs.extend([makespossible_1])
+lfs.extend([makes_possible_1, to_understand_event_1, statement_is_true_1])
     
 for n_conj in neg_conj:
-   lfs.append(make_keyword_lf(n_conj,DISABLING))   
+   lfs.append(make_keyword_lf(n_conj,DISABLING)) 
+   disabling_dict[n_conj]="{action} " +  n_conj + " {precondition}."
     
 
-lfs.extend([unless_0, ambiguous_pat_2])
+lfs.extend([unless_0, but_0, ambiguous_pat_2])
 
 
 
@@ -226,20 +272,34 @@ def addActionPrecondition(L, LFA_df, df):
     preconditions=[]
     lfs_names=list(LFA_df.index)
     for index,row in df.iterrows():
-        position = np.argmax(L[index,:] > -1)
+        valid_positions=L[index,:] > -1
+        # position = np.argmax(L[index,:] > -1)
         action=-1
         precondition=-1
-        if position==0 and L[index,position]==-1:
+        label=row["label"]
+        
+        if not(np.any(valid_positions)) or label==ABSTAIN:
             action=-1
             precondition=-1
         else:
-            conj=lfs_names[position][:-2].replace("_"," ")
-            # print(conj)
-            if conj=="ambiguous pat":
-                conj="(?:so|hence|consequently)"
-            pat="{action} " +  conj + " {precondition}."
-            if conj=="makespossible":
-                pat="{precondition} makes {action} possible."
+            if label==ENABLING:
+                position = np.argmax(L[index,:] == ENABLING)
+                conj=lfs_names[position][:-2]
+                pat=enabling_dict[conj]
+            elif label==DISABLING:
+                position = np.argmax(L[index,:] == DISABLING)
+                conj=lfs_names[position][:-2]
+                pat=disabling_dict[conj]
+            else:                                                       #AMBIGUOUS PATTERN
+                pat="{precondition} (?:so|hence|consequently) {action}."
+            # position = np.argmax(L[index,:] > -1)
+            # conj=lfs_names[position][:-2].replace("_"," ")
+            # # print(conj)
+            # if conj=="ambiguous pat":
+            #     conj="(?:so|hence|consequently)"
+            # pat="{action} " +  conj + " {precondition}."
+            # if conj=="makespossible":
+            #     pat="{precondition} makes {action} possible."
                 
             try:
                 precondition, action= get_precondition_action(pat,row['text'])
