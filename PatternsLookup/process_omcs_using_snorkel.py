@@ -191,7 +191,7 @@ def returnExamples(L, LFA_df, omcs_df):
     lfs_names=list(LFA_df.index)
     df_data=None
     df=pd.DataFrame()
-    N=10
+    N=100
     for index,row in LFA_df.iterrows():
         s_no=int(row['j'])
         label=int(index[-1])
@@ -301,6 +301,10 @@ def main(config: omegaconf.dictconfig.DictConfig):
     count = omcs_df["label"].value_counts()
     print("Label  Count")
     print(count)
+    
+    
+    with open('LabelingMatrix.npy', 'wb') as f:
+        np.save(f, L_omcs)
     
 
 

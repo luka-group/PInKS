@@ -265,6 +265,25 @@ def addActionPrecondition(L, LFA_df, df):
 
 
 
+def returnExamples(L, LFA_df, df):
+    lfs_names=list(LFA_df.index)
+    df_data=None
+    df=pd.DataFrame()
+    N=100
+    for index,row in LFA_df.iterrows():
+        s_no=int(row['j'])
+        label=int(index[-1])
+
+        pat_matches=L[:, s_no] == label
+        match_count=sum(bool(x) for x in pat_matches)
+        tmp_list=list(df.iloc[L[:, s_no] == label].sample(min(match_count,N), random_state=1)['text'])
+        if len(tmp_list)<N:
+            tmp_list += [0] * (N - len(tmp_list))
+        df[str(index)]=tmp_list
+    return df
+
+
+
 def process_all_sentences_snorkel(config: omegaconf.dictconfig.DictConfig):
     all_sents_path = pathlib.Path(os.getcwd())/pathlib.Path(config.output_names.extract_all_sentences_df)
 
@@ -302,6 +321,13 @@ def process_all_sentences_snorkel(config: omegaconf.dictconfig.DictConfig):
     print("LF_Analysis")
     print(LFAnalysis(L_data, lfs).lf_summary())
     
+    
+    with open('LabelingMatrix.npy', 'wb') as f:
+        np.save(f, L_data)
+    
+
+    examples_df=returnExamples(L_data, LFA_df, df)
+    examples_df.to_csv(config.output_names.output_examples)
 
 
 
