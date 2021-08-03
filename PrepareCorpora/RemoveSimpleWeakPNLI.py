@@ -32,9 +32,9 @@ def main(config: omegaconf.dictconfig.DictConfig):
         framework='pt'
     )
 
-    cq_path = pathlib.Path(config.weak_cq_path)
-    logger.info('Loading data from {}'.format(cq_path))
-    df: pd.DataFrame = pd.read_csv(cq_path).fillna('')
+    weak_cq_path = pathlib.Path(config.weak_cq_path)
+    logger.info('Loading data from {}'.format(weak_cq_path))
+    df: pd.DataFrame = pd.read_csv(weak_cq_path).fillna('')
     df["text"] = df.apply(
         axis=1,
         func=lambda r: "{} </s></s> {}".format(r['action'], r['precondition'])
@@ -44,12 +44,12 @@ def main(config: omegaconf.dictconfig.DictConfig):
     #     "1": "NEUTRAL",
     #     "2": "ENTAILMENT"
     # },
-    df['label'] = df['label'].apply(lambda l: {0: 0, 1: 2}[int(l)])
+    df['label'] = df['label'].apply(lambda l: {"CONTRADICT": 0, "ENTAILMENT": 2}[l])
 
     logger.info(f'compute nli results')
     df['nli_result'] = df['text'].progress_apply(lambda s: np.argmax(pipe(s)))
 
-    df[df['nli_result'] != df['label']].to_csv(cq_path.stem+'_filtered.csv')
+    df[df['nli_result'] != df['label']].to_csv(weak_cq_path.stem+'_filtered.csv')
 
 
 if __name__ == '__main__':

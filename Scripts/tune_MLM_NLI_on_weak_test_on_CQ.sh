@@ -3,9 +3,18 @@
 cd ..
 export PYTHONPATH="$(pwd)"
 
-python Models/MLM_Tune_Weak_Eval_CQ.py \
+#python Models/MLM_Tune_Weak_Eval_CQ.py \
+#    model_setup.model_name="roberta-large-mnli" \
+#    model_setup.tuned_model_path="/nas/home/qasemi/CQplus/Outputs/ModifiedLangModeling/Checkpoint/ModifiedLMModule.ckpt" \
+#    train_setup.do_train=true \
+#    hardware.gpus='2' \
+#    train_setup.batch_size=8
+python Models/Tune_Eval_NLI.py \
     model_setup.model_name="roberta-large-mnli" \
     model_setup.tuned_model_path="/nas/home/qasemi/CQplus/Outputs/ModifiedLangModeling/Checkpoint/ModifiedLMModule.ckpt" \
+    +n_MNLI_samples='100000'\
+    +nli_module_class='NLIModuleWithTunedLM' \
+    +data_class="WeakTuneCqTestDataModule" \
     train_setup.do_train=true \
-    hardware.gpus='2' \
+    hardware.gpus='1' \
     train_setup.batch_size=8
