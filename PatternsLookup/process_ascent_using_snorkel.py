@@ -122,6 +122,7 @@ def pattern_exists(pattern,line):
 
 
 
+
 def keyword_lookup(x, keyword, label):
     pat="{action} " +  keyword + " {precondition}."
     if pattern_exists(pat,x.text):
@@ -208,9 +209,9 @@ disabling_dict={
 
 
 enabling_dict={
-    'makes_possible' : "{precondition} makes {action} possible.",
-    'to_understand_event' : r'To understand the event "{event}", it is important to know that {precondition}.',
-    'statement_is_true' : r'The statement "{event}" is true because {precondition}.',
+    'makes possible' : "{precondition} makes {action} possible.",
+    'to understand event' : r'To understand the event "{event}", it is important to know that {precondition}.',
+    'statement is true' : r'The statement "{event}" is true because {precondition}.',
     }
 
 
@@ -297,11 +298,11 @@ def addActionPrecondition(L, LFA_df, df):
         else:
             if label==ENABLING:
                 position = np.argmax(L[index,:] == ENABLING)
-                conj=lfs_names[position][:-2]
+                conj=lfs_names[position][:-2].replace("_"," ")
                 pat=enabling_dict[conj]
             elif label==DISABLING:
                 position = np.argmax(L[index,:] == DISABLING)
-                conj=lfs_names[position][:-2]
+                conj=lfs_names[position][:-2].replace("_"," ")
                 pat=disabling_dict[conj]
             else:                                                       #AMBIGUOUS PATTERN
                 pat="{precondition} (?:so|hence|consequently) {action}."
