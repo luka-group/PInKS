@@ -117,8 +117,37 @@ def pattern_exists(pattern,line):
     return False
 
 
+#Return (precondition, action) pair.
+"""Add condition for neg_precond and event"""
+def get_precondition_action(pattern,line):
+    pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
+    replacements = {k: REPLACEMENT_REGEX[k] for k in pattern_keys}    
+    regex_pattern = pattern.format(**replacements)
+    m_list = re.findall(regex_pattern, line)
+    for m in m_list:
+        match_full_sent = line
+        for sent in line:
+            if all([ps in sent for ps in m]):
+                match_full_sent = sent
+        match_dict = dict(zip(pattern_keys, m)) 
+        
+        action=""
+        precondition=""
+        
+        
+        if 'negative_precondition' in pattern_keys:
+            precondition=match_dict['negative_precondition']
+        else:
+            precondition=match_dict['precondition']
+            
+        if 'event' in pattern_keys:
+            action=match_dict['event']
+        else:
+            action=match_dict['action']
+            
+        
+        return precondition, action
     
-
 
 
 
@@ -233,6 +262,7 @@ lfs.extend([unless_0, but_0, ambiguous_pat_2])
 
 
 
+
 def extract_all_sentences_df(config: omegaconf.dictconfig.DictConfig):    
     # assert config.predicate == '*', f'{config.predicate}'
     logger.info(f'loading json from {config.ascent_path}')
@@ -278,6 +308,7 @@ def get_precondition_action(pattern,line):
                 match_full_sent = sent
         match_dict = dict(zip(pattern_keys, m))  
         return match_dict['precondition'], match_dict['action']
+
 
 
 #Adds Action, Precondtion columns to df.
