@@ -122,8 +122,8 @@ def process_df(df,text,actions,preconditions,labels):
             actions.append(action)
             preconditions.append(precondition)
             labels.append(label)
-        except error:
-            print(error)
+        except Exception as e:
+            print(e)
             print("Text: "+ row["text"])
             print("Action: "+ row["Action"])
             print("Precondition: " + row["Precondition"])
