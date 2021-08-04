@@ -99,9 +99,7 @@ def disambiguate(line):
                 match_full_sent = sent
 
         match_dict = dict(zip(pattern_keys, m))
-        
-        if not match_dict['precondition']:
-            print(match_dict)
+        print(match_dict)
 
         if any([nw in match_dict['precondition'] for nw in PatternUtils.NEGATIVE_WORDS]):
             match_full_sent = PatternUtils.make_sentence_positive(match_full_sent)
