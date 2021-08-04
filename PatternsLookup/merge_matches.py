@@ -122,10 +122,11 @@ def process_df(df,text,actions,preconditions,labels):
             actions.append(action)
             preconditions.append(precondition)
             labels.append(label)
-        except:
-            print(row["text"])
-            print(row["Action"])
-            print(row["Precondition"])
+        except error:
+            print(error)
+            print("Text: "+ row["text"])
+            print("Action: "+ row["Action"])
+            print("Precondition: " + row["Precondition"])
     return
     
 
