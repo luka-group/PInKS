@@ -99,6 +99,7 @@ def disambiguate(line):
                 match_full_sent = sent
 
         match_dict = dict(zip(pattern_keys, m))
+        print(match_dict)
         
 
         if any([nw in match_dict['precondition'] for nw in PatternUtils.NEGATIVE_WORDS]):
