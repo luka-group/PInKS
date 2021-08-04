@@ -99,6 +99,9 @@ def disambiguate(line):
                 match_full_sent = sent
 
         match_dict = dict(zip(pattern_keys, m))
+        
+        if not match_dict['precondition']:
+            print(match_dict)
 
         if any([nw in match_dict['precondition'] for nw in PatternUtils.NEGATIVE_WORDS]):
             match_full_sent = PatternUtils.make_sentence_positive(match_full_sent)
@@ -110,23 +113,17 @@ def disambiguate(line):
 
 def process_df(df,text,actions,preconditions,labels):
     for index,row in tqdm(df.iterrows()):
-        try:
-            action=row["Action"]
-            precondition=row["Precondition"]
-            label=row["label"]
-            if label==2:
-                action=row['Precondition']
-                precondition=row['Action']
-                precondition, label = disambiguate(row["text"])
-            text.append(row["text"])
-            actions.append(action)
-            preconditions.append(precondition)
-            labels.append(label)
-        except Exception as e:
-            print(e)
-            print("Text: "+ row["text"])
-            print("Action: "+ row["Action"])
-            print("Precondition: " + row["Precondition"])
+        action=row["Action"]
+        precondition=row["Precondition"]
+        label=row["label"]
+        if label==2:
+            action=row['Precondition']
+            precondition=row['Action']
+            precondition, label = disambiguate(row["text"])
+        text.append(row["text"])
+        actions.append(action)
+        preconditions.append(precondition)
+        labels.append(label)
     return
     
 
