@@ -28,8 +28,8 @@ def main(config: omegaconf.dictconfig.DictConfig):
         "MnliTuneCqTestDataModule": MnliTuneCqTestDataModule,
         "CQOnlyNLIDataModule": CQOnlyNLIDataModule,
     }
-    data_class_name_list = [config.data_class] if isinstance(config.data_class, str) else config.data_class
-    assert isinstance(data_class_name_list, List)
+    data_class_name_list = [config.data_class] if isinstance(config.data_class, str) else list(config.data_class)
+    assert isinstance(data_class_name_list, List), data_class_name_list
 
     _module = _model_class(config)
     # Utils.PLModelDataTest(model=_module, data=_data).run()

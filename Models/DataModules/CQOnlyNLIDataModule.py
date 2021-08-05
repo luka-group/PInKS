@@ -2,6 +2,7 @@ import functools
 import pathlib
 from typing import Callable, Dict, Any, Optional
 
+import IPython
 import datasets
 import omegaconf
 import pandas as pd
@@ -13,49 +14,41 @@ from Models.DataModules.BaseNLIDataModule import BaseNLIDataModule
 
 
 class CQOnlyNLIDataModule(BaseNLIDataModule):
-
-    def setup(self, stage: Optional[str] = None):
-        tokenizer = AutoTokenizer.from_pretrained(
-            self.config.model_setup.model_name,
-            cache_dir="/nas/home/qasemi/model_cache",
-        )
+    def _load_all_datasets(self):
         test_path = pathlib.Path(self.config.cq_path)
         train_path = test_path.parent / test_path.name.replace('test', 'train')
         all_datasets = datasets.DatasetDict({
             'train': datasets.load_dataset(
-                'csv', data_files=train_path
-            )['train'].shuffle().select([i for i in range(500)]),
+                'csv', data_files=str(train_path)
+            )['train'].shuffle().select([i for i in range(250)]).rename_columns({
+                'question': 'action',
+                'context': 'precondition',
+            }),
             'test': datasets.load_dataset(
-                'csv', data_files=test_path
-            )['train'],
-        }).rename_columns({
-            'question': 'action',
-            'context': 'precondition',
+                'csv', data_files=str(test_path)
+            )['train'].rename_columns({
+                'question': 'action',
+                'context': 'precondition',
+            }),
         })
+        return all_datasets
 
-        columns_names = all_datasets.column_names
-
-        _prep_func = self._get_preprocess_func_4_model()
-        # data_files["validation"] = self.config.data_module.validation_file
-
-        self.all_tokenized = all_datasets.map(
-            functools.partial(
-                self.tokenize_function,
-                _tokenizer=functools.partial(
-                    tokenizer.batch_encode_plus,
-                    padding=True,
-                    truncation=True,
-                    max_length=self.config.data_module.max_seq_length,
-                    # return_special_tokens_mask=True,
-                    return_tensors='np',
-                    return_token_type_ids=True,
-                    # add_special_tokens=True,
-                ),
-                _to_text_func=_prep_func
-            ),
-            batched=True,
-            num_proc=self.config.data_module.preprocessing_num_workers,
-            load_from_cache_file=not self.config.data_module.overwrite_cache,
+    def _group_data_in_train_test_dev(self, columns_names):
+        # eval_dataset = tokenized_datasets["validation"]
+        self.train_dataset = self.all_tokenized['train'].remove_columns(columns_names['train']).rename_columns({
+            'nli_label': 'labels'
+        })
+        self.test_dataset = self.all_tokenized['test'].remove_columns(columns_names['test']).rename_columns({
+            'nli_label': 'labels'
+        })
+        # Not sure if it is userfull
+        self.train_dataset.set_format(
+            type='torch',
+            columns=['input_ids', 'token_type_ids', 'attention_mask', 'labels'],
+            output_all_columns=True,
         )
-
-        self._group_data_in_train_test_dev(columns_names)
+        self.test_dataset.set_format(
+            type='torch',
+            columns=['input_ids', 'token_type_ids', 'attention_mask', 'labels'],
+            output_all_columns=True,
+        )

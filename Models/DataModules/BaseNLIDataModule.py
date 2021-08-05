@@ -65,30 +65,7 @@ class BaseNLIDataModule(pl.LightningDataModule):
         )
 
         # weak_cq_dataset =
-        mnli_dataset = (
-            datasets.load_dataset('json', data_files=self.config.mnli_path)['train']
-            .shuffle()
-            .rename_columns({
-                'sentence1': 'action',
-                'sentence2': 'precondition',
-                'gold_label': 'label',
-            })
-        )
-        if 'n_MNLI_samples' in self.config and self.config.n_MNLI_samples is not None:
-            mnli_dataset = mnli_dataset.select([i for i in range(int(self.config.n_MNLI_samples))])
-
-        all_datasets = datasets.DatasetDict({
-            'weak_cq': datasets.load_dataset(
-                'csv', data_files=self.config.weak_cq_path
-            )['train'],
-            'mnli': mnli_dataset,
-            'cq': datasets.load_dataset(
-                'csv', data_files=self.config.cq_path
-            )['train'].rename_columns({
-                'question': 'action',
-                'context': 'precondition',
-            }),
-        })
+        all_datasets = self._load_all_datasets()
 
         columns_names = all_datasets.column_names
 
@@ -121,6 +98,32 @@ class BaseNLIDataModule(pl.LightningDataModule):
         #     padding='max_length',
         #     max_length=self.config.model_setup.max_length,
         # )
+
+    def _load_all_datasets(self):
+        mnli_dataset = (
+            datasets.load_dataset('json', data_files=self.config.mnli_path)['train']
+                .shuffle()
+                .rename_columns({
+                'sentence1': 'action',
+                'sentence2': 'precondition',
+                'gold_label': 'label',
+            })
+        )
+        if 'n_MNLI_samples' in self.config and self.config.n_MNLI_samples is not None:
+            mnli_dataset = mnli_dataset.select([i for i in range(int(self.config.n_MNLI_samples))])
+        all_datasets = datasets.DatasetDict({
+            'weak_cq': datasets.load_dataset(
+                'csv', data_files=self.config.weak_cq_path
+            )['train'],
+            'mnli': mnli_dataset,
+            'cq': datasets.load_dataset(
+                'csv', data_files=self.config.cq_path
+            )['train'].rename_columns({
+                'question': 'action',
+                'context': 'precondition',
+            }),
+        })
+        return all_datasets
 
     def _group_data_in_train_test_dev(self, columns_names):
         # eval_dataset = tokenized_datasets["validation"]
