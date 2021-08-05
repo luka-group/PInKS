@@ -35,7 +35,7 @@ for conj in all_conj:
 def addMaskedConj(sent):
     for conj in all_conj:
         if conj in sent:
-            sent_masked=sent.copy().replace(conj,"[MASK]",1)
+            sent_masked=sent.replace(conj,"[MASK]",1)
             unmasked_words=list(unmasker(sent_masked))
             for new_word in unmasked_words[:3]:
                 if new_word['token_str']!=conj:
