@@ -36,11 +36,13 @@ def addMaskedConj(sent):
     for conj in all_conj:
         if conj in sent:
             sent_masked=sent.replace(conj,"[MASK]",1)
-            unmasked_words=list(unmasker(sent_masked))
-            for new_word in unmasked_words[:3]:
-                if new_word['token_str']!=conj:
-                    possible_replacements[conj].add(new_word['token_str'])
-            
+            try:
+                unmasked_words=list(unmasker(sent_masked))
+                for new_word in unmasked_words[:3]:
+                    if new_word['token_str']!=conj:
+                        possible_replacements[conj].add(new_word['token_str'])
+            except:
+                continue
 
 
 @hydra.main(config_path="../Configs", config_name="create_pat_LM_config")
