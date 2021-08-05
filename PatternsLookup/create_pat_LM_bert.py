@@ -15,6 +15,7 @@ import IPython
 import hydra
 import omegaconf
 import pandas as pd 
+from tqdm import tqdm
 
 import json  
 
@@ -45,8 +46,9 @@ def addMaskedConj(sent):
 @hydra.main(config_path="../Configs", config_name="create_pat_LM_config")
 def main(config: omegaconf.dictconfig.DictConfig):
     df=pd.read_csv(config.corpus_path)
-    for index,row in df.iterrows():
+    for index,row in tqdm(df.iterrows()):
         addMaskedConj(row['text'])
+    print(config.output_name)
     with open(config.output_name, "w") as outfile: 
         json.dump(possible_replacements, outfile)
         
