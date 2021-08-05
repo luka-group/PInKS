@@ -30,7 +30,7 @@ possible_replacements={}
 
 
 for conj in all_conj:
-    possible_replacements[conj]={}
+    possible_replacements[conj]=set()
 
 def addMaskedConj(sent):
     for conj in all_conj:
