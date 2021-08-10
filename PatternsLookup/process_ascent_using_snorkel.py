@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 
+
 FACT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\* \'"’%]{10,})'
 EVENT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\*\. \'’%]{10,})'
 
@@ -112,13 +113,15 @@ def pattern_exists(pattern,line):
         if 'negative_precondition' in pattern_keys:
                     if any([nw in match_dict['negative_precondition'] for nw in PatternUtils.NEGATIVE_WORDS]):
                         return True
+                    else:
+                        return False
     if len(m_list)>0:
         return True
     return False
 
 
 #Return (precondition, action) pair.
-"""Add condition for neg_precond and event"""
+
 def get_precondition_action(pattern,line):
     pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
     replacements = {k: REPLACEMENT_REGEX[k] for k in pattern_keys}    
@@ -261,53 +264,23 @@ lfs.extend([unless_0, but_0, ambiguous_pat_2])
 
 
 
+def returnExamples(L, LFA_df, omcs_df):
+    lfs_names=list(LFA_df.index)
+    df_data=None
+    df=pd.DataFrame()
+    N=100
+    for index,row in LFA_df.iterrows():
+        s_no=int(row['j'])
+        label=int(index[-1])
 
+        pat_matches=L[:, s_no] == label
+        match_count=sum(bool(x) for x in pat_matches)
+        tmp_list=list(omcs_df.iloc[L[:, s_no] == label].sample(min(match_count,N), random_state=1)['text'])
+        if len(tmp_list)<N:
+            tmp_list += [0] * (N - len(tmp_list))
+        df[str(index)]=tmp_list
+    return df
 
-def extract_all_sentences_df(config: omegaconf.dictconfig.DictConfig):    
-    # assert config.predicate == '*', f'{config.predicate}'
-    logger.info(f'loading json from {config.ascent_path}')
-    output = []
-    all_sents=[]
-    
-    pbar_concept = tqdm(desc='concepts')
-    # pbar_assert = tqdm(desc=f'\"{config.predicate}\" assertions')
-
-    for df_chunk in pd.read_json(config.ascent_path, lines=True, chunksize=100):
-        for i, concept in df_chunk.iterrows():
-            pbar_concept.update()
-
-            # create sources lut
-            # sent_dict = {}
-            for k, s in concept['sentences'].items():
-                all_sents.append(s['text'].replace('\n', ' '))
-                
-                
-
-
-    logger.info(f'converting to pandas')
-    print("Output Path:")
-    print(config.output_names.extract_all_sentences_df)
-    
-    df = pd.DataFrame(all_sents, columns =['text'])
-    df.to_csv(config.output_names.extract_all_sentences_df)
-    # df.to_json('all_sentences.json')
-    # df.to_json(config.output_names.extract_all_sentences, orient='records', lines=True)
-    # return df
-
-
-#Return (precondition, action) pair.
-def get_precondition_action(pattern,line):
-    pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
-    replacements = {k: REPLACEMENT_REGEX[k] for k in pattern_keys}    
-    regex_pattern = pattern.format(**replacements)
-    m_list = re.findall(regex_pattern, line)
-    for m in m_list:
-        match_full_sent = line
-        for sent in line:
-            if all([ps in sent for ps in m]):
-                match_full_sent = sent
-        match_dict = dict(zip(pattern_keys, m))  
-        return match_dict['precondition'], match_dict['action']
 
 
 
@@ -359,26 +332,43 @@ def addActionPrecondition(L, LFA_df, df):
     df['Action']=actions
     df['Precondition']=preconditions
     return df
-            
 
 
 
-def returnExamples(L, LFA_df, df):
-    lfs_names=list(LFA_df.index)
-    df_data=None
-    df=pd.DataFrame()
-    N=100
-    for index,row in LFA_df.iterrows():
-        s_no=int(row['j'])
-        label=int(index[-1])
 
-        pat_matches=L[:, s_no] == label
-        match_count=sum(bool(x) for x in pat_matches)
-        tmp_list=list(df.iloc[L[:, s_no] == label].sample(min(match_count,N), random_state=1)['text'])
-        if len(tmp_list)<N:
-            tmp_list += [0] * (N - len(tmp_list))
-        df[str(index)]=tmp_list
-    return df
+
+def extract_all_sentences_df(config: omegaconf.dictconfig.DictConfig):    
+    # assert config.predicate == '*', f'{config.predicate}'
+    logger.info(f'loading json from {config.ascent_path}')
+    output = []
+    all_sents=[]
+    
+    pbar_concept = tqdm(desc='concepts')
+    # pbar_assert = tqdm(desc=f'\"{config.predicate}\" assertions')
+
+    for df_chunk in pd.read_json(config.ascent_path, lines=True, chunksize=100):
+        for i, concept in df_chunk.iterrows():
+            pbar_concept.update()
+
+            # create sources lut
+            # sent_dict = {}
+            for k, s in concept['sentences'].items():
+                all_sents.append(s['text'].replace('\n', ' '))
+                
+                
+
+
+    logger.info(f'converting to pandas')
+    print("Output Path:")
+    print(config.output_names.extract_all_sentences_df)
+    
+    df = pd.DataFrame(all_sents, columns =['text'])
+    df.to_csv(config.output_names.extract_all_sentences_df)
+    # df.to_json('all_sentences.json')
+    # df.to_json(config.output_names.extract_all_sentences, orient='records', lines=True)
+    # return df
+
+
 
 
 

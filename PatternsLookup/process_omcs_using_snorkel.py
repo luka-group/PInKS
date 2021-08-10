@@ -114,13 +114,15 @@ def pattern_exists(pattern,line):
         if 'negative_precondition' in pattern_keys:
                     if any([nw in match_dict['negative_precondition'] for nw in PatternUtils.NEGATIVE_WORDS]):
                         return True
+                    else:
+                        return False
     if len(m_list)>0:
         return True
     return False
 
 
 #Return (precondition, action) pair.
-"""Add condition for neg_precond and event"""
+
 def get_precondition_action(pattern,line):
     pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
     replacements = {k: REPLACEMENT_REGEX[k] for k in pattern_keys}    
