@@ -44,6 +44,7 @@ EVENT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\*\. \'’%]{10,})'
 REPLACEMENT_REGEX = {
         'action': FACT_REGEX,
         'event': EVENT_REGEX,
+        'negative_action': FACT_REGEX,
         'precondition': FACT_REGEX,
         'negative_precondition': FACT_REGEX,
         'precondition_action': FACT_REGEX,
@@ -116,6 +117,12 @@ def pattern_exists(pattern,line):
                         return True
                     else:
                         return False
+
+        # if 'negative_action' in pattern_keys:
+        #     if any([nw in match_dict['negative_action'] for nw in PatternUtils.NEGATIVE_WORDS]):
+        #         return True
+        #     else:
+        #         return False
     if len(m_list)>0:
         return True
     return False
@@ -148,6 +155,11 @@ def get_precondition_action(pattern,line):
             action=match_dict['event']
         else:
             action=match_dict['action']
+
+        # if 'negative_action' in pattern_keys:
+        #     action=match_dict['negative_action']
+        # else:
+        #     action=match_dict['action']
             
         
         return precondition, action
@@ -178,7 +190,7 @@ lfs=[]
 pos_conj = {'only if', 'contingent upon', 'if',"in case", "in the case that", "in the event", "on condition", "on the assumption",
             "on these terms",  "supposing", "with the proviso"}
 
-neg_conj = {"except", "except for", "excepting that", "if not", "lest",  "without"}
+neg_conj = {"except", "except for", "excepting that", "if not", "lest"}
 
 @labeling_function()
 def unless_0(x):
@@ -223,13 +235,13 @@ def statement_is_true_1(x):
         return ABSTAIN
     
     
-@labeling_function()
-def ambiguous_pat_2(x):
-    pat="{precondition} (?:so|hence|consequently) {action}."
-    if pattern_exists(pat,x.text):
-        return AMBIGUOUS
-    else:
-        return ABSTAIN
+# @labeling_function()
+# def ambiguous_pat_2(x):
+#     pat="{precondition} (?:so|hence|consequently) {action}."
+#     if pattern_exists(pat,x.text):
+#         return AMBIGUOUS
+#     else:
+#         return ABSTAIN
 
 
 enabling_dict={}
@@ -261,7 +273,8 @@ for n_conj in neg_conj:
    disabling_dict[n_conj]="{action} " +  n_conj + " {precondition}."
     
 
-lfs.extend([unless_0, but_0, ambiguous_pat_2])
+# lfs.extend([unless_0, but_0, ambiguous_pat_2])
+lfs.extend([unless_0, but_0])
 
 
 
