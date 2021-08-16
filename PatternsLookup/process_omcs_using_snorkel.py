@@ -187,10 +187,21 @@ def make_keyword_lf(keyword, label):
 
 lfs=[]
 
-pos_conj = {'only if', 'contingent upon', 'if',"in case", "in the case that", "in the event", "on condition", "on the assumption",
+pos_conj = {'only if', 'contingent upon', "in case", "in the case that", "in the event", "on condition", "on the assumption",
             "on these terms",  "supposing", "with the proviso"}
 
-neg_conj = {"except", "except for", "excepting that", "if not", "lest"}
+neg_conj = {"except", "except for", "excepting that",  "lest"}
+
+
+@labeling_function()
+def if_0(x):
+    pat="{action} if not {precondition}"
+    if pattern_exists(pat,x.text):
+        return DISABLING
+    elif pattern_exists("{action} if {precondition}",x.text):
+        return ENABLING
+    else:
+        return ABSTAIN
 
 @labeling_function()
 def unless_0(x):
@@ -274,7 +285,7 @@ for n_conj in neg_conj:
     
 
 # lfs.extend([unless_0, but_0, ambiguous_pat_2])
-lfs.extend([unless_0, but_0])
+lfs.extend([unless_0, but_0, if_0])
 
 
 
