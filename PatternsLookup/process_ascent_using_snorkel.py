@@ -260,6 +260,7 @@ disabling_dict={}
 disabling_dict={
     'but' : "{action} but {negative_precondition}",
     'unless' : "{action} unless {precondition}",
+    'if' : "{action} if not {precondition}",
     }
 
 
@@ -267,7 +268,9 @@ enabling_dict={
     'makes possible' : "{precondition} makes {action} possible.",
     'to understand event' : r'To understand the event "{event}", it is important to know that {precondition}.',
     'statement is true' : r'The statement "{event}" is true because {precondition}.',
+    'if' : "{action} if {precondition}",
     }
+
 
 
 
