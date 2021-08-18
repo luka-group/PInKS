@@ -50,14 +50,31 @@ def hasVerb(text):
 def main(config: omegaconf.dictconfig.DictConfig):
     merged_df=pd.read_csv(config.merged_dataset)
     print("Merged DF len="+str(len(merged_df)))
-    filtered_dataset=pd.DataFrame(columns=merged_df.columns)
+    column_names = ["text", "action", "precondition","label"]
+    filtered_dataset=pd.DataFrame(columns=column_names)
     count=0
     for index,row in tqdm(merged_df.iterrows()):
         if not(isQuestion(row['text'])) and hasVerb(row['precondition']):
-            filtered_dataset.append(row)   
+            new_row = {"text": row['text'], "action": row['action'], "precondition": row['precondition'], "label":row['label']}
+            filtered_dataset = filtered_dataset.append(new_row, ignore_index = True)
             count+=1
-    print("Filtered True count="+str(count))
+    # print("Filtered True count="+str(count))
+    print("Filtered len="+str(len(filtered_dataset)))
     filtered_dataset.to_csv(config.output_path)
 
 if __name__ == '__main__':
     main()
+    
+    
+    
+    
+    
+df = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'), index=['x', 'y'])
+
+print(df)
+
+for index,row in df.iterrows():
+    print(type(row))
+    print(row)
+    df.append(row)
+    
