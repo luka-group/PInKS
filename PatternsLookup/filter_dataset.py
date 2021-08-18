@@ -13,6 +13,7 @@ from Patterns import PatternUtils
 import numpy as np
 
 import nltk
+nltk.download('punkt')
 from nltk.corpus import wordnet as wn
 
 nltk.download("wordnet")
@@ -48,8 +49,8 @@ def hasVerb(text):
 def main(config: omegaconf.dictconfig.DictConfig):
     merged_df=pd.read_csv(config.merged_dataset)
     filtered_dataset=pd.DataFrame(columns=merged_df.columns)
-    for index,row in merged_df.iterrows():
-        if not(isQuestion(row['text'])) or hasVerb(row['precondition']):
+    for index,row in tqdm(merged_df.iterrows()):
+        if not(isQuestion(row['text'])) and hasVerb(row['precondition']):
             filtered_dataset.append(row)   
     filtered_dataset.to_csv(config.output_path)
 
