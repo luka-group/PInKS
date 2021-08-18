@@ -49,7 +49,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     merged_df=pd.read_csv(config.merged_dataset)
     filtered_dataset=pd.DataFrame(columns=merged_df.columns)
     for index,row in merged_df.iterrows():
-        if isQuestion(row['text']) or hasVerb(row['precondition']):
+        if not(isQuestion(row['text'])) or hasVerb(row['precondition']):
             filtered_dataset.append(row)   
     filtered_dataset.to_csv(config.output_path)
 
