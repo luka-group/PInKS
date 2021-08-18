@@ -1,0 +1,7 @@
+merged_dataset: /nas/home/pkhanna/CQplus/Outputs/merge_matches/final_merged.csv 
+output_path: filtered_dataset.csv
+
+
+hydra:
+  run:
+    dir: ../Outputs/${hydra.job.name}
