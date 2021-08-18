@@ -59,7 +59,8 @@ def return_augmented_dict(df):
         
 
 
-df=pd.read_csv("/nas/home/pkhanna/CQplus/Outputs/filter_dataset/filtered_dataset.csv")        
+df=pd.read_csv("/nas/home/pkhanna/CQplus/Outputs/filter_dataset/filtered_dataset.csv") 
+print(len(df))       
 aug_dataset_dict=return_augmented_dict(df)
 
 
