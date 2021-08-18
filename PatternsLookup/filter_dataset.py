@@ -51,9 +51,12 @@ def main(config: omegaconf.dictconfig.DictConfig):
     merged_df=pd.read_csv(config.merged_dataset)
     print("Merged DF len="+str(len(merged_df)))
     filtered_dataset=pd.DataFrame(columns=merged_df.columns)
+    count=0
     for index,row in tqdm(merged_df.iterrows()):
         if not(isQuestion(row['text'])) and hasVerb(row['precondition']):
             filtered_dataset.append(row)   
+            count+=1
+    print("Filtered True count="+str(count))
     filtered_dataset.to_csv(config.output_path)
 
 if __name__ == '__main__':
