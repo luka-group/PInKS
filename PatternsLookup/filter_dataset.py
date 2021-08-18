@@ -32,6 +32,7 @@ VERB_CODES = {
 }
 
 def isQuestion(text):
+    text=text.strip()
     if text[-1]=='?' or text.split()[0].lower() in question_start_words:
         return True
     return False
@@ -48,6 +49,7 @@ def hasVerb(text):
 @hydra.main(config_path="../Configs", config_name="filter_dataset_config")
 def main(config: omegaconf.dictconfig.DictConfig):
     merged_df=pd.read_csv(config.merged_dataset)
+    print("Merged DF len="+str(len(merged_df)))
     filtered_dataset=pd.DataFrame(columns=merged_df.columns)
     for index,row in tqdm(merged_df.iterrows()):
         if not(isQuestion(row['text'])) and hasVerb(row['precondition']):
