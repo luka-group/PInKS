@@ -33,15 +33,14 @@ def fill_mask(text):
     aug_masked_sents={}
     text = nltk.word_tokenize(text)
     result = nltk.pos_tag(text)
-    print(result)
     for idx,(word,tag) in enumerate(result):
         tmp_result = [list(ele) for ele in result]
         if (tag in NOUN_CODES) or (tag in ADJECTIVE_CODES):
             tmp_result[idx][0]="[MASK]"
             new_sent_masked=' '.join(word[0] for word in tmp_result)
-            print("Masked sent="+new_sent_masked)
+            
             unmasked_list=list(unmasker(new_sent_masked))[:3]
-            print(unmasked_list)
+            
             aug_masked_sents[new_sent_masked]=unmasked_list
     return aug_masked_sents
     
