@@ -1,0 +1,6 @@
+augmented_dataset_path: augmented_dataset.json
+
+
+hydra:
+  run:
+    dir: ../Outputs/${hydra.job.name}
