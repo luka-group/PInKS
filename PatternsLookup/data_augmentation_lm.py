@@ -50,19 +50,45 @@ def fill_mask(text):
 # temp_dict=fill_mask(sent)
 
 
-def return_augmented_dict(df):
-    aug_sents={}
-    for index, row in tqdm(df.iterrows()):
-        aug_sents[row['text']]=fill_mask(row['text'])
-    return aug_sents
+# def return_augmented_dict(df):
+    
+#     return aug_sents
         
 
 
-df=pd.read_csv("/nas/home/pkhanna/CQplus/Outputs/filter_dataset/filtered_dataset.csv") 
-print(len(df))       
-aug_dataset_dict=return_augmented_dict(df)
+
+@hydra.main(config_path="../Configs", config_name="data_aug_config")
+def main(config: omegaconf.dictconfig.DictConfig):
+    try:
+        with open(config.augmented_dataset_path) as f:
+            aug_sents = json.load(f)
+    except:
+        print("Searched file at="+str(config.augmented_dataset_path))
+        aug_sents={}
+     
+    count=0
+    for index, row in tqdm(df.iterrows()):
+        if row['text'] not in aug_sents:
+            try:
+                aug_sents[row['text']]=fill_mask(row['text'])
+                count+=1
+            except Exception as e:
+                print(e)
+                continue
+        if index%20000==0:
+            with open(config.augmented_dataset_path, "w") as outfile:
+                json.dump(aug_dataset_dict, outfile)
+            print("Saved at index="+str(index))
+            
+    #Saving for the final time            
+    with open(config.augmented_dataset_path, "w") as outfile:
+        json.dump(aug_dataset_dict, outfile)
+    
+    print("Sentence augmented="+str(count))
 
 
-with open("/nas/home/pkhanna/CQplus/Outputs/augmented_dataset.json", "w") as outfile:
-    json.dump(aug_dataset_dict, outfile)
+if __name__ == '__main__':
+    main()    
+
+
 
