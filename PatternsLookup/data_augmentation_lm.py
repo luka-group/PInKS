@@ -62,11 +62,15 @@ def fill_mask(text):
 
 @hydra.main(config_path="../Configs", config_name="data_aug_config")
 def main(config: omegaconf.dictconfig.DictConfig):
+    
+    print("Output Path="+config.augmented_dataset_path)
+    print("Input Path="+config.augmented_dataset_input_path)
+    
     try:
-        with open(config.augmented_dataset_path) as f:
+        with open(config.augmented_dataset_input_path) as f:
             aug_sents = json.load(f)
     except:
-        print("Searched file at="+str(config.augmented_dataset_path))
+        print("Searched file at="+str(config.augmented_dataset_input_path))
         aug_sents={}
      
     df=pd.read_csv(config.filtered_dataset_path) 
@@ -81,7 +85,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
                 continue
         if index%20000==0:
             with open(config.augmented_dataset_path, "w") as outfile:
-                json.dump(aug_dataset_dict, outfile)
+                json.dump(aug_sents, outfile)
             print("Saved at index="+str(index))
             
     #Saving for the final time            
