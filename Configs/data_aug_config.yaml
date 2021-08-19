@@ -1,4 +1,5 @@
 filtered_dataset_path: /nas/home/pkhanna/CQplus/Outputs/filter_dataset/filtered_dataset.csv
+augmented_dataset_input_path: /nas/home/pkhanna/CQplus/Outputs/data_augmentation_lm/augmented_dataset.json
 augmented_dataset_path: augmented_dataset.json
 
 
