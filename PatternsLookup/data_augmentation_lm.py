@@ -69,6 +69,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
         print("Searched file at="+str(config.augmented_dataset_path))
         aug_sents={}
      
+    df=pd.read_csv(config.filtered_dataset_path) 
     count=0
     for index, row in tqdm(df.iterrows()):
         if row['text'] not in aug_sents:
