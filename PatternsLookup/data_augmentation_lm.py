@@ -69,6 +69,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     try:
         with open(config.augmented_dataset_input_path) as f:
             aug_sents = json.load(f)
+        print("Found pre-saved file!")
     except:
         print("Searched file at="+str(config.augmented_dataset_input_path))
         aug_sents={}
@@ -90,7 +91,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
             
     #Saving for the final time            
     with open(config.augmented_dataset_path, "w") as outfile:
-        json.dump(aug_dataset_dict, outfile)
+        json.dump(aug_sents, outfile)
     
     print("Sentence augmented="+str(count))
 
