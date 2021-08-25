@@ -26,7 +26,6 @@ for key, value in tqdm(aug_sents.items()):
     if aug_sents[key]:
         for key_masked, value_unmasked_sents in aug_sents[key].items():
             for unmasked_pred in value_unmasked_sents:
-                print(unmasked_pred["sequence"])
                 aug_sents_list.append(unmasked_pred["sequence"])
                 
         
