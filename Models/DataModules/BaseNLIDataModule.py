@@ -6,6 +6,7 @@ import datasets
 import omegaconf
 import pandas as pd
 import pytorch_lightning as pl
+import transformers
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
 
@@ -16,11 +17,12 @@ class BaseNLIDataModule(pl.LightningDataModule):
 
     def __init__(self, config: omegaconf.dictconfig.DictConfig):
         super().__init__()
-        self.config = config
-        self.train_dataset = None
-        self.eval_dataset = None
-        self.test_dataset = None
-        self.data_collator = None
+        self.config: omegaconf.dictconfig.DictConfig = config
+        self.train_dataset: Optional[datasets.Dataset] = None
+        self.eval_dataset: Optional[datasets.Dataset] = None
+        self.test_dataset: Optional[datasets.Dataset] = None
+        self.data_collator: Optional[transformers.DataCollator] = None
+        self.all_tokenized: Optional[datasets.DatasetDict] = None
 
     def _get_preprocess_func_4_model(self) -> Callable[[str, str], str]:
         model_name = self.config.model_setup.model_name
@@ -70,8 +72,6 @@ class BaseNLIDataModule(pl.LightningDataModule):
         columns_names = all_datasets.column_names
 
         _prep_func = self._get_preprocess_func_4_model()
-        # data_files["validation"] = self.config.data_module.validation_file
-
         self.all_tokenized = all_datasets.map(
             functools.partial(
                 self.tokenize_function,
@@ -102,8 +102,8 @@ class BaseNLIDataModule(pl.LightningDataModule):
     def _load_all_datasets(self):
         mnli_dataset = (
             datasets.load_dataset('json', data_files=self.config.mnli_path)['train']
-                .shuffle()
-                .rename_columns({
+            .shuffle()
+            .rename_columns({
                 'sentence1': 'action',
                 'sentence2': 'precondition',
                 'gold_label': 'label',
@@ -111,6 +111,7 @@ class BaseNLIDataModule(pl.LightningDataModule):
         )
         if 'n_MNLI_samples' in self.config and self.config.n_MNLI_samples is not None:
             mnli_dataset = mnli_dataset.select([i for i in range(int(self.config.n_MNLI_samples))])
+
         all_datasets = datasets.DatasetDict({
             'weak_cq': datasets.load_dataset(
                 'csv', data_files=self.config.weak_cq_path

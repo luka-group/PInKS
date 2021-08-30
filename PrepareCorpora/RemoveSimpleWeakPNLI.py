@@ -29,7 +29,8 @@ def main(config: omegaconf.dictconfig.DictConfig):
             cache_dir="/nas/home/qasemi/model_cache",
             use_fast=False
         ),
-        framework='pt'
+        framework='pt',
+        device=config.hardware.gpus,
     )
 
     weak_cq_path = pathlib.Path(config.weak_cq_path)
@@ -44,7 +45,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     #     "1": "NEUTRAL",
     #     "2": "ENTAILMENT"
     # },
-    df['label'] = df['label'].apply(lambda l: {"CONTRADICT": 0, "ENTAILMENT": 2}[l])
+    df['label'] = df['label'].apply(lambda l: {"CONTRADICT": 0, "ENTAILMENT": 2, 0: 0, 1: 2}[l])
 
     logger.info(f'compute nli results')
     df['nli_result'] = df['text'].progress_apply(lambda s: np.argmax(pipe(s)))

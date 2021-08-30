@@ -1,4 +1,6 @@
-weak_cq_path: "/nas/home/qasemi/CQplus/Outputs/process_ascent/matched_sentences.csv"
+#weak_cq_path: "/nas/home/qasemi/CQplus/Outputs/process_ascent/matched_sentences.csv"
+#weak_cq_path: "/nas/home/qasemi/CQplus/Outputs/CQWeak/final_v2_new_pat.csv"
+weak_cq_path: "/nas/home/qasemi/CQplus/Outputs/RemoveSimpleWeakPNLI/final_v2_new_pat_filtered.csv"
 #cq_path: "/nas/home/qasemi/Mowgli-CoreQuisite/outputs/EvaluateBatch/MCQ-2000/BasicBenchmark/test.csv"
 cq_path: "/nas/home/qasemi/CQplus/Outputs/RemoveSimplePNLI/test_filtered.csv"
 mnli_path: "/nas/home/qasemi/CQplus/Outputs/Corpora/MNLI/multinli_1.0/multinli_1.0_train.jsonl"
