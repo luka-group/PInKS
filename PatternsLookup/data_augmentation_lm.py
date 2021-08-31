@@ -79,9 +79,9 @@ def fill_mask(text,label):
 
 def main():
     
-    augmented_dataset_path="/nas/home/pkhanna/CQplus/Outputs/data_augmentation_lm/augmented_dataset_v2.json
+    augmented_dataset_path="/nas/home/pkhanna/CQplus/Outputs/data_augmentation_lm/augmented_dataset_v2.json"
     filtered_dataset_path="/nas/home/pkhanna/CQplus/Outputs/filter_dataset/filtered_dataset.csv"
-    visited_path="/nas/home/pkhanna/CQplus/Outputs/data_augmentation_lm/visited_v2.json
+    visited_path="/nas/home/pkhanna/CQplus/Outputs/data_augmentation_lm/visited_v2.json"
     
     
     # print("Output Path= "+config.augmented_dataset_path)
