@@ -16,6 +16,8 @@ import nltk
 nltk.download('punkt')
 from nltk.corpus import wordnet as wn
 
+from langdetect import detect
+
 nltk.download("wordnet")
 nltk.download('averaged_perceptron_tagger')
 
@@ -46,6 +48,12 @@ def hasVerb(text):
     return False
 
 
+def isEnglish(text):
+    if detect(text)=='en':
+        return True
+    return False
+
+
 @hydra.main(config_path="../Configs", config_name="filter_dataset_config")
 def main(config: omegaconf.dictconfig.DictConfig):
     merged_df=pd.read_csv(config.merged_dataset)
@@ -54,7 +62,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     filtered_dataset=pd.DataFrame(columns=column_names)
     count=0
     for index,row in tqdm(merged_df.iterrows()):
-        if not(isQuestion(row['text'])) and hasVerb(row['precondition']):
+        if not(isQuestion(row['text'])) and hasVerb(row['precondition']) and isEnglish(row['text']):
             new_row = {"text": row['text'], "action": row['action'], "precondition": row['precondition'], "label":row['label']}
             filtered_dataset = filtered_dataset.append(new_row, ignore_index = True)
             count+=1
@@ -68,13 +76,5 @@ if __name__ == '__main__':
     
     
     
-    
-df = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'), index=['x', 'y'])
 
-print(df)
-
-for index,row in df.iterrows():
-    print(type(row))
-    print(row)
-    df.append(row)
     
