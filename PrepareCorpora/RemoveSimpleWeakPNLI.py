@@ -52,6 +52,9 @@ def main(config: omegaconf.dictconfig.DictConfig):
 
     df[df['nli_result'] != df['label']].to_csv(weak_cq_path.stem+'_filtered.csv')
 
+    IPython.embed()
+    exit()
+
 
 if __name__ == '__main__':
     main()

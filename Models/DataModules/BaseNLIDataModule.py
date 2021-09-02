@@ -1,5 +1,6 @@
 import functools
-from typing import Callable, Dict, Any, Optional
+import pathlib
+from typing import Callable, Dict, Any, Optional, Union, List
 
 import IPython
 import datasets
@@ -112,10 +113,22 @@ class BaseNLIDataModule(pl.LightningDataModule):
         if 'n_MNLI_samples' in self.config and self.config.n_MNLI_samples is not None:
             mnli_dataset = mnli_dataset.select([i for i in range(int(self.config.n_MNLI_samples))])
 
+        weakcq_dataset = (
+            datasets.load_dataset('csv', data_files=self.config.weak_cq_path)['train']
+            .shuffle()
+        )
+        if 'n_WeakCQ_samples' in self.config and self.config.n_WeakCQ_samples is not None:
+            weakcq_dataset = weakcq_dataset.select([i for i in range(int(self.config.n_WeakCQ_samples))])
+
+            # df_weakcq = weakcq_dataset.to_pandas()
+            # df_weakcq['label']
+            # IPython.embed()
+            # exit()
+
+        cq_path = pathlib.Path(self.config.cq_path)
+        cq_train_path = cq_path.parent / cq_path.name.replace('test', 'train')
         all_datasets = datasets.DatasetDict({
-            'weak_cq': datasets.load_dataset(
-                'csv', data_files=self.config.weak_cq_path
-            )['train'],
+            'weak_cq': weakcq_dataset,
             'mnli': mnli_dataset,
             'cq': datasets.load_dataset(
                 'csv', data_files=self.config.cq_path
@@ -123,6 +136,12 @@ class BaseNLIDataModule(pl.LightningDataModule):
                 'question': 'action',
                 'context': 'precondition',
             }),
+            'cq_test': datasets.load_dataset(
+                'csv', data_files=str(cq_train_path)
+            )['train'].rename_columns({
+                'question': 'action',
+                'context': 'precondition',
+            })
         })
         return all_datasets
 
@@ -137,6 +156,11 @@ class BaseNLIDataModule(pl.LightningDataModule):
         self.test_dataset = self.all_tokenized['cq'].remove_columns(columns_names['cq']).rename_columns({
             'nli_label': 'labels'
         })
+
+        self.eval_dataset = self.all_tokenized['cq_test'].remove_columns(columns_names['cq_test']).rename_columns({
+            'nli_label': 'labels'
+        })
+
         # Not sure if it is userfull
         self.train_dataset.set_format(
             type='torch',
@@ -144,6 +168,11 @@ class BaseNLIDataModule(pl.LightningDataModule):
             output_all_columns=True,
         )
         self.test_dataset.set_format(
+            type='torch',
+            columns=['input_ids', 'token_type_ids', 'attention_mask', 'labels'],
+            output_all_columns=True,
+        )
+        self.eval_dataset.set_format(
             type='torch',
             columns=['input_ids', 'token_type_ids', 'attention_mask', 'labels'],
             output_all_columns=True,
@@ -160,6 +189,14 @@ class BaseNLIDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(
             self.test_dataset,
+            batch_size=self.config.data_module.train_batch_size,
+            # collate_fn=self.data_collator,
+            num_workers=self.config.data_module.dataloader_num_workers,
+        )
+
+    def val_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
+        return DataLoader(
+            self.eval_dataset,
             batch_size=self.config.data_module.train_batch_size,
             # collate_fn=self.data_collator,
             num_workers=self.config.data_module.dataloader_num_workers,
@@ -186,6 +223,15 @@ class MnliTuneCqTestDataModule(BaseNLIDataModule):
             output_all_columns=True,
         )
 
+        self.eval_dataset = self.all_tokenized['cq_test'].remove_columns(columns_names['cq_test']).rename_columns({
+            'nli_label': 'labels'
+        })
+        self.eval_dataset.set_format(
+            type='torch',
+            columns=['input_ids', 'token_type_ids', 'attention_mask', 'labels'],
+            output_all_columns=True,
+        )
+
 
 class WeakTuneCqTestDataModule(BaseNLIDataModule):
     def _group_data_in_train_test_dev(self, columns_names):
@@ -206,3 +252,13 @@ class WeakTuneCqTestDataModule(BaseNLIDataModule):
             columns=['input_ids', 'token_type_ids', 'attention_mask', 'labels'],
             output_all_columns=True,
         )
+
+        self.eval_dataset = self.all_tokenized['cq_test'].remove_columns(columns_names['cq_test']).rename_columns({
+            'nli_label': 'labels'
+        })
+        self.eval_dataset.set_format(
+            type='torch',
+            columns=['input_ids', 'token_type_ids', 'attention_mask', 'labels'],
+            output_all_columns=True,
+        )
+
