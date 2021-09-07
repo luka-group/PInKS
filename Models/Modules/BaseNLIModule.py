@@ -248,9 +248,9 @@ class NLIModule(pl.LightningModule):
 
         # preparing output
         per_predicate_results = {
-            f'{spl_name}_{predicate}_mean_loss': df['loss'].mean(),
+            f'{spl_name}_{predicate}_mean_loss': _loss_mean,
             f'{spl_name}_{predicate}_accuracy': _val_acc,
-            f'{spl_name}_{predicate}_conf_matrx': _conf_matrix,
+            # f'{spl_name}_{predicate}_conf_matrx': _conf_matrix,
             f'{spl_name}_{predicate}_f1_score': _f1_score,
         }
         return per_predicate_results
