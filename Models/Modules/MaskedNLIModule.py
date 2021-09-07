@@ -87,9 +87,11 @@ class MaskedNLIModule(ModifiedLMModule):
         logger.info(f'{self.extra_tag}_{spl_name}_{predicate}_conf_matrx: \n{_conf_matrix}')
 
         # PL logs
-        self.logger.experiment.add_scalar(f'{self.extra_tag}_total_{spl_name}_{predicate}_loss', _loss_mean)
-        self.logger.experiment.add_scalar(f'{self.extra_tag}_total_{spl_name}_{predicate}_acc', _val_acc)
-        self.logger.experiment.add_scalar(f'{self.extra_tag}_{spl_name}_{predicate}_f1_macro', _f1_score)
+        self.logger.log_metrics({
+            f'{self.extra_tag}_total_{spl_name}_{predicate}_loss': _loss_mean,
+            f'{self.extra_tag}_total_{spl_name}_{predicate}_acc': _val_acc,
+            f'{self.extra_tag}_{spl_name}_{predicate}_f1_macro': _f1_score,
+        })
 
         # dump csv files
         df_errors.to_csv(f'{self.extra_tag}_{spl_name}_{predicate}_errors.csv')

@@ -3,8 +3,11 @@ from typing import Dict, List, Any
 
 import IPython
 import pandas as pd
+
 import pytorch_lightning as pl
 import torch
+# from pytorch_lightning.loggers import wandb
+import wandb
 from sklearn.metrics import f1_score, accuracy_score, confusion_matrix
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, AdamW
 
@@ -18,6 +21,8 @@ class NLIModule(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
         self.hparams = Utils.config_to_hparams(config)
+        if self.logger is not None:
+            self.logger.log_hyperparams(self.hparams)
         self.extra_tag = ''
 
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -72,13 +77,12 @@ class NLIModule(pl.LightningModule):
         })
         loss = results.loss
         # logits = results.logits
-        # weighted_loss = self.loss_func(logits, batch["labels"])
+        # loss = self.loss_func(logits, batch["labels"])
         if self.logger is not None:
-            self.logger.experiment.add_scalar('train_loss', loss)
+            self.logger.log_metrics({'train_loss': loss})
             # self.logger.experiment.add_scalar('train_loss', weighted_loss)
         return {
             "loss": loss,
-            # "loss": weighted_loss,
             # "text": batch['unmasked_text'],
         }
 
@@ -96,6 +100,8 @@ class NLIModule(pl.LightningModule):
         if self.trainer and self.trainer.use_dp:
             loss = loss.unsqueeze(0)
 
+        # logging for early stopping
+        self.log('val_loss', loss)
 
         return {
             'val_batch_loss': loss.detach().cpu(),
@@ -147,6 +153,10 @@ class NLIModule(pl.LightningModule):
         for pred, templs in mappings.items():
             if any([t in text for t in templs]):
                 predicate.add(pred)
+
+        if predicate == {'Causes', 'CausesDesire'}:
+            predicate = {'CausesDesire'}
+
         try:
             assert len(predicate) == 1, f'Found {predicate} match for {text}'
         except AssertionError as e:
@@ -205,21 +215,36 @@ class NLIModule(pl.LightningModule):
             )
         )
 
+        prefix = f'{self.extra_tag}_{spl_name}_{predicate}'
+
         # terminal logs
-        logger.info(f'{self.extra_tag}_{spl_name}_{predicate}_acc={_val_acc}')
-        logger.info(f'{self.extra_tag}_{spl_name}_{predicate}_loss={_loss_mean}')
-        logger.info(f'{self.extra_tag}_{spl_name}_{predicate}_f1={_f1_score}')
-        logger.info(f'{self.extra_tag}_{spl_name}_{predicate}_conf_matrx: \n{_conf_matrix}')
+        logger.info(f'{prefix}_acc={_val_acc}')
+        logger.info(f'{prefix}_loss={_loss_mean}')
+        logger.info(f'{prefix}_f1={_f1_score}')
+        logger.info(f'{prefix}_conf_matrx: \n{_conf_matrix}')
 
         # PL logs
         if self.logger is not None:
-            self.logger.experiment.add_scalar(f'{self.extra_tag}_total_{spl_name}_{predicate}_loss', _loss_mean)
-            self.logger.experiment.add_scalar(f'{self.extra_tag}_total_{spl_name}_{predicate}_acc', _val_acc)
-            self.logger.experiment.add_scalar(f'{self.extra_tag}_{spl_name}_{predicate}_f1_macro', _f1_score)
+            self.logger.log_metrics({
+                # metrics
+                f'{prefix}_loss': _loss_mean,
+                f'{prefix}_acc': _val_acc,
+                f'{prefix}_f1_macro': _f1_score,
+                # confusion matrix
+                f"{prefix}_conf_matrix": wandb.plot.confusion_matrix(
+                    probs=None,
+                    y_true=df['true_label'].values,
+                    preds=df['predicted_label'].values,
+                    class_names=['C', 'N', 'E']
+                ),
+                # dump csv files
+                f'{prefix}_dump': self._df_to_wandb_table(dataframe=df),
+                f'{prefix}_errors': self._df_to_wandb_table(dataframe=df_errors),
+            })
+            self.logger.log_metrics({})
 
-        # dump csv files
-        df_errors.to_csv(f'{self.extra_tag}_{spl_name}_{predicate}_errors.csv')
-        df.to_csv(f"{self.extra_tag}_{spl_name}_{predicate}_dump.csv")
+        df_errors.to_csv(f'{prefix}_errors.csv')
+        df.to_csv(f"{prefix}_dump.csv")
 
         # preparing output
         per_predicate_results = {
@@ -229,6 +254,12 @@ class NLIModule(pl.LightningModule):
             f'{spl_name}_{predicate}_f1_score': _f1_score,
         }
         return per_predicate_results
+
+    @staticmethod
+    def _df_to_wandb_table(dataframe: pd.DataFrame):
+        return wandb.Table(
+            dataframe=dataframe.applymap(str)
+        )
 
     def configure_optimizers(self):
         model = self.embedder

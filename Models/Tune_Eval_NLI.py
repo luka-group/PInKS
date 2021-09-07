@@ -5,12 +5,16 @@ import IPython
 import hydra
 import omegaconf
 import pytorch_lightning as pl
+from pytorch_lightning.loggers import WandbLogger
 
 from Models.DataModules.BaseNLIDataModule import WeakTuneCqTestDataModule, BaseNLIDataModule, MnliTuneCqTestDataModule
 from Models.DataModules.CQOnlyNLIDataModule import CQOnlyNLIDataModule
 from Models.Modules.BaseNLIModule import NLIModule
 from Modules.NLIModuleWithTunedLM import NLIModuleWithTunedLM
 import Models.Utils as Utils
+
+# import wandb
+# wandb.init()
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +36,6 @@ def main(config: omegaconf.dictconfig.DictConfig):
     assert isinstance(data_class_name_list, List), data_class_name_list
 
     _module = _model_class(config)
-    # Utils.PLModelDataTest(model=_module, data=_data).run()
     trainer = pl.Trainer(
         gradient_clip_val=0,
         gpus=str(config['hardware']['gpus']),
@@ -44,6 +47,10 @@ def main(config: omegaconf.dictconfig.DictConfig):
         num_sanity_val_steps=config['train_setup']['warmup_steps'],
         resume_from_checkpoint=None,
         distributed_backend=None,
+        logger=pl.loggers.WandbLogger(name=f"CQplus_NLI", project="CQ++"),
+        callbacks=[
+            pl.callbacks.EarlyStopping(monitor="val_loss")
+        ],
     )
 
     for data_cls_name in data_class_name_list:

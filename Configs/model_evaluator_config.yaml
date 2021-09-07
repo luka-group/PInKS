@@ -24,7 +24,7 @@ train_setup:
   val_check_interval: 0.2
   warmup_steps: 5
 
-  learning_rate: 1e-05
+  learning_rate: 1e-06
   adam_epsilon: 1e-06
   weight_decay: 0.1
   beta1: 0.9
