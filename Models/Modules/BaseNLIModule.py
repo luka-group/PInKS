@@ -8,6 +8,7 @@ import pytorch_lightning as pl
 import torch
 # from pytorch_lightning.loggers import wandb
 import wandb
+
 from sklearn.metrics import f1_score, accuracy_score, confusion_matrix
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, AdamW
 
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 class NLIModule(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
-        self.hparams = Utils.config_to_hparams(config)
+        self.hparams = Utils.flatten_config(config)
         if self.logger is not None:
             self.logger.log_hyperparams(self.hparams)
         self.extra_tag = ''
@@ -101,7 +102,6 @@ class NLIModule(pl.LightningModule):
             loss = loss.unsqueeze(0)
 
         # logging for early stopping
-        self.log('val_loss', loss)
 
         return {
             'val_batch_loss': loss.detach().cpu(),
@@ -185,6 +185,10 @@ class NLIModule(pl.LightningModule):
         per_predicate_results = self._compute_metrics(df, mytag, 'All')
         for pred, gdf in df.groupby('predicate'):
             per_predicate_results.update(self._compute_metrics(gdf, mytag, pred))
+
+        self.log(f'{mytag}_acc', per_predicate_results[f'{mytag}_All_accuracy'])
+        self.log(f'{mytag}_loss', per_predicate_results[f'{mytag}_All_mean_loss'])
+        self.log(f'{mytag}_f1', per_predicate_results[f'{mytag}_All_f1_score'])
 
         return {
             **per_predicate_results,

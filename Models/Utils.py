@@ -1,7 +1,7 @@
 import logging
 import traceback
 from itertools import chain
-from typing import Callable, Union, List, Generator, Iterable, Dict
+from typing import Callable, Union, List, Generator, Iterable, Dict, Any
 
 import IPython
 import omegaconf
@@ -42,7 +42,7 @@ def my_df_flatmap(df: pd.DataFrame,
     return pd.DataFrame.from_records(rows)
 
 
-def config_to_hparams(config) -> Dict[str, Union[str, int, float]]:
+def flatten_config(config: omegaconf.dictconfig.DictConfig) -> Dict[str, Union[str, int, float]]:
     hparams = {}
 
     def _setup_hparams(d_conf, prefix: str = ''):
@@ -61,6 +61,20 @@ def config_to_hparams(config) -> Dict[str, Union[str, int, float]]:
 
     _setup_hparams(config)
     return hparams
+
+
+def unflatten_config(hparams: Dict[str, Union[str, int, float]]) -> Dict[str, Any]:
+    update_dict = {}
+    for k_bundle, v in hparams.items():
+        elem = update_dict
+        k_list = str(k_bundle).split('.')
+        if len(k_list) > 1:
+            for k in k_list[:-1]:
+                if k not in elem:
+                    elem[k] = {}
+                elem = elem[k]
+        elem[k_list[-1]] = v
+    return update_dict
 
 
 class PLModelDataTest:

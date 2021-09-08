@@ -2,7 +2,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 from Models.Modules.ModifiedLangModelingModule import ModifiedLMModule
 from Models.Modules.BaseNLIModule import NLIModule
-from Models.Utils import config_to_hparams
+from Models.Utils import flatten_config
 
 import logging
 logger = logging.getLogger(__name__)
@@ -13,7 +13,7 @@ class NLIModuleWithTunedLM(NLIModule):
         # skip running parent's init function and just run the grandparent's
         super(NLIModule, self).__init__()
 
-        self.hparams = config_to_hparams(config)
+        self.hparams = flatten_config(config)
         self.save_hyperparameters()
 
         self.tokenizer = AutoTokenizer.from_pretrained(
