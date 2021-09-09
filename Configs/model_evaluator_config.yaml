@@ -11,7 +11,7 @@ model_setup:
   max_length: ${data_module.max_seq_length}
 
 hardware:
-  gpus: '3'
+  gpus: '2'
   cpu_limit: 16
 #  distributed_backend: #'dp' # None
 
@@ -52,9 +52,12 @@ hydra:
 
 
 ray:
-  num_samples: 1
+  num_samples: 10
   gpus_per_trial: 1
-
+  sweep_dict:
+    "train_setup.learning_rate": "tune.loguniform(1e-6, 1e-4)"
+#    "data_module.train_batch_size": "tune.choice([2, 4])"
+#    "data_module.max_seq_length": "tune.choice([200, 300, 400, 450])"
 # Comparitibility configs
 lm_module:
   model_name_or_path: ${model_setup.model_name}

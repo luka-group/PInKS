@@ -46,6 +46,7 @@ def flatten_config(config: omegaconf.dictconfig.DictConfig) -> Dict[str, Union[s
     hparams = {}
 
     def _setup_hparams(d_conf, prefix: str = ''):
+        # print(f'Running on {d_conf}, with {prefix}')
         key = lambda k: (f'{prefix}.' if prefix != '' else '') + f'{k}'
         for k, v in dict(d_conf).items():
             if any([isinstance(v, t) for t in [int, float, str, bool, torch.Tensor]]):
@@ -55,7 +56,7 @@ def flatten_config(config: omegaconf.dictconfig.DictConfig) -> Dict[str, Union[s
             elif v is None:
                 hparams[key(k)] = ''
             elif isinstance(v, omegaconf.dictconfig.DictConfig):
-                _setup_hparams(v, prefix=k)
+                _setup_hparams(v, prefix=key(k))
             else:
                 raise ValueError(f'invalid config type: [{k}]={v} with type {type(v)}')
 

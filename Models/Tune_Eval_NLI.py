@@ -1,3 +1,4 @@
+import ast
 import logging
 from typing import List, Union, Dict
 
@@ -5,6 +6,7 @@ import IPython
 import hydra
 import omegaconf
 import pytorch_lightning as pl
+import wandb
 from pytorch_lightning.loggers import WandbLogger
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray import tune
@@ -12,7 +14,7 @@ from ray import tune
 from Models.DataModules.BaseNLIDataModule import WeakTuneCqTestDataModule, BaseNLIDataModule, MnliTuneCqTestDataModule
 from Models.DataModules.CQOnlyNLIDataModule import CQOnlyNLIDataModule
 from Models.Modules.BaseNLIModule import NLIModule
-from Modules.NLIModuleWithTunedLM import NLIModuleWithTunedLM
+from Models.Modules.NLIModuleWithTunedLM import NLIModuleWithTunedLM
 import Models.Utils as Utils
 
 logger = logging.getLogger(__name__)
@@ -30,12 +32,14 @@ logger = logging.getLogger(__name__)
 #         return base
 
 
-def dummy_func(updates: Dict, base_config: omegaconf.dictconfig.DictConfig):
+def prepare_and_feed_config(updates: Dict, base_config: omegaconf.dictconfig.DictConfig):
     config = _get_updated_config(base_config, updates)
-
-    # NLIModule(config)
-    logger.warning(f'config:\n{config}\n')
-    tune.report(loss=0.1, mean_accuracy=0.9, f1=0.2)
+    config.pop('ray')
+    # logger.warning(f'config:\n{config}\n')
+    # tune.report(loss=0.1, mean_accuracy=0.9, f1=0.2)
+    # IPython.embed()
+    # exit()
+    _run_nli_train_test(config)
 
 
 def _get_updated_config(base_config, updates):
@@ -50,13 +54,18 @@ def _get_updated_config(base_config, updates):
 
 
 def tune_nli_asha(config: omegaconf.dictconfig.DictConfig):
-    sweep_dict = {
-        "train_setup.learning_rate": tune.loguniform(1e-6, 1e-4),
-        # "data_module": {
-        #     'train_batch_size': tune.choice([2, 4]),
-        #     'max_seq_length': tune.choice([200, 300, 400, 450]),
-        # },
-    }
+    assert "ray" in config, f'config does not have `ray`: {config}'
+    # sweep_dict = {
+    #     "train_setup.learning_rate": tune.loguniform(1e-6, 1e-4),
+    #     # "data_module": {
+    #     #     'train_batch_size': tune.choice([2, 4]),
+    #     #     'max_seq_length': tune.choice([200, 300, 400, 450]),
+    #     # },
+    # }
+    # setup the sweep values based on config
+    sweep_dict = {}
+    for k, v in dict(config.ray.sweep_dict).items():
+        exec(f'sweep_dict[k] = {v}')
 
     scheduler = tune.schedulers.ASHAScheduler(
         max_t=config.train_setup.max_epochs,
@@ -69,12 +78,12 @@ def tune_nli_asha(config: omegaconf.dictconfig.DictConfig):
 
     analysis = tune.run(
         tune.with_parameters(
-            dummy_func,
+            prepare_and_feed_config,
             base_config=config
             ),
         resources_per_trial={
             "cpu": 1,
-            "gpu": config.ray.gpus_per_trial
+            "gpu": 4
         },
         metric="loss",
         mode="min",
@@ -94,6 +103,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
 
 
 def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
+    # wandb.init()
     _model_class = {
         "NLIModuleWithTunedLM": NLIModuleWithTunedLM,
         "NLIModule": NLIModule,
@@ -110,6 +120,7 @@ def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
     trainer = pl.Trainer(
         gradient_clip_val=0,
         gpus=str(config['hardware']['gpus']),
+        # gpus="2,3",
         accumulate_grad_batches=config['train_setup']["accumulate_grad_batches"],
         max_epochs=config['train_setup']["max_epochs"],
         min_epochs=1,

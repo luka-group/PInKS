@@ -11,11 +11,13 @@ python Models/Tune_Eval_NLI.py \
     +nli_module_class='NLIModule' \
     +data_class="WeakTuneCqTestDataModule" \
     train_setup.do_train=true \
-    hardware.gpus='2' \
+    hardware.gpus="2" \
     train_setup.max_epochs=5 \
     train_setup.batch_size=8 \
     hydra.run.dir="/nas/home/qasemi/CQplus/Outputs/Tune_Eval_NLI"
 #    hydra.run.dir="/nas/home/qasemi/CQplus/Outputs/Tune_Eval_NLI/\${nli_module_class}/\${data_class}"
+
+
 
 #python NLI_Tune_Weak_Eval_CQ.py \
 #    cq_path='/nas/home/qasemi/Mowgli-CoreQuisite/outputs/EvaluateBatch/MCQ-2000/BasicBenchmark/test.csv' \
