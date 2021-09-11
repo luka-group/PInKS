@@ -222,7 +222,7 @@ def main():
     lf_instances_df=pd.DataFrame(dict([ (k,pd.Series(v)) for k,v in lf_instances.items() ]))
     
     for key,val in lf_instances.items():
-        label_row_name=key+"_label"
+        label_row_name=key+" label"
         lf_instances_df[label_row_name]=""
     
     
