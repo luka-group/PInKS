@@ -208,12 +208,11 @@ def main():
                 break
         if found:
             continue
-        else:
-            for key,val in disabling_dict.items():
-                if pattern_exists(val,text):
-                    lf_instances[key].append(text)
-                    found=True
-                    break
+        for key,val in enabling_dict.items():
+            if pattern_exists(val,text):
+                lf_instances[key].append(text)
+                found=True
+                break
     
             
     
