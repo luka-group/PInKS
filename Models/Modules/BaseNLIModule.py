@@ -239,11 +239,12 @@ class NLIModule(pl.LightningModule):
                     probs=None,
                     y_true=df['true_label'].values,
                     preds=df['predicted_label'].values,
-                    class_names=['C', 'N', 'E']
+                    class_names=['C', 'N', 'E'],
+                    title=f'{prefix}_conv_mat',
                 ),
                 # dump csv files
-                f'{prefix}_dump': self._df_to_wandb_table(dataframe=df),
-                f'{prefix}_errors': self._df_to_wandb_table(dataframe=df_errors),
+                # f'{prefix}_dump': self._df_to_wandb_table(dataframe=df),
+                # f'{prefix}_errors': self._df_to_wandb_table(dataframe=df_errors),
             })
             self.logger.log_metrics({})
 
@@ -278,16 +279,24 @@ class NLIModule(pl.LightningModule):
                 "weight_decay": 0.0,
             },
         ]
-        optimizer = AdamW(optimizer_grouped_parameters,
-                          lr=float(self.hparams['train_setup.learning_rate']),
-                          eps=float(self.hparams['train_setup.adam_epsilon']),
-                          betas=(
-                              self.hparams['train_setup.beta1'],
-                              self.hparams['train_setup.beta2']
-                            ),
-                          )
+        optimizer = AdamW(
+            optimizer_grouped_parameters,
+            lr=float(self.hparams['train_setup.learning_rate']),
+            eps=float(self.hparams['train_setup.adam_epsilon']),
+            betas=(
+              self.hparams['train_setup.beta1'],
+              self.hparams['train_setup.beta2']
+            ),
+        )
 
-        # optimizer = AdamW(self.parameters(), lr=float(self.hparams["learning_rate"]),
-        #                   eps=float(self.hparams["adam_epsilon"]))
+        # optimizer = AdamW(
+        #     model.parameters(),
+        #     lr=float(self.hparams['train_setup.learning_rate']),
+        #     eps=float(self.hparams['train_setup.adam_epsilon']),
+        #     betas=(
+        #         self.hparams['train_setup.beta1'],
+        #         self.hparams['train_setup.beta2']
+        #     ),
+        # )
 
         return optimizer

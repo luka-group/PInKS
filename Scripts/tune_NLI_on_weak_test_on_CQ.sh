@@ -7,13 +7,13 @@ python Models/Tune_Eval_NLI.py \
     model_setup.model_name="roberta-large-mnli" \
     model_setup.tuned_model_path="/nas/home/qasemi/CQplus/Outputs/ModifiedLangModeling/Checkpoint/ModifiedLMModule.ckpt" \
     +n_MNLI_samples='40000'\
-    +n_WeakCQ_samples='10000'\
     +nli_module_class='NLIModule' \
     +data_class="WeakTuneCqTestDataModule" \
     train_setup.do_train=true \
     hardware.gpus="2" \
-    train_setup.max_epochs=5 \
+    train_setup.max_epochs=1 \
     train_setup.batch_size=8 \
+    +no_hyper_tune=ture \
     hydra.run.dir="/nas/home/qasemi/CQplus/Outputs/Tune_Eval_NLI"
 #    hydra.run.dir="/nas/home/qasemi/CQplus/Outputs/Tune_Eval_NLI/\${nli_module_class}/\${data_class}"
 

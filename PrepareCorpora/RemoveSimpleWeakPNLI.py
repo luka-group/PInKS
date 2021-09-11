@@ -50,10 +50,10 @@ def main(config: omegaconf.dictconfig.DictConfig):
     logger.info(f'compute nli results')
     df['nli_result'] = df['text'].progress_apply(lambda s: np.argmax(pipe(s)))
 
-    df[df['nli_result'] != df['label']].to_csv(weak_cq_path.stem+'_filtered.csv')
+    df[df['nli_result'] != df['label']].to_csv('weakcq_filtered.csv')
 
-    IPython.embed()
-    exit()
+    # IPython.embed()
+    # exit()
 
 
 if __name__ == '__main__':

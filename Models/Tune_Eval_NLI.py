@@ -93,13 +93,7 @@ def tune_nli_asha(config: omegaconf.dictconfig.DictConfig):
         progress_reporter=reporter,
         name="tune_nli_asha")
 
-    print("Best hyperparameters found were: ", analysis.best_config)
-
-
-@hydra.main(config_path='../Configs/model_evaluator_config.yaml')
-def main(config: omegaconf.dictconfig.DictConfig):
-    # _run_train_test(config)
-    tune_nli_asha(config)
+    logger.warning("Best hyperparameters found were: ", analysis.best_config)
 
 
 def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
@@ -117,6 +111,20 @@ def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
     data_class_name_list = [config.data_class] if isinstance(config.data_class, str) else list(config.data_class)
     assert isinstance(data_class_name_list, List), data_class_name_list
     _module = _model_class(config)
+    callbacks_list = [
+        pl.callbacks.EarlyStopping(monitor="val_loss", min_delta=1e-4),
+
+    ]
+
+    if 'no_hyper_tune' not in config:
+        callbacks_list.append(
+            TuneReportCallback({
+                "loss": "val_loss",
+                "mean_accuracy": "val_acc",
+                "f1": "val_f1",
+            }, on="validation_end")
+        )
+
     trainer = pl.Trainer(
         gradient_clip_val=0,
         gpus=str(config['hardware']['gpus']),
@@ -130,16 +138,7 @@ def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
         resume_from_checkpoint=None,
         distributed_backend=None,
         logger=pl.loggers.WandbLogger(name=f"CQplus_NLI", project="CQ++"),
-        callbacks=[
-            pl.callbacks.EarlyStopping(monitor="val_loss", min_delta=1e-2),
-            TuneReportCallback(
-                {
-                    "loss": "val_loss",
-                    "mean_accuracy": "val_acc",
-                    "f1": "val_f1",
-                },
-                on="validation_end")
-        ],
+        callbacks=callbacks_list,
     )
     for data_cls_name in data_class_name_list:
         _data_cls = _data_class_lut[data_cls_name]
@@ -150,6 +149,15 @@ def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
     logger.info('Tuned Results')
     _module.extra_tag = 'tuned'
     trainer.test(_module, datamodule=_data)
+
+
+@hydra.main(config_path='../Configs/model_evaluator_config.yaml')
+def main(config: omegaconf.dictconfig.DictConfig):
+    # _run_train_test(config)
+    if 'ray' in config and 'no_hyper_tune' not in config:
+        tune_nli_asha(config)
+    else:
+        _run_nli_train_test(config)
 
 
 if __name__ == '__main__':
