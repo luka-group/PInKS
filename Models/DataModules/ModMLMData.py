@@ -20,12 +20,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class LMDataModule(pl.LightningDataModule):
+class ModMLMDataModule(pl.LightningDataModule):
     def __init__(self, config: omegaconf.dictconfig.DictConfig):
         super().__init__()
         self.config = config
         self.train_dataset = None
         self.eval_dataset = None
+        self.test_dataset = None
         self.data_collator = None
 
     def setup(self, stage: Optional[str] = None):
@@ -103,13 +104,6 @@ class LMDataModule(pl.LightningDataModule):
             collate_fn=self.data_collator,
             num_workers=self.config.data_module.dataloader_num_workers,
         )
-    # def val_dataloader(self):
-    #     return DataLoader(
-    #         self.eval_dataset,
-    #         batch_size=self.config.data_module.val_batch_size,
-    #         collate_fn=self.data_collator,
-    #         num_workers=self.config.data_module.dataloader_num_workers,
-    #     )
 
 
 class DataCollatorForPreconditionWordMask(DataCollatorForWholeWordMask):
@@ -141,6 +135,12 @@ class DataCollatorForPreconditionWordMask(DataCollatorForWholeWordMask):
                 'because of that',
                 'as a consequence',
                 'as a result'
+                # more enablings
+                'only if', 'subject to', 'in case', 'contingent upon', 'given', 'if', 'in the case that',
+                "in case", "in the case that", "in the event", "on condition", "on the assumption",
+                "on these terms", "subject to", "supposing", "with the proviso",
+                # more disablings
+                "but", "except", "except for", "excepting that", "if not", "lest", "saving", "without", "unless",
             ]
         ]
 
@@ -148,18 +148,34 @@ class DataCollatorForPreconditionWordMask(DataCollatorForWholeWordMask):
         self._clean_token = self._gen_clean_token(tokenizer.name_or_path)
 
     @staticmethod
+    def _roberta_gen_is_sub_word(s):
+        return u'\u0120' not in s
+
+    @staticmethod
+    def _bert_gen_is_sub_word(s):
+        return s.startswith("##")
+
+    @staticmethod
     def _gen_is_sub_word(model_name) -> Callable[[str], bool]:
         if 'roberta' in model_name:
-            return lambda s: u'\u0120' not in s
+            return DataCollatorForPreconditionWordMask._roberta_gen_is_sub_word
         if 'bert' in model_name:
-            return lambda s: s.startswith("##")
+            return DataCollatorForPreconditionWordMask.bert_gen_is_sub_word
+
+    @staticmethod
+    def _roberta_gen_clean_token(s):
+        return s.replace(u'\u0120', '')
+
+    @staticmethod
+    def _bert_gen_clean_token(s):
+        return s.replace('##', '')
 
     @staticmethod
     def _gen_clean_token(model_name) -> Callable[[str], str]:
         if 'roberta' in model_name:
-            return lambda s: s.replace(u'\u0120', '')
+            return DataCollatorForPreconditionWordMask._roberta_gen_clean_token
         if 'bert' in model_name:
-            return lambda s: s.replace('##', '')
+            return DataCollatorForPreconditionWordMask._bert_gen_clean_token
 
     def _whole_word_mask(self, input_tokens: List[str], max_predictions=512):
         """
@@ -183,8 +199,6 @@ class DataCollatorForPreconditionWordMask(DataCollatorForWholeWordMask):
                 cand_tokens.append(clean_token)
 
         assert len(cand_indexes) == len(cand_tokens)
-        # logger.info(f'cand_indexes: {cand_indexes}')
-        # logger.info(f'cand_tokens: {cand_tokens}')
 
         mask_indecies = []
         for i in range(len(cand_indexes)):
