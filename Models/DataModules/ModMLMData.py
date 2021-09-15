@@ -32,7 +32,7 @@ class ModMLMDataModule(pl.LightningDataModule):
     def setup(self, stage: Optional[str] = None):
         tokenizer = AutoTokenizer.from_pretrained(
             self.config.lm_module.model_name_or_path,
-            cache_dir="/nas/home/qasemi/model_cache",
+            cache_dir="/nas/home/pkhanna/model_cache",
         )
         extension = self.config.data_module.train_file.split(".")[-1]
         if extension in ("txt", "raw"):

@@ -10,6 +10,7 @@ from tqdm import tqdm
 from allennlp.predictors.predictor import Predictor
 import allennlp_models.tagging
 import logging
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -81,16 +82,58 @@ class PatternUtils:
             pattern, base_path=os.getcwd(), files_pattern='OUT.tmp',
             do_srl=do_srl, label=label
         )
-
+    
+    
     @staticmethod
-    def check_pattern_in_files(pattern: str, base_path: str, files_pattern: str,
+    def check_pattern_in_files_omcs(pattern: str, base_path: str, files_pattern: str,
                                do_srl: bool = False, label: str = '') \
             -> List[Dict[str, str]]:
         logger.info(f'Checking pattern ({pattern}) in files {files_pattern}')
 
-        pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
-        replacements = {k: PatternUtils.REPLACEMENT_REGEX[k] for k in pattern_keys}
-        regex_pattern = pattern.format(
+        pattern_keys = re.findall(r'\{([^\}]+)}', pattern)    #Extracts string written between {}
+        replacements = {k: PatternUtils.REPLACEMENT_REGEX[k] for k in pattern_keys}  #dictionary to replace action/precond with FACT_REGEX
+        regex_pattern = pattern.format(     #Replace the pattern with regex in place of {action} and {precondition}.
+            **replacements
+        )
+
+        for k in ['any_word', 'ENB_CONJ']:
+            try:
+                pattern_keys.remove(k)
+            except ValueError:
+                pass
+
+        all_matches = []
+        for f in tqdm(pathlib.Path(base_path).iterdir(), desc='files'):
+            if files_pattern is not None and files_pattern not in str(f):
+                continue
+            omcs_df = pd.read_csv(f, sep="\t", error_bad_lines=False)
+            for ind in omcs_df.index:
+                # print(df['Name'][ind], df['Stream'][ind])
+                fix_d = {
+                    'pattern': pattern,
+                    'label': label
+                }
+                for new_match in PatternUtils.find_matches_in_line_gigaword(line=str(omcs_df['text'][ind]), regex_pattern=regex_pattern,
+                                                                   pattern_keys=pattern_keys):
+                    all_matches.append({**new_match, **fix_d})
+
+        if do_srl:
+            PatternUtils.process_matches_with_srl(all_matches, pattern_keys)
+        else:
+            logger.warning(f'Skipping SRL')
+
+        return all_matches
+
+
+    @staticmethod
+    def check_pattern_in_files_gigaword(pattern: str, base_path: str, files_pattern: str,
+                               do_srl: bool = False, label: str = '') \
+            -> List[Dict[str, str]]:
+        logger.info(f'Checking pattern ({pattern}) in files {files_pattern}')
+
+        pattern_keys = re.findall(r'\{([^\}]+)}', pattern)    #Extracts string written between {}
+        replacements = {k: PatternUtils.REPLACEMENT_REGEX[k] for k in pattern_keys}  #dictionary to replace action/precond with FACT_REGEX
+        regex_pattern = pattern.format(     #Replace the pattern with regex in place of {action} and {precondition}.
             **replacements
         )
 
@@ -106,11 +149,12 @@ class PatternUtils:
                 continue
             with open(f, 'r') as fp:
                 for line in tqdm(fp, desc='lines'):
+                    # print(line)
                     fix_d = {
                         'pattern': pattern,
                         'label': label
                     }
-                    for new_match in PatternUtils.find_matches_in_line(line=line, regex_pattern=regex_pattern,
+                    for new_match in PatternUtils.find_matches_in_line_gigaword(line=line, regex_pattern=regex_pattern,
                                                                        pattern_keys=pattern_keys):
                         all_matches.append({**new_match, **fix_d})
 
@@ -158,6 +202,36 @@ class PatternUtils:
             yield {
                 'line': match_full_sent,
                 **jline,
+                **match_dict,
+                'flags': flags,
+            }
+            
+    @staticmethod
+    def find_matches_in_line_gigaword(line: str, regex_pattern: str, pattern_keys: List[str]) \
+            -> Generator[Dict[str, str], None, None]:
+        m_list = re.findall(regex_pattern, line)
+        # jline = json.loads(line)
+        for m in m_list:
+            match_full_sent = line
+            for sent in line:
+                if all([ps in sent for ps in m]):
+                    match_full_sent = sent
+
+            match_dict = dict(zip(pattern_keys, m))
+
+            flags = []
+            if 'negative_precondition' in pattern_keys:
+                if any([nw in match_dict['negative_precondition'] for nw in PatternUtils.NEGATIVE_WORDS]):
+                    flags.append('NEG_TO_POS')
+                    match_full_sent = PatternUtils.make_sentence_positive(match_full_sent)
+                    match_dict['precondition'] = PatternUtils.make_sentence_positive(match_dict['negative_precondition'])
+                    match_dict.pop('negative_precondition')
+                else:
+                    continue
+
+            yield {
+                'line': match_full_sent,
+                'og_line':line,
                 **match_dict,
                 'flags': flags,
             }

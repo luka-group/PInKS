@@ -5,14 +5,15 @@ import pytorch_lightning as pl
 # from loguru import logger
 
 # from LMBenchmarkEvaluator import BaseEvaluationModule
-from Models.DataModules.ModMLMData import ModMLMDataModule
-from Models.Modules.ModifiedLangModelingModule import ModifiedLMModule
+from DataModules.ModMLMData import ModMLMDataModule
+from Modules.ModifiedLangModelingModule import ModifiedLMModule
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-@hydra.main(config_path='../Configs/modified_lm_config.yaml')
+# @hydra.main(config_path='../Configs/modified_lm_config.yaml')
+@hydra.main(config_path="../Configs", config_name="modified_lm_config")
 def main(config: omegaconf.dictconfig.DictConfig):
 
     # ------------

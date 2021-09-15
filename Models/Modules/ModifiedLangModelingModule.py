@@ -1,7 +1,7 @@
 import pytorch_lightning as pl
 from transformers import AutoModelForMaskedLM, AdamW
 
-from Models.Utils import flatten_config
+from Utils import flatten_config
 
 import logging
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ class ModifiedLMModule(pl.LightningModule):
 
         self.model = AutoModelForMaskedLM.from_pretrained(
             self.hparams['lm_module.model_name_or_path'],
-            cache_dir="/nas/home/qasemi/model_cache"
+            cache_dir="/nas/home/pkhanna/model_cache"
         )
 
     def forward(self, x):

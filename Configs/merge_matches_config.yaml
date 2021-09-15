@@ -1,0 +1,8 @@
+matches_path1: /nas/home/pkhanna/CQplus/Outputs/snorkel_process_omcs_using_snorkel/snorkel_matches.csv
+matches_path2: /nas/home/pkhanna/CQplus/Outputs/process_ascent_using_snorkel/snorkel_processed.csv
+output_path: final_merged.csv
+
+
+hydra:
+  run:
+    dir: ../Outputs/${hydra.job.name}
