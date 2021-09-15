@@ -37,4 +37,4 @@ data_module:
 
 hydra:
   run:
-    dir: /nas/home/qasemi/CQplus/Outputs/${hydra.job.name}
+    dir: /nas/home/pkhanna/CQplus/Outputs/${hydra.job.name}
