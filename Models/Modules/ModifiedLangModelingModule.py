@@ -1,7 +1,7 @@
 import pytorch_lightning as pl
 from transformers import AutoModelForMaskedLM, AdamW
 
-from Models.Utils import flatten_config
+from .Models.Utils import flatten_config
 
 import logging
 logger = logging.getLogger(__name__)
