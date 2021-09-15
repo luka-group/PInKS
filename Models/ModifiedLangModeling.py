@@ -12,7 +12,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@hydra.main(config_path='../Configs/modified_lm_config.yaml')
+# @hydra.main(config_path='../Configs/modified_lm_config.yaml')
+@hydra.main(config_path="../Configs", config_name="modified_lm_config")
 def main(config: omegaconf.dictconfig.DictConfig):
 
     # ------------
