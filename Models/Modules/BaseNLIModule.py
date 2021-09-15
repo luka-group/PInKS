@@ -93,11 +93,11 @@ class NLIModule(pl.LightningModule):
     def _compute_loss(self, batch, results):
         if self.hparams['data_module.use_class_weights']:
             if self.loss_func is None:
-                class_weights = pd.read_csv('class_weights.csv')
-                logger.warning('Check: {}'.format(class_weights['0'].values.tolist()))
+                class_weights = pd.read_csv('class_weights.csv', index_col=0)['0'].sort_index().values.tolist()
+                logger.warning(f'Using class_weights: {class_weights}')
                 self.loss_func = torch.nn.CrossEntropyLoss(
                     ignore_index=-1, reduction="mean",
-                    weight=torch.Tensor(class_weights['0'].values.tolist()).to(results.logits.device)
+                    weight=torch.Tensor(class_weights).to(results.logits.device)
                 )
 
             logits = results.logits

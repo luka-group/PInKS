@@ -83,19 +83,19 @@ def tune_nli_asha(config: omegaconf.dictconfig.DictConfig):
 
 def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
     # wandb.init()
-    _model_class = {
+    _module = {
         "NLIModuleWithTunedLM": NLIModuleWithTunedLM,
         "NLIModule": NLIModule,
-    }[config.nli_module_class]
-    # _data_class_lut = {
-    #     "BaseNLIDataModule": BaseNLIDataModule,
-    #     "WeakTuneCqTestDataModule": WeakTuneCqTestDataModule,
-    #     "MnliTuneCqTestDataModule": MnliTuneCqTestDataModule,
-    #     "CQOnlyNLIDataModule": CQOnlyNLIDataModule,
-    # }
-    # data_class_name_list = [config.data_class] if isinstance(config.data_class, str) else list(config.data_class)
-    # assert isinstance(data_class_name_list, List), data_class_name_list
-    _module = _model_class(config)
+    }[config.nli_module_class](config)
+
+    # _module = _model_class(config)
+
+    assert 'train_composition' in config.data_module, f'Invalid: {config.data_module}'
+    _data = NLIDataModule(config=config)
+
+    # Utils.PLModelDataTest(model=_module, data=_data).not_test_train_dataloader()
+    # exit()
+
     callbacks_list = [
         pl.callbacks.EarlyStopping(monitor="val_loss", min_delta=1e-4),
 
@@ -126,9 +126,6 @@ def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
         callbacks=callbacks_list,
     )
 
-    assert 'train_composition' in config.data_module, f'Invalid: {config.data_module}'
-
-    _data = NLIDataModule(config=config)
     logger.info(f'Tuning on {config.data_module.train_composition}')
     _module.extra_tag = 'fit'
     trainer.fit(_module, datamodule=_data)
