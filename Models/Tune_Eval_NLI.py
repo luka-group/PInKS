@@ -1,4 +1,3 @@
-import ast
 import logging
 from typing import List, Union, Dict
 
@@ -6,30 +5,16 @@ import IPython
 import hydra
 import omegaconf
 import pytorch_lightning as pl
-import wandb
 from pytorch_lightning.loggers import WandbLogger
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray import tune
 
-from Models.DataModules.BaseNLIDataModule import WeakTuneCqTestDataModule, BaseNLIDataModule, MnliTuneCqTestDataModule
-from Models.DataModules.CQOnlyNLIDataModule import CQOnlyNLIDataModule
+from Models.DataModules.NLIDataModule import NLIDataModule
 from Models.Modules.BaseNLIModule import NLIModule
 from Models.Modules.NLIModuleWithTunedLM import NLIModuleWithTunedLM
 import Models.Utils as Utils
 
 logger = logging.getLogger(__name__)
-
-
-# def update_config(base: Dict, new: Dict):
-#     if isinstance(base, dict):
-#         for k, v in new.items():
-#             if isinstance(v, dict):
-#                 base[k] = update_config(base[k], v)
-#             if k in base:
-#                 base[k] = v
-#         return {k: update_config(v, new) for k, v in base.items()}
-#     else:
-#         return base
 
 
 def prepare_and_feed_config(updates: Dict, base_config: omegaconf.dictconfig.DictConfig):
@@ -102,14 +87,14 @@ def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
         "NLIModuleWithTunedLM": NLIModuleWithTunedLM,
         "NLIModule": NLIModule,
     }[config.nli_module_class]
-    _data_class_lut = {
-        "BaseNLIDataModule": BaseNLIDataModule,
-        "WeakTuneCqTestDataModule": WeakTuneCqTestDataModule,
-        "MnliTuneCqTestDataModule": MnliTuneCqTestDataModule,
-        "CQOnlyNLIDataModule": CQOnlyNLIDataModule,
-    }
-    data_class_name_list = [config.data_class] if isinstance(config.data_class, str) else list(config.data_class)
-    assert isinstance(data_class_name_list, List), data_class_name_list
+    # _data_class_lut = {
+    #     "BaseNLIDataModule": BaseNLIDataModule,
+    #     "WeakTuneCqTestDataModule": WeakTuneCqTestDataModule,
+    #     "MnliTuneCqTestDataModule": MnliTuneCqTestDataModule,
+    #     "CQOnlyNLIDataModule": CQOnlyNLIDataModule,
+    # }
+    # data_class_name_list = [config.data_class] if isinstance(config.data_class, str) else list(config.data_class)
+    # assert isinstance(data_class_name_list, List), data_class_name_list
     _module = _model_class(config)
     callbacks_list = [
         pl.callbacks.EarlyStopping(monitor="val_loss", min_delta=1e-4),
@@ -140,12 +125,14 @@ def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
         logger=pl.loggers.WandbLogger(name=f"CQplus_NLI", project="CQ++"),
         callbacks=callbacks_list,
     )
-    for data_cls_name in data_class_name_list:
-        _data_cls = _data_class_lut[data_cls_name]
-        _data = _data_cls(config=config)
-        logger.info(f'Tuning on {data_cls_name}')
-        _module.extra_tag = 'fit'
-        trainer.fit(_module, datamodule=_data)
+
+    assert 'train_composition' in config.data_module, f'Invalid: {config.data_module}'
+
+    _data = NLIDataModule(config=config)
+    logger.info(f'Tuning on {config.data_module.train_composition}')
+    _module.extra_tag = 'fit'
+    trainer.fit(_module, datamodule=_data)
+
     logger.info('Tuned Results')
     _module.extra_tag = 'tuned'
     trainer.test(_module, datamodule=_data)

@@ -6,6 +6,9 @@ weak_cq_path: "/nas/home/qasemi/CQplus/Outputs/RemoveSimpleWeakPNLI/weakcq_filte
 cq_path: "/nas/home/qasemi/CQplus/Outputs/RemoveSimplePNLI/test_filtered.csv"
 mnli_path: "/nas/home/qasemi/CQplus/Outputs/Corpora/MNLI/multinli_1.0/multinli_1.0_train.jsonl"
 
+dnli_path: "/nas/home/qasemi/CQplus/Outputs/Other_NLI/dnli_nli.csv"
+atomic_nli_path: "/nas/home/qasemi/CQplus/Outputs/Other_NLI/atomic_nli.csv"
+
 model_setup:
   model_name: ""
   tuned_model_path:
@@ -46,6 +49,8 @@ data_module:
 
   max_seq_length: 400
 
+  train_composition: ['weakcq', 'dnli', 'mnli', 'cq', 'atomic']
+  use_class_weights: false
 
 hydra:
   run:

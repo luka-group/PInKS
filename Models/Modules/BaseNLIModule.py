@@ -1,4 +1,5 @@
 import itertools
+import pathlib
 from typing import Dict, List, Any
 
 import IPython
@@ -37,6 +38,8 @@ class NLIModule(pl.LightningModule):
             cache_dir="/nas/home/qasemi/model_cache"
         )
 
+        self.loss_func = None
+
     def forward(self, batch):
 
         # additional_params = {}
@@ -69,6 +72,7 @@ class NLIModule(pl.LightningModule):
         }
 
     def training_step(self, batch, batch_idx):
+
         results = self.forward({
             'input_ids': batch['input_ids'],
             'attention_mask': batch['attention_mask'],
@@ -76,16 +80,30 @@ class NLIModule(pl.LightningModule):
             'token_type_ids': batch['token_type_ids'],
             'labels': batch['labels'],
         })
-        loss = results.loss
-        # logits = results.logits
-        # loss = self.loss_func(logits, batch["labels"])
+        loss = self._compute_loss(batch, results)
+
         if self.logger is not None:
             self.logger.log_metrics({'train_loss': loss})
-            # self.logger.experiment.add_scalar('train_loss', weighted_loss)
+
         return {
             "loss": loss,
             # "text": batch['unmasked_text'],
         }
+
+    def _compute_loss(self, batch, results):
+        if self.hparams['data_module.use_class_weights']:
+            if self.loss_func is None:
+                class_weights = pd.read_csv('class_weights.csv')
+                logger.warning('Check: {}'.format(class_weights['0'].values.tolist()))
+                self.loss_func = torch.nn.CrossEntropyLoss(
+                    ignore_index=-1, reduction="mean",
+                    weight=torch.Tensor(class_weights['0'].values.tolist()).to(results.logits.device)
+                )
+
+            logits = results.logits
+            return self.loss_func(logits, batch["labels"])
+        else:
+            return results.loss
 
     def validation_step(self, batch, batch_idx):
         results = self.forward({
@@ -95,7 +113,7 @@ class NLIModule(pl.LightningModule):
             'token_type_ids': batch['token_type_ids'],
             'labels': batch['labels'],
         })
-        loss = results.loss
+        loss = self._compute_loss(batch, results)
         logits = results.logits
 
         if self.trainer and self.trainer.use_dp:
@@ -268,35 +286,35 @@ class NLIModule(pl.LightningModule):
 
     def configure_optimizers(self):
         model = self.embedder
-        no_decay = ["bias", "LayerNorm.weight"]
-        optimizer_grouped_parameters = [
-            {
-                "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
-                "weight_decay": self.hparams['train_setup.weight_decay'],
-            },
-            {
-                "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
-                "weight_decay": 0.0,
-            },
-        ]
-        optimizer = AdamW(
-            optimizer_grouped_parameters,
-            lr=float(self.hparams['train_setup.learning_rate']),
-            eps=float(self.hparams['train_setup.adam_epsilon']),
-            betas=(
-              self.hparams['train_setup.beta1'],
-              self.hparams['train_setup.beta2']
-            ),
-        )
-
+        # no_decay = ["bias", "LayerNorm.weight"]
+        # optimizer_grouped_parameters = [
+        #     {
+        #         "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
+        #         "weight_decay": self.hparams['train_setup.weight_decay'],
+        #     },
+        #     {
+        #         "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
+        #         "weight_decay": 0.0,
+        #     },
+        # ]
         # optimizer = AdamW(
-        #     model.parameters(),
+        #     optimizer_grouped_parameters,
         #     lr=float(self.hparams['train_setup.learning_rate']),
         #     eps=float(self.hparams['train_setup.adam_epsilon']),
         #     betas=(
-        #         self.hparams['train_setup.beta1'],
-        #         self.hparams['train_setup.beta2']
+        #       self.hparams['train_setup.beta1'],
+        #       self.hparams['train_setup.beta2']
         #     ),
         # )
+
+        optimizer = AdamW(
+            model.parameters(),
+            lr=float(self.hparams['train_setup.learning_rate']),
+            # eps=float(self.hparams['train_setup.adam_epsilon']),
+            # betas=(
+            #     self.hparams['train_setup.beta1'],
+            #     self.hparams['train_setup.beta2']
+            # ),
+        )
 
         return optimizer
