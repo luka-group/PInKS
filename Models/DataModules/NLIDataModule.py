@@ -102,6 +102,7 @@ class NLIDataModule(pl.LightningDataModule):
             ),
             batched=True,
             num_proc=self.config.data_module.preprocessing_num_workers,
+            remove_columns=['label', 'action', 'precondition'],
             load_from_cache_file=not self.config.data_module.overwrite_cache,
         )
 
@@ -115,7 +116,7 @@ class NLIDataModule(pl.LightningDataModule):
         # )
 
     def _update_class_weights(self):
-        train_labels = self.all_tokenized['train']['label']
+        train_labels = self.all_tokenized['train']['nli_label']
         self.class_weight = dict(zip(
             np.unique(train_labels),
             class_weight.compute_class_weight(
@@ -124,8 +125,10 @@ class NLIDataModule(pl.LightningDataModule):
                 y=train_labels
             )
         ))
-        if 1 not in self.class_weight:
-            self.class_weight[1] = 1.0
+        for v in [0, 1, 2]:
+            if v not in self.class_weight:
+                logger.error(f'Did not find value with label {v} in training data')
+                self.class_weight[v] = 1.0
 
         logger.warning(f'Class Weights: {self.class_weight}')
         pd.DataFrame.from_dict(self.class_weight, orient='index').to_csv('class_weights.csv')
@@ -175,7 +178,7 @@ class NLIDataModule(pl.LightningDataModule):
 
     def _load_dnli(self):
         _dataset = (
-            datasets.load_dataset('json', data_files=self.config.dnli_path)['train']
+            datasets.load_dataset('csv', data_files=self.config.dnli_path)['train']
             .shuffle()
             .rename_columns({
                 'question': 'action',
@@ -196,7 +199,7 @@ class NLIDataModule(pl.LightningDataModule):
 
     def _load_atomic(self):
         _dataset = (
-            datasets.load_dataset('json', data_files=self.config.atomic_nli_path)['train']
+            datasets.load_dataset('csv', data_files=self.config.atomic_nli_path)['train']
             .shuffle()
             .rename_columns({
                 'question': 'action',
@@ -212,7 +215,7 @@ class NLIDataModule(pl.LightningDataModule):
         cq_eval_path = cq_test_path.parent / cq_test_path.name.replace('test', 'eval')
         cq_train_path = cq_test_path.parent / cq_test_path.name.replace('test', 'train')
 
-        cq_train_dataset = datasets.load_dataset('csv', data_files=self.config.cq_path)['train'].rename_columns({
+        cq_train_dataset = datasets.load_dataset('csv', data_files=str(cq_train_path))['train'].rename_columns({
             'question': 'action',
             'context': 'precondition',
         })
