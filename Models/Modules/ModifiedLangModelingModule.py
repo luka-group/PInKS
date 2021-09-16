@@ -10,9 +10,10 @@ logger = logging.getLogger(__name__)
 class ModifiedLMModule(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
-        self.hparams = flatten_config(config)
+        self.save_hyperparameters(flatten_config(config))
+        # self.hparams = flatten_config(config)
         logger.info(f'hparams: {self.hparams}')
-        self.save_hyperparameters()
+        # self.save_hyperparameters()
 
         self.model = AutoModelForMaskedLM.from_pretrained(
             self.hparams['lm_module.model_name_or_path'],
