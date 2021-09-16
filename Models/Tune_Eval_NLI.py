@@ -93,9 +93,6 @@ def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
     assert 'train_composition' in config.data_module, f'Invalid: {config.data_module}'
     _data = NLIDataModule(config=config)
 
-    # Utils.PLModelDataTest(model=_module, data=_data).not_test_train_dataloader()
-    # exit()
-
     callbacks_list = [
         pl.callbacks.EarlyStopping(monitor="val_loss", min_delta=1e-4),
 

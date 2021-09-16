@@ -1,14 +1,12 @@
 import functools
 from functools import partial
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional
 
 import datasets
 import pandas as pd
-import torch
 from transformers import AutoTokenizer
 
 from Models.DataModules.ModMLMData import ModMLMDataModule, DataCollatorForPreconditionWordMask
-from Models.MaskedMLMNLI_Tune_Weak_Eval_CQ import ModifiedDataCollatorForPreconditionWordMask
 
 
 class MaskedNLIDataModule(ModMLMDataModule):

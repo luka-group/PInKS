@@ -108,6 +108,8 @@ class NLIDataModule(pl.LightningDataModule):
 
         self._update_class_weights()
 
+        # IPython.embed()
+        # exit()
         self._group_data_in_train_test_dev(columns_names)
         # self.data_collator = transformers.DataCollatorWithPadding(
         #     tokenizer=tokenizer,
@@ -149,9 +151,10 @@ class NLIDataModule(pl.LightningDataModule):
 
         # real and put together all portions of the dataset.
         all_datasets = datasets.DatasetDict({
-            'train': datasets.concatenate_datasets([
-                func_lut[name]() for name in self.config.data_module.train_composition if name != 'cq'
-            ] + extra_dataset),
+            'train': datasets.concatenate_datasets(
+                [func_lut[name]() for name in self.config.data_module.train_composition if name != 'cq'] +
+                extra_dataset
+            ),
             'test': cq_dataset['cq_test'],
             'eval': cq_dataset['cq_valid'],
         })
@@ -172,9 +175,14 @@ class NLIDataModule(pl.LightningDataModule):
 
     def _trim_size_if_applicable(self, _dataset, name: str):
         n_key = 'n_{}_samples'.format(name)
+
         if n_key in self.config and self.config[n_key] is not None and self.config[n_key] > 0:
-            return _dataset.select([i for i in range(int(self.config[n_key]))])
-        return _dataset
+            return _dataset.select([i for i in range(min(int(self.config[n_key]), len(_dataset)))])
+
+        # FIXME there is problem here when we do not run the select and skip this if.
+        #  Not sure why but the system throws keyMismatch error during the concatenation. As if like the rename
+        #  column has not worked at all
+        return _dataset.select([i for i in range(int(len(_dataset)))])
 
     def _load_dnli(self):
         _dataset = (

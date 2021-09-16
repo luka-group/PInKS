@@ -10,7 +10,7 @@ python Models/Tune_Eval_NLI.py \
     data_module.train_composition=[atomic] \
     +n_weakcq_samples=5000 \
     +n_dnli_samples=5000 \
-    +n_atomic_samples=5000 \
+    +n_atomic_samples=10000 \
     +n_mnli_samples=5000 \
     data_module.use_class_weights=true \
     train_setup.do_train=true \

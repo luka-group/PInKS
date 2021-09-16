@@ -1,4 +1,5 @@
 import itertools
+import os
 import pathlib
 from typing import Dict, List, Any
 
@@ -25,17 +26,19 @@ class NLIModule(pl.LightningModule):
         self.hparams = Utils.flatten_config(config)
         if self.logger is not None:
             self.logger.log_hyperparams(self.hparams)
+        self.save_hyperparameters()
         self.extra_tag = ''
 
+        HOME_DIR = os.path.expanduser('~')
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.hparams["model_setup.model_name"],
-            cache_dir="/nas/home/qasemi/model_cache",
+            cache_dir=f"{HOME_DIR}/model_cache",
             use_fast=False
         )
 
         self.embedder = AutoModelForSequenceClassification.from_pretrained(
             self.hparams["model_setup.model_name"],
-            cache_dir="/nas/home/qasemi/model_cache"
+            cache_dir=f"{HOME_DIR}/model_cache"
         )
 
         self.loss_func = None

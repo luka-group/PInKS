@@ -7,7 +7,7 @@ import pytorch_lightning as pl
 
 from DataModules.BaseNLIDataModule import WeakTuneCqTestDataModule
 from Modules.NLIModuleWithTunedLM import NLIModuleWithTunedLM
-import Models.Utils as Utils
+import Models.Utils as UtilsOldFiles
 
 logger = logging.getLogger(__name__)
 

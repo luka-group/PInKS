@@ -6,7 +6,7 @@ export PYTHONPATH="$(pwd)"
 python Models/Tune_Eval_NLI.py \
     model_setup.model_name="roberta-large-mnli" \
     model_setup.tuned_model_path="/nas/home/qasemi/CQplus/Outputs/ModifiedLangModeling/Checkpoint/ModifiedLMModule.ckpt" \
-    +nli_module_class='NLIModule' \
+    +nli_module_class='NLIModuleWithTunedLM' \
     data_module.train_composition=[dnli] \
     +n_weakcq_samples=5000 \
     +n_dnli_samples=10000 \
