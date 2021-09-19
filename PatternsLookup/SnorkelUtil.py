@@ -186,7 +186,7 @@ class SnorkelUtil():
     @staticmethod
     def keyword_lookup(x, keyword, label):
         pat="{action} " +  keyword + " {precondition}."
-        if SnorkelUtil.SnorkelUtil.pattern_exists(pat,x.text):
+        if SnorkelUtil.pattern_exists(pat,x.text):
             return label
         else:
             return ABSTAIN
