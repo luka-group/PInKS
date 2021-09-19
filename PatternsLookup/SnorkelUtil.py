@@ -336,11 +336,11 @@ class SnorkelUtil():
                 if label==SnorkelUtil.ENABLING:
                     position = np.argmax(L[index,:] == SnorkelUtil.ENABLING)
                     conj=lfs_names[position][:-2].replace("_"," ")
-                    pat=enabling_dict[conj]
+                    pat=self.enabling_dict[conj]
                 elif label==SnorkelUtil.DISABLING:
                     position = np.argmax(L[index,:] == SnorkelUtil.DISABLING)
                     conj=lfs_names[position][:-2].replace("_"," ")
-                    pat=disabling_dict[conj]
+                    pat=self.disabling_dict[conj]
                 # else:                                                       #AMBIGUOUS PATTERN
                 #     pat="{precondition} (?:so|hence|consequently) {action}."
                 # position = np.argmax(L[index,:] > -1)
@@ -353,7 +353,7 @@ class SnorkelUtil():
                 #     pat="{precondition} makes {action} possible."
                     
                 try:
-                    precondition, action= get_precondition_action(pat,row['text'])
+                    precondition, action= SnorkelUtil.get_precondition_action(pat,row['text'])
                 except Exception as e:
                     print(e)
                     print("pattern="+pat)
