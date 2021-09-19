@@ -62,7 +62,7 @@ SINGLE_SENTENCE_DISABLING_PATTERNS2 = [
     r"{negative_precondition} (?:so|hence|consequently) {action}\.",
 ]
 
-SnorkelUtil.ENABLING_PATTERNS = [
+ENABLING_PATTERNS = [
     "{action} only if {precondition}.",
     "{precondition} (?:so|hence|consequently) {action}.",
     "{precondition} makes {action} possible.",
