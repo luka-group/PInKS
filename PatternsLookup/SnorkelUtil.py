@@ -194,7 +194,7 @@ class SnorkelUtil():
         
      
 
-    def get_L_matrix():
+    def get_L_matrix(self):
         return self.L, self.LFA_df
 
        
