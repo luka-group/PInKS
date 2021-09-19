@@ -89,20 +89,6 @@ class SnorkelUtil():
         
         self.lfs=[]
             
-        def keyword_lookup(x, keyword, label):
-            pat="{action} " +  keyword + " {precondition}."
-            if SnorkelUtil.pattern_exists(pat,x.text):
-                return label
-            else:
-                return ABSTAIN
-        
-        def make_keyword_lf(keyword, label):
-            lf_name=keyword.replace(" ","_") + f"_{label}"
-            return LabelingFunction(
-                name=lf_name,
-                f=SnorkelUtil.keyword_lookup,
-                resources=dict(keyword=keyword, label=label),
-            )
         
         @labeling_function()
         def if_0(x):
@@ -158,6 +144,7 @@ class SnorkelUtil():
         # enabling_dict={}
         # disabling_dict={}
 
+        
         self.disabling_dict={
             'but' : "{action} but {negative_precondition}",
             'unless' : "{action} unless {precondition}",
@@ -173,13 +160,13 @@ class SnorkelUtil():
             }
         
         for p_conj in self.pos_conj:
-            self.lfs.append(make_keyword_lf(p_conj,ENABLING))
+            self.lfs.append(self.make_keyword_lf(p_conj,ENABLING))
             self.enabling_dict[p_conj]="{action} " +  p_conj + " {precondition}."
         
         self.lfs.extend([makes_possible_1, to_understand_event_1, statement_is_true_1])
             
         for n_conj in self.neg_conj:
-           self.lfs.append(make_keyword_lf(n_conj,DISABLING)) 
+           self.lfs.append(self.make_keyword_lf(n_conj,DISABLING)) 
            self.disabling_dict[n_conj]="{action} " +  n_conj + " {precondition}."
             
         
@@ -196,8 +183,22 @@ class SnorkelUtil():
         
         return self.L, self.LFA_df
             
+    @staticmethod
+    def keyword_lookup(x, keyword, label):
+        pat="{action} " +  keyword + " {precondition}."
+        if SnorkelUtil.pattern_exists(pat,x.text):
+            return label
+        else:
+            return ABSTAIN
         
-        
+    @staticmethod
+    def make_keyword_lf(keyword, label):
+        lf_name=keyword.replace(" ","_") + f"_{label}"
+        return LabelingFunction(
+            name=lf_name,
+            f=SnorkelUtil.keyword_lookup,
+            resources=dict(keyword=keyword, label=label),
+        )    
  
         
     @staticmethod
