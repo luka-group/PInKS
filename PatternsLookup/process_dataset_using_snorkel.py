@@ -92,6 +92,9 @@ def main(config: omegaconf.dictconfig.DictConfig):
         
     
     df = pd.read_csv(input_path, sep="\t", error_bad_lines=False)
+    
+    print(df.head)
+    
     df['text'] = df['text'].astype(str)
 
     snorkel_util=SnorkelUtil(df)
@@ -117,8 +120,11 @@ def main(config: omegaconf.dictconfig.DictConfig):
     with open('LabelingMatrix.npy', 'wb') as f:
         np.save(f, L)
     
-    examples_df=SnorkelUtil.returnExamples(L, LFA_df, df)
-    examples_df.to_csv(config.output_examples)    
+    
+    #Extract Examples
+    # print("Saving Examples....")
+    # examples_df=SnorkelUtil.returnExamples(L, LFA_df, df)
+    # examples_df.to_csv(config.output_examples)    
 
 
 if __name__ == '__main__':

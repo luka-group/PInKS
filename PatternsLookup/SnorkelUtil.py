@@ -298,10 +298,10 @@ class SnorkelUtil():
             return precondition, action
         
     @staticmethod  
-    def returnExamples(L, LFA_df, omcs_df,N=100):
+    def returnExamples(L, LFA_df, df,N=100):
         lfs_names=list(LFA_df.index)
         df_data=None
-        df=pd.DataFrame()
+        examples_df=pd.DataFrame()
         # N=100
         for index,row in LFA_df.iterrows():
             s_no=int(row['j'])
@@ -309,11 +309,11 @@ class SnorkelUtil():
     
             pat_matches=L[:, s_no] == label
             match_count=sum(bool(x) for x in pat_matches)
-            tmp_list=list(omcs_df.iloc[L[:, s_no] == label].sample(min(match_count,N), random_state=1)['text'])
+            tmp_list=list(df.iloc[L[:, s_no] == label].sample(min(match_count,N), random_state=1)['text'])
             if len(tmp_list)<N:
                 tmp_list += [0] * (N - len(tmp_list))
-            df[str(index)]=tmp_list
-        return df
+            examples_df[str(index)]=tmp_list
+        return examples_df
           
     
     #Adds Action, Precondtion columns to df.
