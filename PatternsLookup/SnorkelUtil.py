@@ -317,8 +317,8 @@ class SnorkelUtil():
           
     
     #Adds Action, Precondtion columns to df.
-    @staticmethod  
-    def addActionPrecondition(L, LFA_df, df):
+    # @staticmethod  
+    def addActionPrecondition(self, L, LFA_df, df):
         actions=[]
         preconditions=[]
         lfs_names=list(LFA_df.index)

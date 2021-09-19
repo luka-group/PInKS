@@ -61,7 +61,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     label_model.fit(L_omcs, n_epochs=config.snorkel_epochs, log_freq=50, seed=123)
     omcs_df["label"] = label_model.predict(L=L_omcs, tie_break_policy="abstain")
     
-    omcs_df=SnorkelUtil.addActionPrecondition(L_omcs, LFA_df, omcs_df)
+    omcs_df=snorkel_util.addActionPrecondition(L_omcs, LFA_df, omcs_df)
     omcs_df = omcs_df[omcs_df.label != SnorkelUtil.ABSTAIN]
     
     omcs_df.to_csv(config.output_name)

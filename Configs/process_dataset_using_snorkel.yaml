@@ -1,8 +1,11 @@
-ascent_path: "/nas/home/qasemi/CQplus/Outputs/Corpora/ASCENT/data/kb-05-02-2021.jsonl"
-#output_name: "matches.json"
-method:
+dataset_name: omcs
 
-output_names:
+ascent_path: "/nas/home/qasemi/CQplus/Outputs/Corpora/ASCENT/data/kb-05-02-2021.jsonl"
+omcs_path: /nas/home/pkhanna/omcs/omcs-sentences-more.txt
+#output_name: "matches.json"
+ascent_method:
+
+ascent_output_names:
   extract_all_sentences: 'all_sentences.json'
   process_all_sentences: 'matched_sentences.json'
   extract_usedfor_sentences: 'usedfor_sentences.csv'
@@ -15,6 +18,10 @@ process_all_sentences:
 predicate: 'used'
 
 json_chunck_size: 1000
+
+output_name: snorkel_matches.csv
+output_examples: output_examples.csv
+snorkel_epochs: 200
 
 hydra:
   run:

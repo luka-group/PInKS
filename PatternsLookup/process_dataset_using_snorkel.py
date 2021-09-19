@@ -38,18 +38,70 @@ logger = logging.getLogger(__name__)
 
 from SnorkelUtil import SnorkelUtil
 
+
+
+
+def ascent_extract_all_sentences_df(config: omegaconf.dictconfig.DictConfig):    
+    # assert config.predicate == '*', f'{config.predicate}'
+    logger.info(f'loading json from {config.ascent_path}')
+    output = []
+    all_sents=[]
     
+    pbar_concept = tqdm(desc='concepts')
+    # pbar_assert = tqdm(desc=f'\"{config.predicate}\" assertions')
+
+    for df_chunk in pd.read_json(config.ascent_path, lines=True, chunksize=100):
+        for i, concept in df_chunk.iterrows():
+            pbar_concept.update()
+
+            # create sources lut
+            # sent_dict = {}
+            for k, s in concept['sentences'].items():
+                all_sents.append(s['text'].replace('\n', ' '))
+                
+                
+
+
+    logger.info(f'converting to pandas')
+    print("Output Path:")
+    print(config.output_names.extract_all_sentences_df)
+    
+    df = pd.DataFrame(all_sents, columns =['text'])
+    df.to_csv(config.output_names.extract_all_sentences_df)
+    # df.to_json('all_sentences.json')
+    # df.to_json(config.output_names.extract_all_sentences, orient='records', lines=True)
+    # return df
+
+
+
 
 
 @hydra.main(config_path="../Configs", config_name="process_dataset_using_snorkel")
 def main(config: omegaconf.dictconfig.DictConfig):
     """With SnorkelUtil"""
-    df = pd.read_csv(config.corpus_path, sep="\t", error_bad_lines=False)
+    
+    input_path=""
+    
+    if config.dataset_name.lower()=="omcs":
+        input_path=config.omcs_path
+    elif config.dataset_name.lower()=="ascent":
+        if config.method == 'extract_all_sentences_df':
+            ascent_extract_all_sentences_df(config)
+            return
+        elif config.method == 'process_all_sentences_snorkel':
+            process_all_sentences_snorkel(config)
+            input_path=pathlib.Path(os.getcwd())/pathlib.Path(config.ascent_output_names.extract_all_sentences_df)
+        
+    
+    df = pd.read_csv(input_path, sep="\t", error_bad_lines=False)
     df['text'] = df['text'].astype(str)
 
-    L, LFA_df=SnorkelUtil(df)
-    examples_df=SnorkelUtil.returnExamples(L, LFA_df, df)
-    examples_df.to_csv(config.output_examples)
+    snorkel_util=SnorkelUtil(df)
+
+    L, LFA_df=snorkel_util.get_L_matrix()
+    
+    
+
     
     label_model = LabelModel(cardinality=3, verbose=True)
     label_model.fit(L, n_epochs=config.snorkel_epochs, log_freq=50, seed=123)
@@ -67,7 +119,8 @@ def main(config: omegaconf.dictconfig.DictConfig):
     with open('LabelingMatrix.npy', 'wb') as f:
         np.save(f, L)
     
-    
+    examples_df=SnorkelUtil.returnExamples(L, LFA_df, df)
+    examples_df.to_csv(config.output_examples)    
 
 
 if __name__ == '__main__':
