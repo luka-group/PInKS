@@ -41,60 +41,56 @@ from SnorkelUtil import SnorkelUtil
 
 
 
-FACT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\* \'"’%]{10,})'
-EVENT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\*\. \'’%]{10,})'
+# FACT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\* \'"’%]{10,})'
+# EVENT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\*\. \'’%]{10,})'
 
-REPLACEMENT_REGEX = {
-        'action': FACT_REGEX,
-        'event': EVENT_REGEX,
-        'negative_action': FACT_REGEX,
-        'precondition': FACT_REGEX,
-        'negative_precondition': FACT_REGEX,
-        'precondition_action': FACT_REGEX,
-        'any_word': r'[^ \[]{,10}',
-        'ENB_CONJ': r'(?:so|hence|consequently|thus|therefore|'
-                    r'as a result|thus|accordingly|because of that|'
-                    r'as a consequence|as a result)',
-    }
+# REPLACEMENT_REGEX = {
+#         'action': FACT_REGEX,
+#         'event': EVENT_REGEX,
+#         'negative_action': FACT_REGEX,
+#         'precondition': FACT_REGEX,
+#         'negative_precondition': FACT_REGEX,
+#         'precondition_action': FACT_REGEX,
+#         'any_word': r'[^ \[]{,10}',
+#         'ENB_CONJ': r'(?:so|hence|consequently|thus|therefore|'
+#                     r'as a result|thus|accordingly|because of that|'
+#                     r'as a consequence|as a result)',
+#     }
 
-# pattern = "{action} unless {precondition}"
+# # pattern = "{action} unless {precondition}"
 
-NEGATIVE_WORDS = [
-    ' not ',
-    ' cannot ',
-    'n\'t ',
-    ' don\\u2019t ',
-    ' doesn\\u2019t ',
-]
-
-
-
-SINGLE_SENTENCE_DISABLING_PATTERNS1 = [
-    r"^{action} unless {precondition}\.",
-    r"\. {action} unless {precondition}\.",
-    r"^{any_word} unless {precondition}, {action}\.",
-    r"^{any_word} unless {precondition}, {action}\.",
-]
-
-SINGLE_SENTENCE_DISABLING_PATTERNS2 = [
-    r"{negative_precondition} (?:so|hence|consequently) {action}\.",
-]
-
-ENABLING_PATTERNS = [
-    "{action} only if {precondition}.",
-    "{precondition} (?:so|hence|consequently) {action}.",
-    "{precondition} makes {action} possible.",
-]
-
-DISABLING_WORDS = [
-    "unless",
-]
+# NEGATIVE_WORDS = [
+#     ' not ',
+#     ' cannot ',
+#     'n\'t ',
+#     ' don\\u2019t ',
+#     ' doesn\\u2019t ',
+# ]
 
 
-ABSTAIN = -1
-DISABLING = 0
-ENABLING = 1
-AMBIGUOUS=2
+
+# SINGLE_SENTENCE_DISABLING_PATTERNS1 = [
+#     r"^{action} unless {precondition}\.",
+#     r"\. {action} unless {precondition}\.",
+#     r"^{any_word} unless {precondition}, {action}\.",
+#     r"^{any_word} unless {precondition}, {action}\.",
+# ]
+
+# SINGLE_SENTENCE_DISABLING_PATTERNS2 = [
+#     r"{negative_precondition} (?:so|hence|consequently) {action}\.",
+# ]
+
+# ENABLING_PATTERNS = [
+#     "{action} only if {precondition}.",
+#     "{precondition} (?:so|hence|consequently) {action}.",
+#     "{precondition} makes {action} possible.",
+# ]
+
+# DISABLING_WORDS = [
+#     "unless",
+# ]
+
+
 
 
 # def pattern_exists(pattern,line):
@@ -389,7 +385,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     omcs_df["label"] = label_model.predict(L=L_omcs, tie_break_policy="abstain")
     
     omcs_df=SnorkelUtil.addActionPrecondition(L_omcs, LFA_df, omcs_df)
-    omcs_df = omcs_df[omcs_df.label != ABSTAIN]
+    omcs_df = omcs_df[omcs_df.label != SnorkelUtil.ABSTAIN]
     
     omcs_df.to_csv(config.output_name)
     

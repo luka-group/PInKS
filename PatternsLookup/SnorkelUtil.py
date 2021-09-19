@@ -62,7 +62,7 @@ SINGLE_SENTENCE_DISABLING_PATTERNS2 = [
     r"{negative_precondition} (?:so|hence|consequently) {action}\.",
 ]
 
-ENABLING_PATTERNS = [
+SnorkelUtil.ENABLING_PATTERNS = [
     "{action} only if {precondition}.",
     "{precondition} (?:so|hence|consequently) {action}.",
     "{precondition} makes {action} possible.",
@@ -73,16 +73,26 @@ DISABLING_WORDS = [
 ]
 
 
-ABSTAIN = -1
-DISABLING = 0
-ENABLING = 1
-AMBIGUOUS=2
+# ABSTAIN = -1
+# DISABLING = 0
+# ENABLING = 1
+# AMBIGUOUS=2
 
 
 
 
 class SnorkelUtil():
+    
+    ABSTAIN = -1
+    DISABLING = 0
+    ENABLING = 1
+    # AMBIGUOUS=2
+    
+    
     def __init__(self,df):
+        
+        
+        
         self.pos_conj = {'only if', 'contingent upon', 'if',"in case", "in the case that", "in the event", "on condition", "on the assumption",
                     "on these terms",  "supposing", "with the proviso"}
         self.neg_conj = {"except", "except for", "excepting that", "if not", "lest",  "without"}
@@ -94,52 +104,52 @@ class SnorkelUtil():
         def if_0(x):
             pat="{action} if not {precondition}"
             if SnorkelUtil.pattern_exists(pat,x.text):
-                return DISABLING
+                return SnorkelUtil.DISABLING
             elif SnorkelUtil.pattern_exists("{action} if {precondition}",x.text):
-                return ENABLING
+                return SnorkelUtil.ENABLING
             else:
-                return ABSTAIN
+                return SnorkelUtil.ABSTAIN
         
         @labeling_function()
         def unless_0(x):
             for pat in SINGLE_SENTENCE_DISABLING_PATTERNS1:
                 if SnorkelUtil.pattern_exists(pat,x.text):
-                    return DISABLING
-            return ABSTAIN
+                    return SnorkelUtil.DISABLING
+            return SnorkelUtil.ABSTAIN
         
         
         @labeling_function()
         def but_0(x):
             pat="{action} but {negative_precondition}"
             if SnorkelUtil.pattern_exists(pat,x.text):
-                return DISABLING
+                return SnorkelUtil.DISABLING
             else:
-                return ABSTAIN
+                return SnorkelUtil.ABSTAIN
               
         @labeling_function()
         def makes_possible_1(x):
             pat="{precondition} makes {action} possible."
             if SnorkelUtil.pattern_exists(pat,x.text):
-                return ENABLING
+                return SnorkelUtil.ENABLING
             else:
-                return ABSTAIN
+                return SnorkelUtil.ABSTAIN
             
         @labeling_function()
         def to_understand_event_1(x):
             pat = r'To understand the event "{event}", it is important to know that {precondition}.'
             if SnorkelUtil.pattern_exists(pat,x.text):
-                return ENABLING
+                return SnorkelUtil.ENABLING
             else:
-                return ABSTAIN
+                return SnorkelUtil.ABSTAIN
           
             
         @labeling_function()
         def statement_is_true_1(x):
             pat = r'The statement "{event}" is true because {precondition}.'
             if SnorkelUtil.pattern_exists(pat,x.text):
-                return ENABLING
+                return SnorkelUtil.ENABLING
             else:
-                return ABSTAIN
+                return SnorkelUtil.ABSTAIN
             
         # enabling_dict={}
         # disabling_dict={}
@@ -160,13 +170,13 @@ class SnorkelUtil():
             }
         
         for p_conj in self.pos_conj:
-            self.lfs.append(self.make_keyword_lf(p_conj,ENABLING))
+            self.lfs.append(self.make_keyword_lf(p_conj,SnorkelUtil.ENABLING))
             self.enabling_dict[p_conj]="{action} " +  p_conj + " {precondition}."
         
         self.lfs.extend([makes_possible_1, to_understand_event_1, statement_is_true_1])
             
         for n_conj in self.neg_conj:
-           self.lfs.append(self.make_keyword_lf(n_conj,DISABLING)) 
+           self.lfs.append(self.make_keyword_lf(n_conj,SnorkelUtil.DISABLING)) 
            self.disabling_dict[n_conj]="{action} " +  n_conj + " {precondition}."
             
         
@@ -189,7 +199,7 @@ class SnorkelUtil():
         if SnorkelUtil.pattern_exists(pat,x.text):
             return label
         else:
-            return ABSTAIN
+            return SnorkelUtil.ABSTAIN
         
     @staticmethod
     def make_keyword_lf(keyword, label):
@@ -303,20 +313,20 @@ class SnorkelUtil():
             precondition=-1
             label=row["label"]
             
-            if not(np.any(valid_positions)) or label==ABSTAIN:
+            if not(np.any(valid_positions)) or label==SnorkelUtil.ABSTAIN:
                 action=-1
                 precondition=-1
             else:
-                if label==ENABLING:
-                    position = np.argmax(L[index,:] == ENABLING)
+                if label==SnorkelUtil.ENABLING:
+                    position = np.argmax(L[index,:] == SnorkelUtil.ENABLING)
                     conj=lfs_names[position][:-2].replace("_"," ")
                     pat=enabling_dict[conj]
-                elif label==DISABLING:
-                    position = np.argmax(L[index,:] == DISABLING)
+                elif label==SnorkelUtil.DISABLING:
+                    position = np.argmax(L[index,:] == SnorkelUtil.DISABLING)
                     conj=lfs_names[position][:-2].replace("_"," ")
                     pat=disabling_dict[conj]
-                else:                                                       #AMBIGUOUS PATTERN
-                    pat="{precondition} (?:so|hence|consequently) {action}."
+                # else:                                                       #AMBIGUOUS PATTERN
+                #     pat="{precondition} (?:so|hence|consequently) {action}."
                 # position = np.argmax(L[index,:] > -1)
                 # conj=lfs_names[position][:-2].replace("_"," ")
                 # # print(conj)
