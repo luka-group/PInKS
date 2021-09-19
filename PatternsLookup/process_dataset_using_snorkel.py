@@ -39,8 +39,6 @@ logger = logging.getLogger(__name__)
 from SnorkelUtil import SnorkelUtil
 
 
-
-
 def ascent_extract_all_sentences_df(config: omegaconf.dictconfig.DictConfig):    
     # assert config.predicate == '*', f'{config.predicate}'
     logger.info(f'loading json from {config.ascent_path}')
@@ -107,7 +105,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     label_model.fit(L, n_epochs=config.snorkel_epochs, log_freq=50, seed=123)
     df["label"] = label_model.predict(L=L, tie_break_policy="abstain")
     
-    df=SnorkelUtil.addActionPrecondition(L, LFA_df, df)
+    df=snorkel_util.addActionPrecondition(L, LFA_df, df)
     df = df[df.label != SnorkelUtil.ABSTAIN]
     
     df.to_csv(config.output_name)
