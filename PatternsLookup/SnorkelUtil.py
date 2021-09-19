@@ -93,9 +93,9 @@ class SnorkelUtil():
         @labeling_function()
         def if_0(x):
             pat="{action} if not {precondition}"
-            if pattern_exists(pat,x.text):
+            if SnorkelUtil.pattern_exists(pat,x.text):
                 return DISABLING
-            elif pattern_exists("{action} if {precondition}",x.text):
+            elif SnorkelUtil.pattern_exists("{action} if {precondition}",x.text):
                 return ENABLING
             else:
                 return ABSTAIN
@@ -103,7 +103,7 @@ class SnorkelUtil():
         @labeling_function()
         def unless_0(x):
             for pat in SINGLE_SENTENCE_DISABLING_PATTERNS1:
-                if pattern_exists(pat,x.text):
+                if SnorkelUtil.pattern_exists(pat,x.text):
                     return DISABLING
             return ABSTAIN
         
@@ -111,7 +111,7 @@ class SnorkelUtil():
         @labeling_function()
         def but_0(x):
             pat="{action} but {negative_precondition}"
-            if pattern_exists(pat,x.text):
+            if SnorkelUtil.pattern_exists(pat,x.text):
                 return DISABLING
             else:
                 return ABSTAIN
@@ -119,7 +119,7 @@ class SnorkelUtil():
         @labeling_function()
         def makes_possible_1(x):
             pat="{precondition} makes {action} possible."
-            if pattern_exists(pat,x.text):
+            if SnorkelUtil.pattern_exists(pat,x.text):
                 return ENABLING
             else:
                 return ABSTAIN
@@ -127,7 +127,7 @@ class SnorkelUtil():
         @labeling_function()
         def to_understand_event_1(x):
             pat = r'To understand the event "{event}", it is important to know that {precondition}.'
-            if pattern_exists(pat,x.text):
+            if SnorkelUtil.pattern_exists(pat,x.text):
                 return ENABLING
             else:
                 return ABSTAIN
@@ -136,7 +136,7 @@ class SnorkelUtil():
         @labeling_function()
         def statement_is_true_1(x):
             pat = r'The statement "{event}" is true because {precondition}.'
-            if pattern_exists(pat,x.text):
+            if SnorkelUtil.pattern_exists(pat,x.text):
                 return ENABLING
             else:
                 return ABSTAIN
@@ -186,7 +186,7 @@ class SnorkelUtil():
     @staticmethod
     def keyword_lookup(x, keyword, label):
         pat="{action} " +  keyword + " {precondition}."
-        if SnorkelUtil.pattern_exists(pat,x.text):
+        if SnorkelUtil.SnorkelUtil.pattern_exists(pat,x.text):
             return label
         else:
             return ABSTAIN
@@ -202,7 +202,7 @@ class SnorkelUtil():
  
         
     @staticmethod
-    def pattern_exists(pattern,line):
+    def SnorkelUtil.pattern_exists(pattern,line):
         pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
         replacements = {k: REPLACEMENT_REGEX[k] for k in pattern_keys}    
         regex_pattern = pattern.format(**replacements)
