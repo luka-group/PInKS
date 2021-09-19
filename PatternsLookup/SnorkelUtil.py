@@ -202,7 +202,7 @@ class SnorkelUtil():
  
         
     @staticmethod
-    def SnorkelUtil.pattern_exists(pattern,line):
+    def pattern_exists(pattern,line):
         pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
         replacements = {k: REPLACEMENT_REGEX[k] for k in pattern_keys}    
         regex_pattern = pattern.format(**replacements)
