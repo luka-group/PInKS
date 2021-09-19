@@ -46,8 +46,14 @@ def main(config: omegaconf.dictconfig.DictConfig):
     """With SnorkelUtil"""
     omcs_df = pd.read_csv(config.corpus_path, sep="\t", error_bad_lines=False)
     omcs_df['text'] = omcs_df['text'].astype(str)
+    
+    snorkel_util=SnorkelUtil(omcs_df)
 
-    L_omcs, LFA_df=SnorkelUtil(omcs_df)
+    L_omcs, LFA_df=snorkel_util.get_L_matrix()
+    
+    
+    
+    
     examples_df=SnorkelUtil.returnExamples(L_omcs, LFA_df, omcs_df)
     examples_df.to_csv(config.output_examples)
     
