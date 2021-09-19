@@ -87,7 +87,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
             ascent_extract_all_sentences_df(config)
             return
         elif config.method == 'process_all_sentences_snorkel':
-            process_all_sentences_snorkel(config)
+            # process_all_sentences_snorkel(config)
             input_path=pathlib.Path(os.getcwd())/pathlib.Path(config.ascent_output_names.extract_all_sentences_df)
         
     
