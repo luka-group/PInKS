@@ -182,13 +182,13 @@ class SnorkelUtil():
         
         for p_conj in self.pos_conj:
             self.lfs.append(self.make_keyword_lf(p_conj,SnorkelUtil.ENABLING))
-            self.enabling_dict[p_conj]="{action} " +  p_conj + " {precondition}."
+            self.enabling_dict[p_conj]="{action} " +  p_conj + " {precondition}"
         
         self.lfs.extend([makes_possible_1, to_understand_event_1, statement_is_true_1])
             
         for n_conj in self.neg_conj:
            self.lfs.append(self.make_keyword_lf(n_conj,SnorkelUtil.DISABLING)) 
-           self.disabling_dict[n_conj]="{action} " +  n_conj + " {precondition}."
+           self.disabling_dict[n_conj]="{action} " +  n_conj + " {precondition}"
             
         
         self.lfs.extend([unless_0, but_0, if_0])
@@ -252,11 +252,11 @@ class SnorkelUtil():
                         else:
                             return False
     
-            if 'negative_action' in pattern_keys:
-                if any([nw in match_dict['negative_action'] for nw in PatternUtils.NEGATIVE_WORDS]):
-                    return True
-                else:
-                    return False
+            # if 'negative_action' in pattern_keys:
+            #     if any([nw in match_dict['negative_action'] for nw in PatternUtils.NEGATIVE_WORDS]):
+            #         return True
+            #     else:
+            #         return False
         if len(m_list)>0:
             return True
         return False
@@ -298,11 +298,11 @@ class SnorkelUtil():
             return precondition, action
         
     @staticmethod  
-    def returnExamples(L, LFA_df, df,N=100):
+    def returnExamples(L, LFA_df, df, N=100):
         lfs_names=list(LFA_df.index)
         df_data=None
         examples_df=pd.DataFrame()
-        # N=100
+        
         for index,row in LFA_df.iterrows():
             s_no=int(row['j'])
             label=int(index[-1])
