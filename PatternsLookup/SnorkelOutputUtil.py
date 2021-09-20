@@ -57,11 +57,12 @@ class ProcessOutputUtil():
                 count+=1
         # print("Filtered True count="+str(count))
         print("Filtered len="+str(len(filtered_dataset)))
-        filtered_dataset.to_csv(config.output_path)
         
         count = filtered_dataset["label"].value_counts()
         print("Label  Count")
         print(count)
+
+        return filtered_dataset
     
     @staticmethod
     def isQuestion(text):
@@ -88,17 +89,67 @@ class ProcessOutputUtil():
     @staticmethod
     def containsIf(text):
         if_not_pat="{action} if not {precondition}"
-        if pattern_exists(if_not_pat,text):
+        if SnorkelUtil.pattern_exists(if_not_pat,text):
             return False
-        elif pattern_exists("{action} if {precondition}",text):
+        elif SnorkelUtil.pattern_exists("{action} if {precondition}",text):
             return True
         return False
         
     @staticmethod
     def containsBut(text):
         pat="{action} but {precondition}"
-        if pattern_exists(pat,text):
+        if SnorkelUtil.pattern_exists(pat,text):
             return True
         return False
 
+    @staticmethod
+    def merge_helper(df,text,actions,preconditions,labels):
+    for index,row in tqdm(df.iterrows()):
+        action=row["Action"]
+        precondition=row["Precondition"]
+        label=row["label"]
+        if label==2:
+            continue
+            # precondition=row['Precondition']
+            # action=row['Action']
+            # precondition, label = disambiguate(row["text"])
+        text.append(row["text"])
+        actions.append(action)
+        preconditions.append(precondition)
+        labels.append(label)
+    return
 
+
+
+
+@hydra.main(config_path="../Configs", config_name="snorkel_output_util_config")
+def main(config: omegaconf.dictconfig.DictConfig):
+
+    if config.util_method=="filter":
+        merged_df=pd.read_csv(config.merged_dataset)
+        filtered_df=ProcessOutputUtil.filter_dataset(merged_df)
+        filtered_dataset.to_csv(config.filtered_output_path)
+
+    elif config.util_method=="merge":
+        path1=config.matches_path1
+        path2=config.matches_path2
+        
+        text=[]
+        actions=[]
+        preconditions=[]
+        labels=[]
+        
+        df1=pd.read_csv(config.matches_path1)
+        df2=pd.read_csv(config.matches_path2)
+        
+        ProcessOutputUtil.merge_helper(df1,text,actions,preconditions,labels)
+        ProcessOutputUtil.merge_helper(df2,text,actions,preconditions,labels)
+        
+        final_merged_df = pd.DataFrame(list(zip(text,actions,preconditions,labels)), columns =['text', 'action','precondition','label'])
+        
+        final_merged_df.to_csv(config.merged_output_path)
+
+    
+
+if __name__ == '__main__':
+    main()

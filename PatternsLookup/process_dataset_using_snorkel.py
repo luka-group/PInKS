@@ -88,12 +88,13 @@ def main(config: omegaconf.dictconfig.DictConfig):
     if config.dataset_name.lower()=="omcs":
         input_path=config.omcs_path
     elif config.dataset_name.lower()=="ascent":
-        if config.method == 'extract_all_sentences_df':
+        if config.ascent_method == 'extract_all_sentences_df':
             ascent_extract_all_sentences_df(config)
             return
-        elif config.method == 'process_all_sentences_snorkel':
+        elif config.ascent_method == 'process_all_sentences_snorkel':
             # process_all_sentences_snorkel(config)
             input_path=pathlib.Path(os.getcwd())/pathlib.Path(config.ascent_output_names.extract_all_sentences_df)
+            print(input_path)
         
     
     df = pd.read_csv(input_path, sep="\t", error_bad_lines=False)
