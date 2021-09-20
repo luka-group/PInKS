@@ -101,6 +101,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     
     print(df.head)
     print(df.columns)
+    print("Text col Len="+str(len(df['text'])))
     
     df['text'] = df['text'].astype(str)
 
