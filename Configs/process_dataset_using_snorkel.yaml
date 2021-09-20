@@ -4,7 +4,7 @@ ascent_path: "/nas/home/pkhanna/CQplus/Outputs/Corpora/ASCENT/data/kb-05-02-2021
 omcs_path: /nas/home/pkhanna/omcs/omcs-sentences-more.txt
 #output_name: "matches.json"
 
-ascent_method: extract_all_sentences_df
+ascent_method: process_all_sentences_snorkel
 
 output_name: snorkel_matches.csv
 output_examples: output_examples.csv
