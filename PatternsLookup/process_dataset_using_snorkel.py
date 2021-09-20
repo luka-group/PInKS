@@ -84,9 +84,11 @@ def main(config: omegaconf.dictconfig.DictConfig):
     """With SnorkelUtil"""
     
     input_path=""
+    df=pd.DataFrame()
     
     if config.dataset_name.lower()=="omcs":
         input_path=config.omcs_path
+        df = pd.read_csv(input_path, sep="\t", error_bad_lines=False)
     elif config.dataset_name.lower()=="ascent":
         if config.ascent_method == 'extract_all_sentences_df':
             ascent_extract_all_sentences_df(config)
@@ -95,16 +97,15 @@ def main(config: omegaconf.dictconfig.DictConfig):
             # process_all_sentences_snorkel(config)
             input_path=pathlib.Path(os.getcwd())/pathlib.Path(config.ascent_output_names.extract_all_sentences_df)
             print(input_path)
+            df = pd.read_csv(input_path)
         
     
-    df = pd.read_csv(input_path, sep="\t", error_bad_lines=False)
     
-    print(df.head())
-
-    for col in df.columns:
-        print(col)
-
-    print("Text col Len="+str(len(df[',text'])))
+    
+    # print(df.head())
+    # for col in df.columns:
+    #     print(col)
+    # print("Text col Len="+str(len(df[',text'])))
     
     df['text'] = df['text'].astype(str)
 
