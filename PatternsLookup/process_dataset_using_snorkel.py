@@ -100,6 +100,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     df = pd.read_csv(input_path, sep="\t", error_bad_lines=False)
     
     print(df.head)
+    print(df.columns)
     
     df['text'] = df['text'].astype(str)
 
