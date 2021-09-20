@@ -34,54 +34,6 @@ logger = logging.getLogger(__name__)
 
 
 
-FACT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\* \'"’%]{10,})'
-EVENT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\*\. \'’%]{10,})'
-
-REPLACEMENT_REGEX = {
-        'action': FACT_REGEX,
-        'event': EVENT_REGEX,
-        'negative_action': FACT_REGEX,
-        'precondition': FACT_REGEX,
-        'negative_precondition': FACT_REGEX,
-        'precondition_action': FACT_REGEX,
-        'any_word': r'[^ \[]{,10}',
-        'ENB_CONJ': r'(?:so|hence|consequently|thus|therefore|'
-                    r'as a result|thus|accordingly|because of that|'
-                    r'as a consequence|as a result)',
-    }
-
-# pattern = "{action} unless {precondition}"
-
-NEGATIVE_WORDS = [
-    ' not ',
-    ' cannot ',
-    'n\'t ',
-    ' don\\u2019t ',
-    ' doesn\\u2019t ',
-]
-
-
-
-SINGLE_SENTENCE_DISABLING_PATTERNS1 = [
-    r"^{action} unless {precondition}\.",
-    r"\. {action} unless {precondition}\.",
-    r"^{any_word} unless {precondition}, {action}\.",
-    r"^{any_word} unless {precondition}, {action}\.",
-]
-
-SINGLE_SENTENCE_DISABLING_PATTERNS2 = [
-    r"{negative_precondition} (?:so|hence|consequently) {action}\.",
-]
-
-ENABLING_PATTERNS = [
-    "{action} only if {precondition}.",
-    "{precondition} (?:so|hence|consequently) {action}.",
-    "{precondition} makes {action} possible.",
-]
-
-DISABLING_WORDS = [
-    "unless",
-]
 
 
 # ABSTAIN = -1
@@ -123,7 +75,7 @@ class SnorkelUtil():
         
         @labeling_function()
         def unless_0(x):
-            for pat in SINGLE_SENTENCE_DISABLING_PATTERNS1:
+            for pat in PatternUtils.SINGLE_SENTENCE_DISABLING_PATTERNS1:
                 if SnorkelUtil.pattern_exists(pat,x.text):
                     return SnorkelUtil.DISABLING
             return SnorkelUtil.ABSTAIN
@@ -230,7 +182,7 @@ class SnorkelUtil():
     @staticmethod
     def pattern_exists(pattern,line):
         pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
-        replacements = {k: REPLACEMENT_REGEX[k] for k in pattern_keys}    
+        replacements = {k: PatternUtils.REPLACEMENT_REGEX[k] for k in pattern_keys}    
         regex_pattern = pattern.format(**replacements)
         m_list = re.findall(regex_pattern, line)
         
@@ -265,7 +217,7 @@ class SnorkelUtil():
     @staticmethod
     def get_precondition_action(pattern,line):
         pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
-        replacements = {k: REPLACEMENT_REGEX[k] for k in pattern_keys}    
+        replacements = {k: PatternUtils.REPLACEMENT_REGEX[k] for k in pattern_keys}    
         regex_pattern = pattern.format(**replacements)
         m_list = re.findall(regex_pattern, line)
         for m in m_list:
@@ -365,6 +317,11 @@ class SnorkelUtil():
         df['Action']=actions
         df['Precondition']=preconditions
         return df
+
+        
+
+        
+
     
 
 
