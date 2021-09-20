@@ -100,11 +100,11 @@ def main(config: omegaconf.dictconfig.DictConfig):
     df = pd.read_csv(input_path, sep="\t", error_bad_lines=False)
     
     print(df.head())
-    
+
     for col in df.columns:
         print(col)
 
-    print("Text col Len="+str(len(df['text'])))
+    print("Text col Len="+str(len(df[',text'])))
     
     df['text'] = df['text'].astype(str)
 
