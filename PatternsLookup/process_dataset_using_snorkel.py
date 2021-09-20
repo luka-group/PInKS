@@ -67,12 +67,12 @@ def ascent_extract_all_sentences_df(config: omegaconf.dictconfig.DictConfig):
 
     logger.info(f'converting to pandas')
     print("Output Path:")
-    print(config.output_names.extract_all_sentences_df)
+    print(config.ascent_output_names.extract_all_sentences_df)
     
     df = pd.DataFrame(all_sents, columns =['text'])
-    df.to_csv(config.output_names.extract_all_sentences_df)
+    df.to_csv(config.ascent_output_names.extract_all_sentences_df)
     # df.to_json('all_sentences.json')
-    # df.to_json(config.output_names.extract_all_sentences, orient='records', lines=True)
+    # df.to_json(config.ascent_output_names.extract_all_sentences, orient='records', lines=True)
     # return df
 
 
