@@ -5,41 +5,39 @@ Created on Wed Aug  4 19:58:07 2021
 @author: Dell
 """
 
+import logging
 
 from transformers import pipeline
 
-
-import logging
 logger = logging.getLogger(__name__)
-import IPython
 import hydra
 import omegaconf
-import pandas as pd 
+import pandas as pd
 from tqdm import tqdm
 
-import json  
-
+import json
 
 unmasker = pipeline('fill-mask', model='bert-base-uncased')
 
-all_conj={'only if', 'contingent upon', 'if',"in case", "in the case that", "in the event", "on condition", "on the assumption",
-            "on these terms",  "supposing", "with the proviso",
-            "except", "except for", "excepting that", "if not", "lest",  "without"}
+all_conj = {'only if', 'contingent upon', 'if', "in case", "in the case that", "in the event", "on condition",
+            "on the assumption",
+            "on these terms", "supposing", "with the proviso",
+            "except", "except for", "excepting that", "if not", "lest", "without"}
 
-possible_replacements={}
-
+possible_replacements = {}
 
 for conj in all_conj:
-    possible_replacements[conj]=set()
+    possible_replacements[conj] = set()
+
 
 def addMaskedConj(sent):
     for conj in all_conj:
         if conj in sent:
-            sent_masked=sent.replace(conj,"[MASK]",1)
+            sent_masked = sent.replace(conj, "[MASK]", 1)
             try:
-                unmasked_words=list(unmasker(sent_masked))
+                unmasked_words = list(unmasker(sent_masked))
                 for new_word in unmasked_words[:3]:
-                    if new_word['token_str']!=conj:
+                    if new_word['token_str'] != conj:
                         possible_replacements[conj].add(new_word['token_str'])
             except:
                 continue
@@ -47,14 +45,13 @@ def addMaskedConj(sent):
 
 @hydra.main(config_path="../Configs", config_name="create_pat_LM_config")
 def main(config: omegaconf.dictconfig.DictConfig):
-    df=pd.read_csv(config.corpus_path)
-    for index,row in tqdm(df.iterrows()):
+    df = pd.read_csv(config.corpus_path)
+    for index, row in tqdm(df.iterrows()):
         addMaskedConj(row['text'])
     print(config.output_name)
-    with open(config.output_name, "w") as outfile: 
+    with open(config.output_name, "w") as outfile:
         json.dump(possible_replacements, outfile)
-        
-        
-        
+
+
 if __name__ == '__main__':
-    main()    
+    main()

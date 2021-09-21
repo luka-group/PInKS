@@ -1,15 +1,13 @@
+import json
+import logging
 import os
 import pathlib
 from typing import Dict, Generator
 
-import pandas as pd
-import IPython
 import hydra
 import omegaconf
-import json
+import pandas as pd
 from tqdm import tqdm
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +34,7 @@ def extract_usedfor_assertions(config: omegaconf.dictconfig.DictConfig):
     pbar_concept = tqdm(desc='concepts')
     pbar_assert = tqdm(desc=f'\"{config.predicate}\" assertions')
 
-    for df_chunk in pd.read_json(config.ascent_path, lines=True,  chunksize=100):
+    for df_chunk in pd.read_json(config.ascent_path, lines=True, chunksize=100):
         for i, concept in df_chunk.iterrows():
             pbar_concept.update()
             for asrt in _iter_assertions(concept.to_dict()):
@@ -92,7 +90,6 @@ def extract_usedfor_sentences(config: omegaconf.dictconfig.DictConfig):
                                 'facet_value': f["value"],
                                 'facet_label': f["label"],
                             })
-
 
                         pbar_assert.update()
                         output.append(out_dict)
@@ -154,7 +151,7 @@ def extract_all_sentences(config: omegaconf.dictconfig.DictConfig):
 
 def process_all_sentences(config: omegaconf.dictconfig.DictConfig):
     from Patterns import PatternUtils
-    all_sents_path = pathlib.Path(os.getcwd())/pathlib.Path(config.output_names.extract_all_sentences)
+    all_sents_path = pathlib.Path(os.getcwd()) / pathlib.Path(config.output_names.extract_all_sentences)
 
     assert all_sents_path.exists(), all_sents_path
 
@@ -172,8 +169,8 @@ def process_all_sentences(config: omegaconf.dictconfig.DictConfig):
         [r'{precondition} makes {action} possible.', 'ENTAILMENT'],
     ]:
         matches[p] = PatternUtils.check_pattern_in_file_grep(
-                p, base_path=os.getcwd(), files_pattern=config.output_names.extract_all_sentences,
-                do_srl=config.process_all_sentences.do_srl, label=label)
+            p, base_path=os.getcwd(), files_pattern=config.output_names.extract_all_sentences,
+            do_srl=config.process_all_sentences.do_srl, label=label)
 
         p_len = len(matches[p])
         logger.warning(f'Found {p_len} hits on {p}')

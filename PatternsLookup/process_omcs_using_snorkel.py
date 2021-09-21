@@ -4,29 +4,20 @@ Created on Wed Jun 30 12:30:05 2021
 
 @author: Dell
 """
-import pandas as pd
-
-import os
-
-import IPython
-import hydra
-import omegaconf
-import json
 import re
-from tqdm import tqdm
+
+import hydra
+import nltk
 import numpy as np
+import omegaconf
+import pandas as pd
+from snorkel.labeling import LFAnalysis
+from snorkel.labeling import LabelingFunction
+from snorkel.labeling import PandasLFApplier
+from snorkel.labeling import labeling_function
+from snorkel.labeling.model import LabelModel
 
 from Patterns import PatternUtils
-
-from snorkel.labeling import labeling_function
-from snorkel.labeling import LabelingFunction
-
-from snorkel.labeling.model import LabelModel
-from snorkel.labeling import PandasLFApplier
-from snorkel.labeling import LFAnalysis
-
-import nltk
-from nltk.corpus import wordnet as wn
 
 nltk.download("wordnet")
 

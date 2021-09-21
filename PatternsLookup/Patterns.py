@@ -1,16 +1,15 @@
 import json
+import logging
 import os
 import pathlib
 import re
-from typing import List, Dict, Generator
 import subprocess
-import IPython
+from typing import List, Dict, Generator
+
 import nltk
-from tqdm import tqdm
-from allennlp.predictors.predictor import Predictor
-import allennlp_models.tagging
-import logging
 import pandas as pd
+from allennlp.predictors.predictor import Predictor
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -82,17 +81,17 @@ class PatternUtils:
             pattern, base_path=os.getcwd(), files_pattern='OUT.tmp',
             do_srl=do_srl, label=label
         )
-    
-    
+
     @staticmethod
     def check_pattern_in_files_omcs(pattern: str, base_path: str, files_pattern: str,
-                               do_srl: bool = False, label: str = '') \
+                                    do_srl: bool = False, label: str = '') \
             -> List[Dict[str, str]]:
         logger.info(f'Checking pattern ({pattern}) in files {files_pattern}')
 
-        pattern_keys = re.findall(r'\{([^\}]+)}', pattern)    #Extracts string written between {}
-        replacements = {k: PatternUtils.REPLACEMENT_REGEX[k] for k in pattern_keys}  #dictionary to replace action/precond with FACT_REGEX
-        regex_pattern = pattern.format(     #Replace the pattern with regex in place of {action} and {precondition}.
+        pattern_keys = re.findall(r'\{([^\}]+)}', pattern)  # Extracts string written between {}
+        replacements = {k: PatternUtils.REPLACEMENT_REGEX[k] for k in
+                        pattern_keys}  # dictionary to replace action/precond with FACT_REGEX
+        regex_pattern = pattern.format(  # Replace the pattern with regex in place of {action} and {precondition}.
             **replacements
         )
 
@@ -113,8 +112,9 @@ class PatternUtils:
                     'pattern': pattern,
                     'label': label
                 }
-                for new_match in PatternUtils.find_matches_in_line_gigaword(line=str(omcs_df['text'][ind]), regex_pattern=regex_pattern,
-                                                                   pattern_keys=pattern_keys):
+                for new_match in PatternUtils.find_matches_in_line_gigaword(line=str(omcs_df['text'][ind]),
+                                                                            regex_pattern=regex_pattern,
+                                                                            pattern_keys=pattern_keys):
                     all_matches.append({**new_match, **fix_d})
 
         if do_srl:
@@ -124,16 +124,16 @@ class PatternUtils:
 
         return all_matches
 
-
     @staticmethod
     def check_pattern_in_files_gigaword(pattern: str, base_path: str, files_pattern: str,
-                               do_srl: bool = False, label: str = '') \
+                                        do_srl: bool = False, label: str = '') \
             -> List[Dict[str, str]]:
         logger.info(f'Checking pattern ({pattern}) in files {files_pattern}')
 
-        pattern_keys = re.findall(r'\{([^\}]+)}', pattern)    #Extracts string written between {}
-        replacements = {k: PatternUtils.REPLACEMENT_REGEX[k] for k in pattern_keys}  #dictionary to replace action/precond with FACT_REGEX
-        regex_pattern = pattern.format(     #Replace the pattern with regex in place of {action} and {precondition}.
+        pattern_keys = re.findall(r'\{([^\}]+)}', pattern)  # Extracts string written between {}
+        replacements = {k: PatternUtils.REPLACEMENT_REGEX[k] for k in
+                        pattern_keys}  # dictionary to replace action/precond with FACT_REGEX
+        regex_pattern = pattern.format(  # Replace the pattern with regex in place of {action} and {precondition}.
             **replacements
         )
 
@@ -155,7 +155,7 @@ class PatternUtils:
                         'label': label
                     }
                     for new_match in PatternUtils.find_matches_in_line_gigaword(line=line, regex_pattern=regex_pattern,
-                                                                       pattern_keys=pattern_keys):
+                                                                                pattern_keys=pattern_keys):
                         all_matches.append({**new_match, **fix_d})
 
         if do_srl:
@@ -194,7 +194,8 @@ class PatternUtils:
                 if any([nw in match_dict['negative_precondition'] for nw in PatternUtils.NEGATIVE_WORDS]):
                     flags.append('NEG_TO_POS')
                     match_full_sent = PatternUtils.make_sentence_positive(match_full_sent)
-                    match_dict['precondition'] = PatternUtils.make_sentence_positive(match_dict['negative_precondition'])
+                    match_dict['precondition'] = PatternUtils.make_sentence_positive(
+                        match_dict['negative_precondition'])
                     match_dict.pop('negative_precondition')
                 else:
                     continue
@@ -205,7 +206,7 @@ class PatternUtils:
                 **match_dict,
                 'flags': flags,
             }
-            
+
     @staticmethod
     def find_matches_in_line_gigaword(line: str, regex_pattern: str, pattern_keys: List[str]) \
             -> Generator[Dict[str, str], None, None]:
@@ -224,14 +225,15 @@ class PatternUtils:
                 if any([nw in match_dict['negative_precondition'] for nw in PatternUtils.NEGATIVE_WORDS]):
                     flags.append('NEG_TO_POS')
                     match_full_sent = PatternUtils.make_sentence_positive(match_full_sent)
-                    match_dict['precondition'] = PatternUtils.make_sentence_positive(match_dict['negative_precondition'])
+                    match_dict['precondition'] = PatternUtils.make_sentence_positive(
+                        match_dict['negative_precondition'])
                     match_dict.pop('negative_precondition')
                 else:
                     continue
 
             yield {
                 'line': match_full_sent,
-                'og_line':line,
+                'og_line': line,
                 **match_dict,
                 'flags': flags,
             }
@@ -257,17 +259,17 @@ class PatternUtils:
     EVENT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\*\. \'’%]{10,})'
 
     REPLACEMENT_REGEX = {
-            'action': FACT_REGEX,
-            'event': EVENT_REGEX,
-            'negative_action': FACT_REGEX,
-            'precondition': FACT_REGEX,
-            'negative_precondition': FACT_REGEX,
-            'precondition_action': FACT_REGEX,
-            'any_word': r'[^ \[]{,10}',
-            'ENB_CONJ': r'(?:so|hence|consequently|thus|therefore|'
-                        r'as a result|thus|accordingly|because of that|'
-                        r'as a consequence|as a result)',
-        }
+        'action': FACT_REGEX,
+        'event': EVENT_REGEX,
+        'negative_action': FACT_REGEX,
+        'precondition': FACT_REGEX,
+        'negative_precondition': FACT_REGEX,
+        'precondition_action': FACT_REGEX,
+        'any_word': r'[^ \[]{,10}',
+        'ENB_CONJ': r'(?:so|hence|consequently|thus|therefore|'
+                    r'as a result|thus|accordingly|because of that|'
+                    r'as a consequence|as a result)',
+    }
 
     # pattern = "{action} unless {precondition}"
 
@@ -278,8 +280,6 @@ class PatternUtils:
         ' don\\u2019t ',
         ' doesn\\u2019t ',
     ]
-
-
 
     SINGLE_SENTENCE_DISABLING_PATTERNS1 = [
         r"^{action} unless {precondition}\.",

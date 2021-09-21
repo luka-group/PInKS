@@ -1,15 +1,11 @@
-import os
+import json
+import logging
 
-import IPython
 import hydra
 import omegaconf
-import json
-
-from tqdm import tqdm
 
 from Patterns import PatternUtils
 
-import logging
 logger = logging.getLogger(__name__)
 
 
