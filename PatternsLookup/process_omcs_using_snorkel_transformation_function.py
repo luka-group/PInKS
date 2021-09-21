@@ -4,7 +4,7 @@ Created on Wed Jun 30 12:30:05 2021
 
 @author: Dell
 """
-import pandas as pd 
+import pandas as pd
 
 import os
 
@@ -253,8 +253,5 @@ def main(config: omegaconf.dictconfig.DictConfig):
 
 if __name__ == '__main__':
     main()
-
-
-
 
 
