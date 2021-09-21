@@ -166,7 +166,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     filtered_dataset=pd.DataFrame(columns=column_names)
     count=0
     for index,row in tqdm(merged_df.iterrows()):
-        if not(isQuestion(row['text'])) and hasVerb(row['precondition']) and isEnglish(row['text']) and not(containsIf(row['text'])) and not(containsBut(row['text'])):
+        if not(isQuestion(row['text'])) and hasVerb(row['precondition']) and isEnglish(row['text']):
             new_row = {"text": row['text'], "action": row['action'], "precondition": row['precondition'], "label":row['label']}
             filtered_dataset = filtered_dataset.append(new_row, ignore_index = True)
             count+=1

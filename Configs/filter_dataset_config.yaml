@@ -1,5 +1,5 @@
 merged_dataset: /nas/home/pkhanna/CQplus/Outputs/merge_matches/final_merged.csv 
-output_path: filtered_dataset_v2.csv
+output_path: filtered_dataset.csv
 
 
 hydra:
