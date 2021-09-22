@@ -49,6 +49,9 @@ class ProcessOutputUtil:
         print("Label  Count")
         print(count)
 
+        #Removing duplicate rows
+        filtered_df=filtered_df.drop_duplicates()
+
         filtered_df.to_csv(config.filtered_output_path)
 
     @staticmethod
