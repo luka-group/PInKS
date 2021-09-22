@@ -96,6 +96,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
 
     df = df[df.label != SnorkelUtil.ABSTAIN]
     df.to_csv(config.output_name)
+    logger.info("Saved matches at:"+str(pathlib.Path(config.output_name).expanduser()))
 
     count = df["label"].value_counts()
     logger.info("Label  Count")
@@ -108,7 +109,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
 
     # Extract Examples
     logger.info("Saving Examples....")
-    examples_df = SnorkelUtil.return_examples(df)
+    examples_df = snorkel_util.return_examples(df)
     examples_df.to_csv(config.output_examples)
 
 
