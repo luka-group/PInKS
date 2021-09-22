@@ -104,10 +104,10 @@ class SnorkelUtil:
         pos_conj = {'only if', 'contingent upon', 'if', "in case", "in the case that", "in the event",
                     "on condition", "on the assumption",
                     "on these terms", "supposing", "with the proviso"}
-        neg_conj = {"except", "except for", "excepting that", "if not", "lest", "without"}
+        neg_conj = {"except", "except for", "excepting that", "if not", "lest", "without","unless"}
         self.disabling_dict = {
             'but': "{action} but {negative_precondition}",
-            'unless': "{action} unless {precondition}",
+            # 'unless': "{action} unless {precondition}",
             'if': "{action} if not {precondition}",
         }
         self.enabling_dict = {
@@ -138,13 +138,13 @@ class SnorkelUtil:
         else:
             return SnorkelUtil.ABSTAIN
 
-    @staticmethod
-    @labeling_function()
-    def unless_0(x):
-        for pat in PatternUtils.SINGLE_SENTENCE_DISABLING_PATTERNS1:
-            if SnorkelUtil.pattern_exists(pat, x.text):
-                return SnorkelUtil.DISABLING
-        return SnorkelUtil.ABSTAIN
+    # @staticmethod
+    # @labeling_function()
+    # def unless_0(x):
+    #     for pat in PatternUtils.SINGLE_SENTENCE_DISABLING_PATTERNS1:
+    #         if SnorkelUtil.pattern_exists(pat, x.text):
+    #             return SnorkelUtil.DISABLING
+    #     return SnorkelUtil.ABSTAIN
 
     @staticmethod
     @labeling_function()
