@@ -85,8 +85,9 @@ def main(config: omegaconf.dictconfig.DictConfig):
 
     # L, LFA_df = snorkel_util.get_L_matrix()
 
-    IPython.embed()
-    exit()
+    # IPython.embed()
+    # exit()
+    
     #
     # label_model = LabelModel(cardinality=3, verbose=True)
     # label_model.fit(L, n_epochs=config.snorkel_epochs, log_freq=50, seed=123)
