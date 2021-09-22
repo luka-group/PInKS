@@ -1,38 +1,20 @@
-import pandas as pd 
-
-import os
-
-import IPython
 import hydra
-import omegaconf
-import json
-import re
-from tqdm import tqdm
-import numpy as np
-
-from Patterns import PatternUtils
-
-from snorkel.labeling import labeling_function
-from snorkel.labeling import LabelingFunction
-
-from snorkel.labeling.model import LabelModel
-from snorkel.labeling import PandasLFApplier
-from snorkel.labeling import LFAnalysis
-
 import nltk
-from nltk.corpus import wordnet as wn
+import omegaconf
+import pandas as pd
+from tqdm import tqdm
 
-nltk.download("wordnet")
 
 from SnorkelUtil import SnorkelUtil
-
+import langdetect
 
 import logging
+
+nltk.download("wordnet")
 logger = logging.getLogger(__name__)
 
 
-
-class ProcessOutputUtil():
+class ProcessOutputUtil:
 
     @staticmethod
     def filter_dataset(merged_df):
@@ -46,34 +28,45 @@ class ProcessOutputUtil():
             'VBZ',  # Verb, 3rd person singular present
         }
 
-        column_names = ["text", "action", "precondition","label"]
-        filtered_dataset=pd.DataFrame(columns=column_names)
+        column_names = ["text", "action", "precondition", "label"]
+        filtered_dataset = pd.DataFrame(columns=column_names)
 
-        count=0
-        for index,row in tqdm(merged_df.iterrows()):
-            if not(ProcessOutputUtil.isQuestion(row['text'])) and ProcessOutputUtil.hasVerb(row['precondition']) and ProcessOutputUtil.isEnglish(row['text']):
-                new_row = {"text": row['text'], "action": row['action'], "precondition": row['precondition'], "label":row['label']}
-                filtered_dataset = filtered_dataset.append(new_row, ignore_index = True)
-                count+=1
+        count = 0
+        for index, row in tqdm(merged_df.iterrows()):
+            if not (ProcessOutputUtil.isQuestion(row['text'])) and ProcessOutputUtil.hasVerb(
+                    row['precondition']) and ProcessOutputUtil.isEnglish(row['text']):
+                new_row = {"text": row['text'], "action": row['action'], "precondition": row['precondition'],
+                           "label": row['label']}
+                filtered_dataset = filtered_dataset.append(new_row, ignore_index=True)
+                count += 1
         # print("Filtered True count="+str(count))
-        print("Filtered len="+str(len(filtered_dataset)))
-        
+        print("Filtered len=" + str(len(filtered_dataset)))
+
         count = filtered_dataset["label"].value_counts()
         print("Label  Count")
         print(count)
 
         return filtered_dataset
-    
+
     @staticmethod
     def isQuestion(text):
-    text=text.strip()
-    if ('?' in text) or (text.split()[0].lower() in question_start_words):
-        return True
-    return False
+        question_start_words = ["who", "what", "when", "where", "why", "how", "is", "can", "does", "do"]
+        text = text.strip()
+        if ('?' in text) or (text.split()[0].lower() in question_start_words):
+            return True
+        return False
 
     @staticmethod
     def hasVerb(text):
         text = nltk.word_tokenize(text)
+        VERB_CODES = {
+            'VB',  # Verb, base form
+            'VBD',  # Verb, past tense
+            'VBG',  # Verb, gerund or present participle
+            'VBN',  # Verb, past participle
+            'VBP',  # Verb, non-3rd person singular present
+            'VBZ',  # Verb, 3rd person singular present
+        }
         result = nltk.pos_tag(text)
         for tags in result:
             if tags[1] in VERB_CODES:
@@ -82,42 +75,42 @@ class ProcessOutputUtil():
 
     @staticmethod
     def isEnglish(text):
-        if detect(text)=='en':
+        if langdetect.detect(text) == 'en':
             return True
         return False
 
     @staticmethod
     def containsIf(text):
-        if_not_pat="{action} if not {precondition}"
-        if SnorkelUtil.pattern_exists(if_not_pat,text):
+        if_not_pat = "{action} if not {precondition}"
+        if SnorkelUtil.pattern_exists(if_not_pat, text):
             return False
-        elif SnorkelUtil.pattern_exists("{action} if {precondition}",text):
-            return True
-        return False
-        
-    @staticmethod
-    def containsBut(text):
-        pat="{action} but {precondition}"
-        if SnorkelUtil.pattern_exists(pat,text):
+        elif SnorkelUtil.pattern_exists("{action} if {precondition}", text):
             return True
         return False
 
     @staticmethod
-    def merge_helper(df,text,actions,preconditions,labels):
-    for index,row in tqdm(df.iterrows()):
-        action=row["Action"]
-        precondition=row["Precondition"]
-        label=row["label"]
-        if label==2:
-            continue
-            # precondition=row['Precondition']
-            # action=row['Action']
-            # precondition, label = disambiguate(row["text"])
-        text.append(row["text"])
-        actions.append(action)
-        preconditions.append(precondition)
-        labels.append(label)
-    return
+    def containsBut(text):
+        pat = "{action} but {precondition}"
+        if SnorkelUtil.pattern_exists(pat, text):
+            return True
+        return False
+
+    @staticmethod
+    def merge_helper(df, text, actions, preconditions, labels):
+        for index, row in tqdm(df.iterrows()):
+            action = row["Action"]
+            precondition = row["Precondition"]
+            label = row["label"]
+            if label == 2:
+                continue
+                # precondition=row['Precondition']
+                # action=row['Action']
+                # precondition, label = disambiguate(row["text"])
+            text.append(row["text"])
+            actions.append(action)
+            preconditions.append(precondition)
+            labels.append(label)
+        return
 
     # @staticmethod
     # def create_lf_annotation(filtered_df):
@@ -138,49 +131,43 @@ class ProcessOutputUtil():
     #             break
 
     #     lf_instances_df=pd.DataFrame(dict([ (k,pd.Series(v)) for k,v in lf_instances.items() ]))
-        
+
     #     for key,val in lf_instances.items():
     #         label_row_name=key+" label"
     #         lf_instances_df[label_row_name]=""
-        
-        
+
     #     lf_instances_df = lf_instances_df.reindex(sorted(lf_instances_df.columns), axis=1)
-        
+
     #     lf_instances_df.head(100).to_csv(output_path)
-    
-
-
-
 
 
 @hydra.main(config_path="../Configs", config_name="snorkel_output_util_config")
 def main(config: omegaconf.dictconfig.DictConfig):
+    if config.util_method == "filter":
+        merged_df = pd.read_csv(config.merged_dataset)
+        filtered_df = ProcessOutputUtil.filter_dataset(merged_df)
+        filtered_df.to_csv(config.filtered_output_path)
 
-    if config.util_method=="filter":
-        merged_df=pd.read_csv(config.merged_dataset)
-        filtered_df=ProcessOutputUtil.filter_dataset(merged_df)
-        filtered_dataset.to_csv(config.filtered_output_path)
+    elif config.util_method == "merge":
+        path1 = config.matches_path1
+        path2 = config.matches_path2
 
-    elif config.util_method=="merge":
-        path1=config.matches_path1
-        path2=config.matches_path2
-        
-        text=[]
-        actions=[]
-        preconditions=[]
-        labels=[]
-        
-        df1=pd.read_csv(config.matches_path1)
-        df2=pd.read_csv(config.matches_path2)
-        
-        ProcessOutputUtil.merge_helper(df1,text,actions,preconditions,labels)
-        ProcessOutputUtil.merge_helper(df2,text,actions,preconditions,labels)
-        
-        final_merged_df = pd.DataFrame(list(zip(text,actions,preconditions,labels)), columns =['text', 'action','precondition','label'])
-        
+        text = []
+        actions = []
+        preconditions = []
+        labels = []
+
+        df1 = pd.read_csv(config.matches_path1)
+        df2 = pd.read_csv(config.matches_path2)
+
+        ProcessOutputUtil.merge_helper(df1, text, actions, preconditions, labels)
+        ProcessOutputUtil.merge_helper(df2, text, actions, preconditions, labels)
+
+        final_merged_df = pd.DataFrame(list(zip(text, actions, preconditions, labels)),
+                                       columns=['text', 'action', 'precondition', 'label'])
+
         final_merged_df.to_csv(config.merged_output_path)
 
-    
 
 if __name__ == '__main__':
     main()

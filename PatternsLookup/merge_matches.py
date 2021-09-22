@@ -5,22 +5,17 @@ Created on Wed Jul 21 20:27:11 2021
 @author: Dell
 """
 
-import os
+import logging
+import re
 
-import IPython
 import hydra
 import omegaconf
-import json
-
+import pandas as pd
 from tqdm import tqdm
 
 from Patterns import PatternUtils
-import pandas as pd
-import re
 
-import logging
 logger = logging.getLogger(__name__)
-
 
 """To Do: Add code to disambiguate the the AMBIGUOUS pattern label and make neg_precondition as positive.
 
@@ -29,25 +24,23 @@ else: label it as enabling.
 
 """
 
-
 ABSTAIN = -1
 DISABLING = 0
 ENABLING = 1
-AMBIGUOUS=2
-
+AMBIGUOUS = 2
 
 FACT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\* \'"’%]{10,})'
 
 REPLACEMENT_REGEX = {
-        'action': FACT_REGEX,
-        'precondition': FACT_REGEX,
-        'negative_precondition': FACT_REGEX,
-        'precondition_action': FACT_REGEX,
-        'any_word': r'[^ \[]{,10}',
-        'ENB_CONJ': r'(?:so|hence|consequently|thus|therefore|'
-                    r'as a result|thus|accordingly|because of that|'
-                    r'as a consequence|as a result)',
-    }
+    'action': FACT_REGEX,
+    'precondition': FACT_REGEX,
+    'negative_precondition': FACT_REGEX,
+    'precondition_action': FACT_REGEX,
+    'any_word': r'[^ \[]{,10}',
+    'ENB_CONJ': r'(?:so|hence|consequently|thus|therefore|'
+                r'as a result|thus|accordingly|because of that|'
+                r'as a consequence|as a result)',
+}
 
 # pattern = "{action} unless {precondition}"
 
@@ -58,8 +51,6 @@ NEGATIVE_WORDS = [
     ' don\\u2019t ',
     ' doesn\\u2019t ',
 ]
-
-
 
 SINGLE_SENTENCE_DISABLING_PATTERNS1 = [
     r"^{action} unless {precondition}\.",
@@ -83,14 +74,12 @@ DISABLING_WORDS = [
 ]
 
 
-
-
-def disambiguate(line):    
+def disambiguate(line):
     pattern = "{precondition} (?:so|hence|consequently) {action}."
     pattern_keys = re.findall(r'\{([^\}]+)}', pattern)
-    replacements = {k: REPLACEMENT_REGEX[k] for k in pattern_keys}    
+    replacements = {k: REPLACEMENT_REGEX[k] for k in pattern_keys}
     regex_pattern = pattern.format(**replacements)
-    
+
     m_list = re.findall(regex_pattern, line)
     for m in m_list:
         match_full_sent = line
@@ -99,9 +88,6 @@ def disambiguate(line):
                 match_full_sent = sent
 
         match_dict = dict(zip(pattern_keys, m))
-        
-        
-            
 
         if any([nw in match_dict['precondition'] for nw in PatternUtils.NEGATIVE_WORDS]):
             match_full_sent = PatternUtils.make_sentence_positive(match_full_sent)
@@ -111,12 +97,12 @@ def disambiguate(line):
         return match_dict['precondition'], ENABLING
 
 
-def process_df(df,text,actions,preconditions,labels):
-    for index,row in tqdm(df.iterrows()):
-        action=row["Action"]
-        precondition=row["Precondition"]
-        label=row["label"]
-        if label==2:
+def process_df(df, text, actions, preconditions, labels):
+    for index, row in tqdm(df.iterrows()):
+        action = row["Action"]
+        precondition = row["Precondition"]
+        label = row["label"]
+        if label == 2:
             continue
             # precondition=row['Precondition']
             # action=row['Action']
@@ -126,31 +112,29 @@ def process_df(df,text,actions,preconditions,labels):
         preconditions.append(precondition)
         labels.append(label)
     return
-    
 
 
 @hydra.main(config_path="../Configs", config_name="merge_matches_config")
 def main(config: omegaconf.dictconfig.DictConfig):
-    
-    path1=config.matches_path1
-    path2=config.matches_path2
-    
-    text=[]
-    actions=[]
-    preconditions=[]
-    labels=[]
-    
-    df1=pd.read_csv(config.matches_path1)
-    df2=pd.read_csv(config.matches_path2)
-    
-    process_df(df1,text,actions,preconditions,labels)
-    process_df(df2,text,actions,preconditions,labels)
-    
-    final_df = pd.DataFrame(list(zip(text,actions,preconditions,labels)), columns =['text', 'action','precondition','label'])
-    
+    path1 = config.matches_path1
+    path2 = config.matches_path2
+
+    text = []
+    actions = []
+    preconditions = []
+    labels = []
+
+    df1 = pd.read_csv(config.matches_path1)
+    df2 = pd.read_csv(config.matches_path2)
+
+    process_df(df1, text, actions, preconditions, labels)
+    process_df(df2, text, actions, preconditions, labels)
+
+    final_df = pd.DataFrame(list(zip(text, actions, preconditions, labels)),
+                            columns=['text', 'action', 'precondition', 'label'])
+
     final_df.to_csv(config.output_path)
 
-    
 
 if __name__ == '__main__':
     main()

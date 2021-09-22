@@ -4,18 +4,15 @@ Created on Wed Jun 30 22:58:07 2021
 
 @author: Dell
 """
-import os
 
-import IPython
+import json
+import logging
+
 import hydra
 import omegaconf
-import json
-
-from tqdm import tqdm
 
 from Patterns import PatternUtils
 
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -25,16 +22,17 @@ def main(config: omegaconf.dictconfig.DictConfig):
     # files_patern = os.path.join(config.corpus_path, 'urlsf_subset*')
     files_patern = "omcs"
     matches = {}
-    match_count=0
+    match_count = 0
     for pat in PatternUtils.SINGLE_SENTENCE_DISABLING_PATTERNS:
         # matches[pat] = PatternUtils.check_pattern_in_files(pat, config.corpus_path, files_patern)
         matches[pat] = PatternUtils.check_pattern_in_files_omcs(pat, config.corpus_path, files_patern)
-        match_count+=len(matches[pat])
+        match_count += len(matches[pat])
     with open(config.output_name, 'w') as fp:
         json.dump(matches, fp)
-    
+
     print("Total Regex Matches:")
     print(match_count)
+
 
 if __name__ == '__main__':
     main()
