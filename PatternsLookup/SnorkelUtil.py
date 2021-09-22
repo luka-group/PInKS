@@ -125,7 +125,7 @@ class SnorkelUtil:
         for n_conj in neg_conj:
             self.lfs.append(self.make_keyword_lf(n_conj, SnorkelUtil.DISABLING))
             self.disabling_dict[n_conj] = "{action} " + n_conj + " {precondition}"
-        self.lfs.extend([self.unless_0, self.but_0, self.if_0])
+        self.lfs.extend([self.but_0, self.if_0])
 
     @staticmethod
     @labeling_function()
