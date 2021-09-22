@@ -1,7 +1,7 @@
 dataset_name: ascent
 
 ascent_path: "~/CQplus/Outputs/Corpora/ASCENT/data/kb-05-02-2021.jsonl"
-omcs_path: "~/CQplus/Outputs/Corpora/omcs/omcs-sentences-more.txt"
+omcs_path: "~/CQplus/Outputs/Corpora/OMCS/omcs-sentences-more.txt"
 #output_name: "matches.json"
 
 ascent_method: process_all_sentences_snorkel

@@ -4,16 +4,17 @@ import omegaconf
 import pandas as pd
 from tqdm import tqdm
 
-nltk.download("wordnet")
 
 from SnorkelUtil import SnorkelUtil
+import langdetect
 
 import logging
 
+nltk.download("wordnet")
 logger = logging.getLogger(__name__)
 
 
-class ProcessOutputUtil():
+class ProcessOutputUtil:
 
     @staticmethod
     def filter_dataset(merged_df):
@@ -49,15 +50,23 @@ class ProcessOutputUtil():
 
     @staticmethod
     def isQuestion(text):
-
+        question_start_words = ["who", "what", "when", "where", "why", "how", "is", "can", "does", "do"]
         text = text.strip()
-    if ('?' in text) or (text.split()[0].lower() in question_start_words):
-        return True
-    return False
+        if ('?' in text) or (text.split()[0].lower() in question_start_words):
+            return True
+        return False
 
     @staticmethod
     def hasVerb(text):
         text = nltk.word_tokenize(text)
+        VERB_CODES = {
+            'VB',  # Verb, base form
+            'VBD',  # Verb, past tense
+            'VBG',  # Verb, gerund or present participle
+            'VBN',  # Verb, past participle
+            'VBP',  # Verb, non-3rd person singular present
+            'VBZ',  # Verb, 3rd person singular present
+        }
         result = nltk.pos_tag(text)
         for tags in result:
             if tags[1] in VERB_CODES:
@@ -66,7 +75,7 @@ class ProcessOutputUtil():
 
     @staticmethod
     def isEnglish(text):
-        if detect(text) == 'en':
+        if langdetect.detect(text) == 'en':
             return True
         return False
 
@@ -88,7 +97,6 @@ class ProcessOutputUtil():
 
     @staticmethod
     def merge_helper(df, text, actions, preconditions, labels):
-
         for index, row in tqdm(df.iterrows()):
             action = row["Action"]
             precondition = row["Precondition"]
@@ -102,7 +110,7 @@ class ProcessOutputUtil():
             actions.append(action)
             preconditions.append(precondition)
             labels.append(label)
-    return
+        return
 
     # @staticmethod
     # def create_lf_annotation(filtered_df):
@@ -138,7 +146,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     if config.util_method == "filter":
         merged_df = pd.read_csv(config.merged_dataset)
         filtered_df = ProcessOutputUtil.filter_dataset(merged_df)
-        filtered_dataset.to_csv(config.filtered_output_path)
+        filtered_df.to_csv(config.filtered_output_path)
 
     elif config.util_method == "merge":
         path1 = config.matches_path1

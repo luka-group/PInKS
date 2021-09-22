@@ -19,24 +19,19 @@ nltk.download("wordnet")
 logger = logging.getLogger(__name__)
 
 
-# ABSTAIN = -1
-# DISABLING = 0
-# ENABLING = 1
-# AMBIGUOUS=2
-
-
 class SnorkelUtil:
     ABSTAIN = -1
     DISABLING = 0
     ENABLING = 1
 
-    # AMBIGUOUS=2
-
     def __init__(self, config: omegaconf.dictconfig.DictConfig):
         self.config = config
         self._populate_labeling_functions_list()
 
-    def _apply_labeling_functions(self, df: pd.DataFrame) -> NoReturn:
+        self.L = None
+        self.LFA_df = None
+
+    def apply_labeling_functions(self, df: pd.DataFrame) -> NoReturn:
         applier = PandasLFApplier(self.lfs)
         # global L_omcs
         self.L = applier.apply(df)
@@ -46,6 +41,91 @@ class SnorkelUtil:
         label_model = LabelModel(cardinality=3, verbose=True)
         label_model.fit(self.L, n_epochs=self.config.snorkel_epochs, log_freq=50, seed=123)
         df["label"] = label_model.predict(L=self.L, tie_break_policy="abstain")
+
+    def return_examples(self, df: pd.DataFrame, num: int = 100) -> pd.DataFrame:
+        lfs_names = list(self.LFA_df.index)
+        df_data = None
+        examples_df = pd.DataFrame()
+
+        for index, row in self.LFA_df.iterrows():
+            s_no = int(row['j'])
+            label = int(index[-1])
+
+            pat_matches = self.L[:, s_no] == label
+            match_count = sum(bool(x) for x in pat_matches)
+            tmp_list = list(df.iloc[self.L[:, s_no] == label].sample(min(match_count, num), random_state=1)['text'])
+            if len(tmp_list) < num:
+                tmp_list += [0] * (num - len(tmp_list))
+            examples_df[str(index)] = tmp_list
+        return examples_df
+
+    def add_action_precondition(self, df: pd.DataFrame):
+        actions = []
+        preconditions = []
+        lfs_names = list(self.LFA_df.index)
+        for index, row in df.iterrows():
+            valid_positions = self.L[index, :] > -1
+            # position = np.argmax(L[index,:] > -1)
+            action = -1
+            precondition = -1
+            label = row["label"]
+
+            if not (np.any(valid_positions)) or label == SnorkelUtil.ABSTAIN:
+                action = -1
+                precondition = -1
+            else:
+                # to suppress the warning
+                pat = ""
+                if label == self.ENABLING:
+                    position = np.argmax(self.L[index, :] == self.ENABLING)
+                    conj = lfs_names[position][:-2].replace("_", " ")
+                    pat = self.enabling_dict[conj]
+                elif label == self.DISABLING:
+                    position = np.argmax(self.L[index, :] == self.DISABLING)
+                    conj = lfs_names[position][:-2].replace("_", " ")
+                    pat = self.disabling_dict[conj]
+
+                try:
+                    precondition, action = self.get_precondition_action(pat, row['text'])
+                except Exception as e:
+                    logger.error(e)
+                    logger.error("pattern=" + pat)
+                    logger.error("text=" + row['text'])
+            actions.append(action)
+            preconditions.append(precondition)
+        logger.info("DF len=" + str(len(df)))
+        logger.info("Actions len=" + str(len(actions)))
+        df['Action'] = actions
+        df['Precondition'] = preconditions
+        return df
+
+
+    def _populate_labeling_functions_list(self) -> NoReturn:
+        pos_conj = {'only if', 'contingent upon', 'if', "in case", "in the case that", "in the event",
+                    "on condition", "on the assumption",
+                    "on these terms", "supposing", "with the proviso"}
+        neg_conj = {"except", "except for", "excepting that", "if not", "lest", "without"}
+        self.disabling_dict = {
+            'but': "{action} but {negative_precondition}",
+            'unless': "{action} unless {precondition}",
+            'if': "{action} if not {precondition}",
+        }
+        self.enabling_dict = {
+            'makes possible': "{precondition} makes {action} possible.",
+            'to understand event': r'To understand the event "{event}", it is important to know that {precondition}.',
+            'statement is true': r'The statement "{event}" is true because {precondition}.',
+            'if': "{action} if {precondition}",
+        }
+        self.lfs = []
+        for p_conj in pos_conj:
+            self.lfs.append(self.make_keyword_lf(p_conj, SnorkelUtil.ENABLING))
+            self.enabling_dict[p_conj] = "{action} " + p_conj + " {precondition}"
+        self.lfs.extend([self.makes_possible_1, self.to_understand_event_1, self.statement_is_true_1])
+
+        for n_conj in neg_conj:
+            self.lfs.append(self.make_keyword_lf(n_conj, SnorkelUtil.DISABLING))
+            self.disabling_dict[n_conj] = "{action} " + n_conj + " {precondition}"
+        self.lfs.extend([self.unless_0, self.but_0, self.if_0])
 
     @staticmethod
     @labeling_function()
@@ -101,33 +181,6 @@ class SnorkelUtil:
             return SnorkelUtil.ENABLING
         else:
             return SnorkelUtil.ABSTAIN
-
-    def _populate_labeling_functions_list(self) -> NoReturn:
-        pos_conj = {'only if', 'contingent upon', 'if', "in case", "in the case that", "in the event",
-                         "on condition", "on the assumption",
-                         "on these terms", "supposing", "with the proviso"}
-        neg_conj = {"except", "except for", "excepting that", "if not", "lest", "without"}
-        self.disabling_dict = {
-            'but': "{action} but {negative_precondition}",
-            'unless': "{action} unless {precondition}",
-            'if': "{action} if not {precondition}",
-        }
-        self.enabling_dict = {
-            'makes possible': "{precondition} makes {action} possible.",
-            'to understand event': r'To understand the event "{event}", it is important to know that {precondition}.',
-            'statement is true': r'The statement "{event}" is true because {precondition}.',
-            'if': "{action} if {precondition}",
-        }
-        self.lfs = []
-        for p_conj in pos_conj:
-            self.lfs.append(self.make_keyword_lf(p_conj, SnorkelUtil.ENABLING))
-            self.enabling_dict[p_conj] = "{action} " + p_conj + " {precondition}"
-        self.lfs.extend([self.makes_possible_1, self.to_understand_event_1, self.statement_is_true_1])
-
-        for n_conj in neg_conj:
-            self.lfs.append(self.make_keyword_lf(n_conj, SnorkelUtil.DISABLING))
-            self.disabling_dict[n_conj] = "{action} " + n_conj + " {precondition}"
-        self.lfs.extend([self.unless_0, self.but_0, self.if_0])
 
     @staticmethod
     def keyword_lookup(x, keyword, label):
@@ -213,59 +266,3 @@ class SnorkelUtil:
 
             return precondition, action
 
-    def return_examples(self, df: pd.DataFrame, num: int = 100) -> pd.DataFrame:
-        lfs_names = list(self.LFA_df.index)
-        df_data = None
-        examples_df = pd.DataFrame()
-
-        for index, row in self.LFA_df.iterrows():
-            s_no = int(row['j'])
-            label = int(index[-1])
-
-            pat_matches = self.L[:, s_no] == label
-            match_count = sum(bool(x) for x in pat_matches)
-            tmp_list = list(df.iloc[self.L[:, s_no] == label].sample(min(match_count, num), random_state=1)['text'])
-            if len(tmp_list) < num:
-                tmp_list += [0] * (num - len(tmp_list))
-            examples_df[str(index)] = tmp_list
-        return examples_df
-
-    def add_action_precondition(self, df: pd.DataFrame):
-        actions = []
-        preconditions = []
-        lfs_names = list(self.LFA_df.index)
-        for index, row in df.iterrows():
-            valid_positions = self.L[index, :] > -1
-            # position = np.argmax(L[index,:] > -1)
-            action = -1
-            precondition = -1
-            label = row["label"]
-
-            if not (np.any(valid_positions)) or label == SnorkelUtil.ABSTAIN:
-                action = -1
-                precondition = -1
-            else:
-                # to suppress the warning
-                pat = ""
-                if label == self.ENABLING:
-                    position = np.argmax(self.L[index, :] == self.ENABLING)
-                    conj = lfs_names[position][:-2].replace("_", " ")
-                    pat = self.enabling_dict[conj]
-                elif label == self.DISABLING:
-                    position = np.argmax(self.L[index, :] == self.DISABLING)
-                    conj = lfs_names[position][:-2].replace("_", " ")
-                    pat = self.disabling_dict[conj]
-
-                try:
-                    precondition, action = self.get_precondition_action(pat, row['text'])
-                except Exception as e:
-                    logger.error(e)
-                    logger.error("pattern=" + pat)
-                    logger.error("text=" + row['text'])
-            actions.append(action)
-            preconditions.append(precondition)
-        logger.info("DF len=" + str(len(df)))
-        logger.info("Actions len=" + str(len(actions)))
-        df['Action'] = actions
-        df['Precondition'] = preconditions
-        return df

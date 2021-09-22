@@ -80,7 +80,8 @@ def main(config: omegaconf.dictconfig.DictConfig):
 
     df['text'] = df['text'].astype(str)
 
-    snorkel_util = SnorkelUtil(df)
+    snorkel_util = SnorkelUtil(config)
+    snorkel_util.apply_labeling_functions(df)
 
     # L, LFA_df = snorkel_util.get_L_matrix()
 
@@ -92,8 +93,8 @@ def main(config: omegaconf.dictconfig.DictConfig):
     # df["label"] = label_model.predict(L=L, tie_break_policy="abstain")
 
     df = snorkel_util.add_action_precondition(df)
-    df = df[df.label != SnorkelUtil.ABSTAIN]
 
+    df = df[df.label != SnorkelUtil.ABSTAIN]
     df.to_csv(config.output_name)
 
     count = df["label"].value_counts()
@@ -104,7 +105,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
 
     # Extract Examples
     logger.info("Saving Examples....")
-    examples_df=SnorkelUtil.returnExamples(df)
+    examples_df = SnorkelUtil.returnExamples(df)
     examples_df.to_csv(config.output_examples)
 
 
