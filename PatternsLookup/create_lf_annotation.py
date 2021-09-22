@@ -182,13 +182,15 @@ def main():
 
     lf_instances_df = pd.DataFrame(dict([(k, pd.Series(v)) for k, v in lf_instances.items()]))
 
-    for key, val in lf_instances.items():
-        label_row_name = key + " label"
-        lf_instances_df[label_row_name] = ""
+    print(lf_instances_df.count())
 
-    lf_instances_df = lf_instances_df.reindex(sorted(lf_instances_df.columns), axis=1)
+    # for key, val in lf_instances.items():
+    #     label_row_name = key + " label"
+    #     lf_instances_df[label_row_name] = ""
 
-    lf_instances_df.head(100).to_csv(output_path)
+    # lf_instances_df = lf_instances_df.reindex(sorted(lf_instances_df.columns), axis=1)
+
+    # lf_instances_df.head(100).to_csv(output_path)
 
 
 if __name__ == '__main__':
