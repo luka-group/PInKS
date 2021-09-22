@@ -129,9 +129,6 @@ class SnorkelUtil:
             self.disabling_dict[n_conj] = "{action} " + n_conj + " {precondition}"
         self.lfs.extend([self.unless_0, self.but_0, self.if_0])
 
-    def get_L_matrix(self):
-        return self.L, self.LFA_df
-
     @staticmethod
     def keyword_lookup(x, keyword, label):
         pat = "{action} " + keyword + " {precondition}."
@@ -251,11 +248,11 @@ class SnorkelUtil:
                 # to suppress the warning
                 pat = ""
                 if label == self.ENABLING:
-                    position = np.argmax(L[index, :] == self.ENABLING)
+                    position = np.argmax(self.L[index, :] == self.ENABLING)
                     conj = lfs_names[position][:-2].replace("_", " ")
                     pat = self.enabling_dict[conj]
                 elif label == self.DISABLING:
-                    position = np.argmax(L[index, :] == self.DISABLING)
+                    position = np.argmax(self.L[index, :] == self.DISABLING)
                     conj = lfs_names[position][:-2].replace("_", " ")
                     pat = self.disabling_dict[conj]
 
