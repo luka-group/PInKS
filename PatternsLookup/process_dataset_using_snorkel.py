@@ -61,6 +61,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     if config.process_method=="processs_dataset": 
         input_path = ""
         df = pd.DataFrame()
+        logger.info("Processing Dataset: "+config.dataset_name)
         if config.dataset_name.lower() == "omcs":
             input_path = config.omcs_path
             df = pd.read_csv(input_path, sep="\t", error_bad_lines=False)
@@ -73,7 +74,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
                 logger.info(f'Reading processed ASCENT sentences from: {input_path}')
                 df = pd.read_csv(input_path, index_col=0)
 
-            print(input_path)
+            # print(input_path)
         df['text'] = df['text'].astype(str)
 
         snorkel_util = SnorkelUtil(config)
