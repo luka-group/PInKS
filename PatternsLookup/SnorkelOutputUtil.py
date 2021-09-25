@@ -126,8 +126,8 @@ class ProcessOutputUtil:
     @staticmethod
     def merge_helper(df, text, actions, preconditions, labels):
         for index, row in tqdm(df.iterrows()):
-            action = row["Action"]
-            precondition = row["Precondition"]
+            action = row["action"]
+            precondition = row["precondition"]
             label = row["label"]
             if label == 2:
                 continue
