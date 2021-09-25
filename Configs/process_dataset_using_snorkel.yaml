@@ -1,3 +1,5 @@
+process_method: processs_dataset
+
 dataset_name: ascent
 
 ascent_path: "~/CQplus/Outputs/Corpora/ASCENT/data/kb-05-02-2021.jsonl"
@@ -22,6 +24,17 @@ process_all_sentences:
 predicate: 'used'
 snorkel_epochs: 300
 json_chunck_size: 1000
+
+
+
+filtered_output_path: filtered_dataset.csv
+
+
+filtered_omcs_path: "~/CQplus/Outputs/${hydra.job.name}/omcs/filtered_dataset.csv"
+filtered_ascent_path: "~/CQplus/Outputs/${hydra.job.name}/ascent/filtered_dataset.csv"
+
+merged_output_path: "~/CQplus/Outputs/${hydra.job.name}/merged_datasets.csv"
+
 
 hydra:
   run:

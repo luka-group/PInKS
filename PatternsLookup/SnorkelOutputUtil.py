@@ -17,9 +17,9 @@ logger = logging.getLogger(__name__)
 class ProcessOutputUtil:
 
     @staticmethod
-    def filter_dataset(config: omegaconf.dictconfig.DictConfig) -> NoReturn:
+    def filter_dataset(config: omegaconf.dictconfig.DictConfig, df: pd.DataFrame) -> NoReturn:
 
-        merged_df = pd.read_csv(config.merged_dataset)
+        # df = pd.read_csv(config.merged_dataset)
 
         question_start_words = ["who", "what", "when", "where", "why", "how", "is", "can", "does", "do"]
         VERB_CODES = {
@@ -35,7 +35,7 @@ class ProcessOutputUtil:
         filtered_dataset = pd.DataFrame(columns=column_names)
 
         count = 0
-        for index, row in tqdm(merged_df.iterrows()):
+        for index, row in tqdm(df.iterrows()):
             if not (ProcessOutputUtil.isQuestion(row['text'])) and ProcessOutputUtil.hasVerb(
                     row['precondition']) and ProcessOutputUtil.isEnglish(row['text']):
                 new_row = {"text": row['text'], "action": row['action'], "precondition": row['precondition'],
@@ -103,16 +103,16 @@ class ProcessOutputUtil:
 
     @staticmethod
     def merge(config: omegaconf.dictconfig.DictConfig) -> NoReturn:
-        path1 = config.matches_path1
-        path2 = config.matches_path2
+        path1 = config.filtered_omcs_path
+        path2 = config.filtered_ascent_path
 
         text = []
         actions = []
         preconditions = []
         labels = []
 
-        df1 = pd.read_csv(config.matches_path1)
-        df2 = pd.read_csv(config.matches_path2)
+        df1 = pd.read_csv(path1)
+        df2 = pd.read_csv(path2)
 
         ProcessOutputUtil.merge_helper(df1, text, actions, preconditions, labels)
         ProcessOutputUtil.merge_helper(df2, text, actions, preconditions, labels)
@@ -169,13 +169,3 @@ class ProcessOutputUtil:
     #     lf_instances_df.head(100).to_csv(output_path)
 
 
-@hydra.main(config_path="../Configs", config_name="snorkel_output_util_config")
-def main(config: omegaconf.dictconfig.DictConfig):
-    if config.util_method == "filter":
-        ProcessOutputUtil.filter_dataset(config)
-    elif config.util_method == "merge":
-        ProcessOutputUtil.merge(config)
-
-
-if __name__ == '__main__':
-    main()

@@ -21,6 +21,8 @@ from tqdm import tqdm
 
 from SnorkelUtil import SnorkelUtil
 
+from SnorkelOutputUtil import ProcessOutputUtil
+
 nltk.download("wordnet")
 logger = logging.getLogger(__name__)
 
@@ -56,56 +58,52 @@ def ascent_extract_all_sentences_df(config: omegaconf.dictconfig.DictConfig):
 def main(config: omegaconf.dictconfig.DictConfig):
     """With SnorkelUtil"""
 
-    input_path = ""
-    df = pd.DataFrame()
+    if config.process_method=="processs_dataset":
+        input_path = ""
+        df = pd.DataFrame()
+        if config.dataset_name.lower() == "omcs":
+            input_path = config.omcs_path
+            df = pd.read_csv(input_path, sep="\t", error_bad_lines=False)
+        elif config.dataset_name.lower() == "ascent":
+            input_path = pathlib.Path(config.output_names.extract_all_sentences_df).expanduser()
+            if not input_path.exists():
+                logger.info(f'Extracting ASCENT sentences from {config.ascent_path}')
+                df = ascent_extract_all_sentences_df(config)
+            else:
+                logger.info(f'Reading processed ASCENT sentences from: {input_path}')
+                df = pd.read_csv(input_path, index_col=0)
 
-    if config.dataset_name.lower() == "omcs":
-        input_path = config.omcs_path
-        df = pd.read_csv(input_path, sep="\t", error_bad_lines=False)
-    elif config.dataset_name.lower() == "ascent":
-        input_path = pathlib.Path(config.output_names.extract_all_sentences_df).expanduser()
-        if not input_path.exists():
-            logger.info(f'Extracting ASCENT sentences from {config.ascent_path}')
-            df = ascent_extract_all_sentences_df(config)
-        else:
-            logger.info(f'Reading processed ASCENT sentences from: {input_path}')
-            df = pd.read_csv(input_path, index_col=0)
-
-        print(input_path)
-
-    # print(df.head())
-    # for col in df.columns:
-    #     print(col)
-    # print("Text col Len="+str(len(df[',text'])))
-
-    df['text'] = df['text'].astype(str)
-
-    snorkel_util = SnorkelUtil(config)
-    snorkel_util.apply_labeling_functions(df)
-
-    # L, LFA_df = snorkel_util.get_L_matrix()
+            print(input_path)
 
 
+        df['text'] = df['text'].astype(str)
 
-    #
-    # label_model = LabelModel(cardinality=3, verbose=True)
-    # label_model.fit(L, n_epochs=config.snorkel_epochs, log_freq=50, seed=123)
-    # df["label"] = label_model.predict(L=L, tie_break_policy="abstain")
+        snorkel_util = SnorkelUtil(config)
+        snorkel_util.apply_labeling_functions(df)
 
-    df = snorkel_util.add_action_precondition(df)
+        df = snorkel_util.add_action_precondition(df)
 
-    df = df[df.label != SnorkelUtil.ABSTAIN]
-    df.to_csv(config.output_name)
-    logger.info("Saved matches at:"+str(os.getcwd())+str(config.output_name))
+        df = df[df.label != SnorkelUtil.ABSTAIN]
+        df.to_csv(config.output_name)
+        logger.info("Saved matches at:"+str(os.getcwd())+str(config.output_name))
 
-    count = df["label"].value_counts()
-    logger.info("Label  Count")
-    logger.info(count)
+        count = df["label"].value_counts()
+        logger.info("Label  Count")
+        logger.info(count)
 
-    np.save(str(pathlib.Path(config.output_names.labeling_matrix).expanduser()), snorkel_util.L)
+        np.save(str(pathlib.Path(config.output_names.labeling_matrix).expanduser()), snorkel_util.L)
 
-    IPython.embed()
-    exit()
+
+        """Filtering"""
+        ProcessOutputUtil.filter_dataset(config,df)
+    
+    """Merging the filtered datasets"""
+    elif config.process_method=="merge_datasets":
+        ProcessOutputUtil.merge(config)
+
+
+    # IPython.embed()
+    # exit()
 
     # Extract Examples
     # logger.info("Saving Examples....")
