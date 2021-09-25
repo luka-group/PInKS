@@ -13,7 +13,8 @@ from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
-FACT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\* \'’%]{10,})'
+# FACT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\* \'’%]{10,})'
+FACT_REGEX = r'([a-zA-Z0-9_\-\\\/\+\* \'"’%]{10,})'
 
 
 class PatternUtils:

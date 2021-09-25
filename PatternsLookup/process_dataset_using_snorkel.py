@@ -85,8 +85,8 @@ def main(config: omegaconf.dictconfig.DictConfig):
 
     # L, LFA_df = snorkel_util.get_L_matrix()
 
-    IPython.embed()
-    exit()
+
+
     #
     # label_model = LabelModel(cardinality=3, verbose=True)
     # label_model.fit(L, n_epochs=config.snorkel_epochs, log_freq=50, seed=123)
@@ -96,6 +96,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
 
     df = df[df.label != SnorkelUtil.ABSTAIN]
     df.to_csv(config.output_name)
+    logger.info("Saved matches at:"+str(os.getcwd())+str(config.output_name))
 
     count = df["label"].value_counts()
     logger.info("Label  Count")
@@ -103,10 +104,13 @@ def main(config: omegaconf.dictconfig.DictConfig):
 
     np.save(str(pathlib.Path(config.output_names.labeling_matrix).expanduser()), snorkel_util.L)
 
+    IPython.embed()
+    exit()
+
     # Extract Examples
-    logger.info("Saving Examples....")
-    examples_df = SnorkelUtil.returnExamples(df)
-    examples_df.to_csv(config.output_examples)
+    # logger.info("Saving Examples....")
+    # examples_df = snorkel_util.return_examples(df)
+    # examples_df.to_csv(config.output_examples)
 
 
 if __name__ == '__main__':
