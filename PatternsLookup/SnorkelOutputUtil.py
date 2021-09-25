@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class ProcessOutputUtil:
 
     @staticmethod
-    def filter_dataset(config: omegaconf.dictconfig.DictConfig, df: pd.DataFrame) -> NoReturn:
+    def filter_dataset(config: omegaconf.dictconfig.DictConfig, df: pd.DataFrame):
 
         # df = pd.read_csv(config.merged_dataset)
 
@@ -102,7 +102,7 @@ class ProcessOutputUtil:
         return False
 
     @staticmethod
-    def merge(config: omegaconf.dictconfig.DictConfig) -> NoReturn:
+    def merge(config: omegaconf.dictconfig.DictConfig):
         path1 = config.filtered_omcs_path
         path2 = config.filtered_ascent_path
 
