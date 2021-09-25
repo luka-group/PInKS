@@ -58,7 +58,7 @@ def ascent_extract_all_sentences_df(config: omegaconf.dictconfig.DictConfig):
 def main(config: omegaconf.dictconfig.DictConfig):
     """With SnorkelUtil"""
 
-    if config.process_method=="processs_dataset":
+    if config.process_method=="processs_dataset": 
         input_path = ""
         df = pd.DataFrame()
         if config.dataset_name.lower() == "omcs":
@@ -74,8 +74,6 @@ def main(config: omegaconf.dictconfig.DictConfig):
                 df = pd.read_csv(input_path, index_col=0)
 
             print(input_path)
-
-
         df['text'] = df['text'].astype(str)
 
         snorkel_util = SnorkelUtil(config)
@@ -92,12 +90,9 @@ def main(config: omegaconf.dictconfig.DictConfig):
         logger.info(count)
 
         np.save(str(pathlib.Path(config.output_names.labeling_matrix).expanduser()), snorkel_util.L)
-
-
-        """Filtering"""
+        #Filtering
         ProcessOutputUtil.filter_dataset(config,df)
     
-    """Merging the filtered datasets"""
     elif config.process_method=="merge_datasets":
         ProcessOutputUtil.merge(config)
 
