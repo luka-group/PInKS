@@ -95,8 +95,8 @@ class SnorkelUtil:
             preconditions.append(precondition)
         logger.info("DF len=" + str(len(df)))
         logger.info("Actions len=" + str(len(actions)))
-        df['Action'] = actions
-        df['Precondition'] = preconditions
+        df['action'] = actions
+        df['precondition'] = preconditions
         return df
 
 
