@@ -1,6 +1,6 @@
 process_method: processs_dataset
 
-dataset_name: ascent
+dataset_name: omcs
 
 ascent_path: "~/CQplus/Outputs/Corpora/ASCENT/data/kb-05-02-2021.jsonl"
 omcs_path: "~/CQplus/Outputs/Corpora/OMCS/omcs-sentences-more.txt"
