@@ -50,9 +50,9 @@ class ProcessOutputUtil:
         print(count)
 
         #Removing duplicate rows
-        filtered_df=filtered_df.drop_duplicates()
+        filtered_dataset=filtered_dataset.drop_duplicates()
 
-        filtered_df.to_csv(config.filtered_output_path)
+        filtered_dataset.to_csv(config.filtered_output_path)
 
     @staticmethod
     def isQuestion(text):
