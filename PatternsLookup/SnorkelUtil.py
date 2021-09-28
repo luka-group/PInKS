@@ -112,7 +112,7 @@ class SnorkelUtil:
 
             try:
                 position = np.argmax(np.multiply((self.L[index, :] == label).astype(float), self.np_lf_recalls))
-                conj = lfs_names[position][:-2].replace("_", " ")
+                conj = lfs_names[position].replace("_", " ")
                 pat = pattern_lookup[label][conj]
             except Exception as e:
                 logger.error(f'{e}')
@@ -198,7 +198,7 @@ class SnorkelUtil:
         self.np_lf_recalls = np.array(lf_recalls)
 
     @staticmethod
-    @labeling_function()
+    @labeling_function(name='if')
     def if_1(x):
         if_not_pat = "{action} if not {precondition}"
         if_pat = "{action} if {precondition}"
@@ -208,7 +208,7 @@ class SnorkelUtil:
             return SnorkelUtil.ABSTAIN
 
     @staticmethod
-    @labeling_function()
+    @labeling_function(name='if not')
     def if_not_0(x):
         pat = "{action} if not {precondition}"
         if SnorkelUtil.pattern_exists(pat, x.text):
@@ -225,7 +225,7 @@ class SnorkelUtil:
     #     return SnorkelUtil.ABSTAIN
 
     @staticmethod
-    @labeling_function()
+    @labeling_function(name='but')
     def but_0(x):
         pat = "{action} but {negative_precondition}"
         if SnorkelUtil.pattern_exists(pat, x.text):
@@ -234,7 +234,7 @@ class SnorkelUtil:
             return SnorkelUtil.ABSTAIN
 
     @staticmethod
-    @labeling_function()
+    @labeling_function(name='make possible')
     def makes_possible_1(x):
         pat = "{precondition} makes {action} possible."
         if SnorkelUtil.pattern_exists(pat, x.text):
@@ -243,7 +243,7 @@ class SnorkelUtil:
             return SnorkelUtil.ABSTAIN
 
     @staticmethod
-    @labeling_function()
+    @labeling_function(name='to understand event')
     def to_understand_event_1(x):
         pat = r'To understand the event "{event}", it is important to know that {precondition}.'
         if SnorkelUtil.pattern_exists(pat, x.text):
@@ -252,7 +252,7 @@ class SnorkelUtil:
             return SnorkelUtil.ABSTAIN
 
     @staticmethod
-    @labeling_function()
+    @labeling_function(name='statement is true')
     def statement_is_true_1(x):
         pat = r'The statement "{event}" is true because {precondition}.'
         if SnorkelUtil.pattern_exists(pat, x.text):
@@ -270,7 +270,7 @@ class SnorkelUtil:
 
     @staticmethod
     def make_keyword_lf(keyword, label):
-        lf_name = keyword.replace(" ", "_") + f"_{label}"
+        lf_name = keyword.replace(" ", "_")  # + f"_{label}"
         return LabelingFunction(
             name=lf_name,
             f=SnorkelUtil.keyword_lookup,

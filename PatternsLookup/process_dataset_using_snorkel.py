@@ -54,7 +54,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     """With SnorkelUtil"""
 
     # if config.process_method == "processs_dataset":
-    df = _prepare_corpora(config)
+    df = _prepare_corpora(config).iloc[:100000]
 
     snorkel_util = SnorkelUtil(config)
     snorkel_util.apply_labeling_functions(df)
