@@ -152,12 +152,12 @@ class SnorkelUtil:
         for p_conj in pos_conj:
             self.lfs.append(self.make_keyword_lf(p_conj, SnorkelUtil.ENABLING))
             self.enabling_dict[p_conj] = "{action} " + p_conj + " {precondition}"
-        self.lfs.extend([self.makes_possible_1, self.to_understand_event_1, self.statement_is_true_1])
+        self.lfs.extend([self.makes_possible_1, self.to_understand_event_1, self.statement_is_true_1, self.if_1])
 
         for n_conj in neg_conj:
             self.lfs.append(self.make_keyword_lf(n_conj, SnorkelUtil.DISABLING))
             self.disabling_dict[n_conj] = "{action} " + n_conj + " {precondition}"
-        self.lfs.extend([self.but_0, self.if_0])
+        self.lfs.extend([self.but_0, self.if_not_0])
 
     @staticmethod
     @labeling_function()
