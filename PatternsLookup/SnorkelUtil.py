@@ -128,10 +128,10 @@ class SnorkelUtil:
         df['precondition'] = preconditions
 
     def _populate_labeling_functions_list(self) -> NoReturn:
-        pos_conj = {'only if', 'contingent upon', 'if', "in case", "in the case that", "in the event",
+        pos_conj = {'only if', 'contingent upon',  "in case", "in the case that", "in the event",
                     "on condition", "on the assumption",
                     "on these terms", "supposing", "with the proviso"}
-        neg_conj = {"except", "except for", "excepting that", "if not", "lest", "without", "unless"}
+        neg_conj = {"except", "except for", "excepting that", "lest", "without", "unless"}
         self.disabling_dict = {
             'but': "{action} but {negative_precondition}",
             # 'unless': "{action} unless {precondition}",
@@ -162,8 +162,8 @@ class SnorkelUtil:
             lf_recalls.append(recall)
 
         for p_conj, lf in zip(
-                ['make possible', 'to understand event', 'statement is true'],
-                [self.makes_possible_1, self.to_understand_event_1, self.statement_is_true_1]):
+                ['make possible', 'to understand event', 'statement is true', 'if'],
+                [self.makes_possible_1, self.to_understand_event_1, self.statement_is_true_1, self.if_1]):
             recall = gimme_recall(p_conj)
             if recall < float(self.config.lf_recall_threshold):
                 continue
@@ -180,7 +180,7 @@ class SnorkelUtil:
 
             lf_recalls.append(recall)
 
-        for n_conj, lf in zip(['but', 'if not'], [self.but_0, self.if_0]):
+        for n_conj, lf in zip(['but', 'if not'], [self.but_0, self.if_not_0]):
             recall = gimme_recall(n_conj)
             if recall < float(self.config.lf_recall_threshold):
                 continue
@@ -192,22 +192,30 @@ class SnorkelUtil:
 
     @staticmethod
     @labeling_function()
-    def if_0(x):
-        pat = "{action} if not {precondition}"
-        if SnorkelUtil.pattern_exists(pat, x.text):
-            return SnorkelUtil.DISABLING
-        elif SnorkelUtil.pattern_exists("{action} if {precondition}", x.text):
+    def if_1(x):
+        if_not_pat = "{action} if not {precondition}"
+        if_pat = "{action} if {precondition}"
+        if SnorkelUtil.pattern_exists(if_pat, x.text) and not(SnorkelUtil.pattern_exists(if_not_pat, x.text)):
             return SnorkelUtil.ENABLING
         else:
             return SnorkelUtil.ABSTAIN
 
     @staticmethod
     @labeling_function()
-    def unless_0(x):
-        for pat in PatternUtils.SINGLE_SENTENCE_DISABLING_PATTERNS1:
-            if SnorkelUtil.pattern_exists(pat, x.text):
-                return SnorkelUtil.DISABLING
-        return SnorkelUtil.ABSTAIN
+    def if_not_0(x):
+        pat = "{action} if not {precondition}"
+        if SnorkelUtil.pattern_exists(pat, x.text):
+            return SnorkelUtil.DISABLING
+        else:
+            return SnorkelUtil.ABSTAIN
+
+    # @staticmethod
+    # @labeling_function()
+    # def unless_0(x):
+    #     for pat in PatternUtils.SINGLE_SENTENCE_DISABLING_PATTERNS1:
+    #         if SnorkelUtil.pattern_exists(pat, x.text):
+    #             return SnorkelUtil.DISABLING
+    #     return SnorkelUtil.ABSTAIN
 
     @staticmethod
     @labeling_function()

@@ -136,3 +136,33 @@ class ProcessOutputUtil:
     #         preconditions.append(precondition)
     #         labels.append(label)
     #     return
+    #
+    # def create_lf_annotation(filtered_df):
+    #     for index,row in tqdm(filtered_df.iterrows()):
+    #     text=row["text"]
+    #     found=False
+    #     for key,val in disabling_dict.items():
+    #         if pattern_exists(val,text):
+    #             lf_instances[key].append(text)
+    #             found=True
+    #             break
+    #     if found:
+    #         continue
+    #     for key,val in enabling_dict.items():
+    #         if pattern_exists(val,text):
+    #             lf_instances[key].append(text)
+    #             found=True
+    #             break
+
+    #     lf_instances_df=pd.DataFrame(dict([ (k,pd.Series(v)) for k,v in lf_instances.items() ]))
+
+    #     for key,val in lf_instances.items():
+    #         label_row_name=key+" label"
+    #         lf_instances_df[label_row_name]=""
+
+    #     lf_instances_df = lf_instances_df.reindex(sorted(lf_instances_df.columns), axis=1)
+
+    #     lf_instances_df.head(100).to_csv(output_path)
+
+
+
