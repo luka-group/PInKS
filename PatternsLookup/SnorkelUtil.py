@@ -86,7 +86,7 @@ class SnorkelUtil:
         lfs_names = list(self.LFA_df.index)
 
         conj_list=[ lf[:-2].replace("_", " ") for lf in lfs_names ]
-        recall_weightage=[lf_recall_scores[conj] if conj in lf_recall_scores else 0 for conj in conj_list]
+        recall_weightage=[self.lf_recall_scores[conj] if conj in self.lf_recall_scores else 0 for conj in conj_list]
 
         for index, row in df.iterrows():
             valid_positions = self.L[index, :] > -1
