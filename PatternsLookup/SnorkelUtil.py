@@ -164,6 +164,9 @@ class SnorkelUtil:
             recall = gimme_recall(p_conj)
             if recall < float(self.config.lf_recall_threshold):
                 continue
+
+            assert p_conj not in self.enabling_dict, p_conj
+
             self.lfs.append(self.make_keyword_lf(p_conj, SnorkelUtil.ENABLING))
             self.enabling_dict[p_conj] = "{action} " + p_conj + " {precondition}"
             lf_recalls.append(recall)
@@ -182,6 +185,8 @@ class SnorkelUtil:
             recall = gimme_recall(n_conj)
             if recall < float(self.config.lf_recall_threshold):
                 continue
+
+            assert n_conj not in self.disabling_dict, n_conj
             self.lfs.append(self.make_keyword_lf(n_conj, SnorkelUtil.DISABLING))
             self.disabling_dict[n_conj] = "{action} " + n_conj + " {precondition}"
 
