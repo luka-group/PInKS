@@ -56,14 +56,16 @@ class SnorkelUtil:
 
     def __init__(self, config: omegaconf.dictconfig.DictConfig):
         self.config = config
-        self._populate_labeling_functions_list()
-
         self.L = None
         self.LFA_df = None
 
         self.np_lf_recalls = None
 
     def apply_labeling_functions(self, df: pd.DataFrame) -> NoReturn:
+
+        self.populate_labeling_functions_list()
+        assert self.np_lf_recalls is not None
+
         applier = PandasLFApplier(self.lfs)
         # global L_omcs
         self.L = applier.apply(df)
@@ -108,9 +110,14 @@ class SnorkelUtil:
                 preconditions.append(-1)
                 continue
 
-            position = np.argmax(np.multiply((self.L[index, :] == label), self.np_lf_recalls))
-            conj = lfs_names[position][:-2].replace("_", " ")
-            pat = pattern_lookup[label][conj]
+            try:
+                position = np.argmax(np.multiply((self.L[index, :] == label).astype(float), self.np_lf_recalls))
+                conj = lfs_names[position][:-2].replace("_", " ")
+                pat = pattern_lookup[label][conj]
+            except Exception as e:
+                logger.error(f'{e}')
+                IPython.embed()
+                exit()
 
             try:
                 precondition, action = self.get_precondition_action(pat, row['text'])
@@ -127,7 +134,7 @@ class SnorkelUtil:
         df['action'] = actions
         df['precondition'] = preconditions
 
-    def _populate_labeling_functions_list(self) -> NoReturn:
+    def populate_labeling_functions_list(self) -> NoReturn:
         pos_conj = {'only if', 'contingent upon',  "in case", "in the case that", "in the event",
                     "on condition", "on the assumption",
                     "on these terms", "supposing", "with the proviso"}
