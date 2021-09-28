@@ -133,10 +133,10 @@ class SnorkelUtil:
 
 
     def _populate_labeling_functions_list(self) -> NoReturn:
-        pos_conj = {'only if', 'contingent upon', 'if', "in case", "in the case that", "in the event",
+        pos_conj = {'only if', 'contingent upon',  "in case", "in the case that", "in the event",
                     "on condition", "on the assumption",
                     "on these terms", "supposing", "with the proviso"}
-        neg_conj = {"except", "except for", "excepting that", "if not", "lest", "without","unless"}
+        neg_conj = {"except", "except for", "excepting that",  "lest", "without","unless"}
         self.disabling_dict = {
             'but': "{action} but {negative_precondition}",
             # 'unless': "{action} unless {precondition}",
