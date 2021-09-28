@@ -24,6 +24,27 @@ class SnorkelUtil:
     DISABLING = 0
     ENABLING = 1
 
+    #Currently using my(Piyush) recall scores
+    lf_recall_scores={
+        "but": 0.2,
+        "contingent upon" : 0.7,
+        "except" : 0.7,
+        "except for" : 0.65,
+        "if" : 0.5,
+        "if not" : 0.95,
+        "in case" : 0.75,
+        "in the case that" : 0.39,
+        "in the event" : 0.4,
+        "lest" : 0.06,
+        "makes possible" : 0.72,
+        "on condition" : 0.42,
+        "on the assumption" : 0.56,
+        "statement is true" : 1,
+        "supposing" : 0.1,
+        "to understand event" : 0.75,
+        "unless" : 1
+    }
+
     def __init__(self, config: omegaconf.dictconfig.DictConfig):
         self.config = config
         self._populate_labeling_functions_list()
@@ -63,8 +84,13 @@ class SnorkelUtil:
         actions = []
         preconditions = []
         lfs_names = list(self.LFA_df.index)
+
+        conj_list=lfs_names[:][:-2].replace("_", " ")
+        recall_weightage=[lf_recall_scores[conj] if conj in lf_recall_scores else 0 for conj in conj_list]
+
         for index, row in df.iterrows():
             valid_positions = self.L[index, :] > -1
+
             # position = np.argmax(L[index,:] > -1)
             action = -1
             precondition = -1
@@ -77,11 +103,17 @@ class SnorkelUtil:
                 # to suppress the warning
                 pat = ""
                 if label == self.ENABLING:
-                    position = np.argmax(self.L[index, :] == self.ENABLING)
+                    enabling_positions=self.L[index, :] == self.ENABLING
+                    valid_lf_weightage=[a*b for a,b in zip(enabling_positions,recall_weightage)]
+                    position = np.argmax(valid_lf_weightage)
+                    # position = np.argmax(self.L[index, :] == self.ENABLING)
                     conj = lfs_names[position][:-2].replace("_", " ")
                     pat = self.enabling_dict[conj]
                 elif label == self.DISABLING:
-                    position = np.argmax(self.L[index, :] == self.DISABLING)
+                    disabling_positions=self.L[index, :] == self.DISABLING
+                    valid_lf_weightage=[a*b for a,b in zip(disabling_positions,recall_weightage)]
+                    position = np.argmax(valid_lf_weightage)
+                    # position = np.argmax(self.L[index, :] == self.DISABLING)
                     conj = lfs_names[position][:-2].replace("_", " ")
                     pat = self.disabling_dict[conj]
 
@@ -108,7 +140,7 @@ class SnorkelUtil:
         self.disabling_dict = {
             'but': "{action} but {negative_precondition}",
             # 'unless': "{action} unless {precondition}",
-            'if': "{action} if not {precondition}",
+            'if not': "{action} if not {precondition}",
         }
         self.enabling_dict = {
             'makes possible': "{precondition} makes {action} possible.",
@@ -129,12 +161,20 @@ class SnorkelUtil:
 
     @staticmethod
     @labeling_function()
-    def if_0(x):
+    def if_1(x):
+        if_not_pat = "{action} if not {precondition}"
+        if_pat = "{action} if {precondition}"
+        if SnorkelUtil.pattern_exists(if_pat, x.text) and not(SnorkelUtil.pattern_exists(if_not_pat, x.text)):
+            return SnorkelUtil.ENABLING
+        else:
+            return SnorkelUtil.ABSTAIN
+
+    @staticmethod
+    @labeling_function()
+    def if_not_0(x):
         pat = "{action} if not {precondition}"
         if SnorkelUtil.pattern_exists(pat, x.text):
             return SnorkelUtil.DISABLING
-        elif SnorkelUtil.pattern_exists("{action} if {precondition}", x.text):
-            return SnorkelUtil.ENABLING
         else:
             return SnorkelUtil.ABSTAIN
 
