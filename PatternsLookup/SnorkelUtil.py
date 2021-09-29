@@ -111,7 +111,12 @@ class SnorkelUtil:
                 continue
 
             try:
-                position = np.argmax(np.multiply((self.L[index, :] == label).astype(float), self.np_lf_recalls))
+                lf_weightage=np.multiply((self.L[index, :] == label).astype(float), self.np_lf_recalls)
+                position = np.argmax(lf_weightage)
+                
+                if not any(lf_weightage):
+                    position=np.argmax((self.L[index, :] == label).astype(float))
+
                 conj = lfs_names[position].replace("_", " ")
                 pat = pattern_lookup[label][conj]
             except Exception as e:
