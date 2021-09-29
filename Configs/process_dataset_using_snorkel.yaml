@@ -23,6 +23,8 @@ process_all_sentences:
 
 snorkel_epochs: 300
 
+username: 
+
 hydra:
   run:
-    dir: "/nas/home/qasemi/CQplus/Outputs/${hydra.job.name}"
+    dir: "/nas/home/${username}/CQplus/Outputs/${hydra.job.name}"
