@@ -104,6 +104,8 @@ def _prepare_corpora(config) -> pd.DataFrame:
             logger.info(f'Reading processed ASCENT sentences from: {output_path}')
             # df_list.append(pd.read_csv(output_path, index_col=0))
             df=pd.read_csv(output_path, index_col=0)
+            logger.info("Ascent df column names="+df.column_names())
+            df = df.rename(columns={',text': 'text'})
             logger.info("ASCENT len="+str(len(df)))
 
     # df = pd.concat(df_list)
