@@ -100,7 +100,7 @@ def _prepare_corpora(config) -> pd.DataFrame:
             df_list[-1].to_csv(output_path, index=False)
         else:
             logger.info(f'Reading processed ASCENT sentences from: {output_path}')
-            df_list.append(pd.read_csv(output_path, index_col=0))
+            df_list.append(pd.read_csv(output_path))
 
     df = pd.concat(df_list)
     df['text'] = df['text'].astype(str)
