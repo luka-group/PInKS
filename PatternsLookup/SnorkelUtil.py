@@ -98,6 +98,8 @@ class SnorkelUtil:
         preconditions = []
         lfs_names = list(self.LFA_df.index)
 
+        invalid_count=0
+
         pattern_lookup = {
             self.ENABLING: self.enabling_dict,
             self.DISABLING: self.disabling_dict,
@@ -141,9 +143,12 @@ class SnorkelUtil:
                 logger.error(f"pattern={pat}, text={text}, e={e}")
                 actions.append(INVALID)
                 preconditions.append(INVALID)
+                invalid_count+=1
 
         logger.info("DF len=" + str(len(df)))
         logger.info("Actions len=" + str(len(actions)))
+        logger.info("Invalid Count="+str(invalid_count))
+        
         df['action'] = actions
         df['precondition'] = preconditions
 
