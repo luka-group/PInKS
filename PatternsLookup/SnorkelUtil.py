@@ -1,10 +1,13 @@
 import re
 from typing import NoReturn
 import logging
+
+import IPython
 import omegaconf
 import nltk
 import numpy as np
 import pandas as pd
+import tqdm
 from snorkel.labeling import LFAnalysis
 from snorkel.labeling import LabelingFunction
 from snorkel.labeling import PandasLFApplier
@@ -24,14 +27,45 @@ class SnorkelUtil:
     DISABLING = 0
     ENABLING = 1
 
+    LF_RECALS = {
+        "but": 0.17,
+        "contingent upon": 0.6,
+        "except": 0.7,
+        "except for": 0.57,
+        "if": 0.52,
+        "if not": .97,
+        "in case": .75,
+        "in the case that": .30,
+        "in the event": .3,
+        "lest": .06,
+        "makes possible": .81,
+        "on condition": .6,
+        "on the assumption": 0.44,
+        "statement is true": 1.0,
+        "supposing": .07,
+        "to understand event": .87,
+        "unless": 1.0,
+        # Not in the labeled data
+        # "with the proviso": 0.0,
+        # "on these terms": 0.0,
+        # "only if": 0.0,
+        # "make possible": 0.0,
+        # "without": 0.0,
+        # "excepting that": 0.0,
+    }
+
     def __init__(self, config: omegaconf.dictconfig.DictConfig):
         self.config = config
-        self._populate_labeling_functions_list()
-
         self.L = None
         self.LFA_df = None
 
+        self.np_lf_recalls = None
+
     def apply_labeling_functions(self, df: pd.DataFrame) -> NoReturn:
+
+        self.populate_labeling_functions_list()
+        assert self.np_lf_recalls is not None
+
         applier = PandasLFApplier(self.lfs)
         # global L_omcs
         self.L = applier.apply(df)
@@ -63,52 +97,65 @@ class SnorkelUtil:
         actions = []
         preconditions = []
         lfs_names = list(self.LFA_df.index)
-        for index, row in df.iterrows():
-            valid_positions = self.L[index, :] > -1
-            # position = np.argmax(L[index,:] > -1)
-            action = -1
-            precondition = -1
+
+        pattern_lookup = {
+            self.ENABLING: self.enabling_dict,
+            self.DISABLING: self.disabling_dict,
+        }
+
+        INVALID = np.nan
+
+        for index, row in tqdm.tqdm(df.iterrows(), desc='Extracting Action/Precondition'):
+
             label = row["label"]
+            if label == self.ABSTAIN or (not np.any(self.L[index, :] == label)):
+                actions.append(INVALID)
+                preconditions.append(INVALID)
+                continue
 
-            if not (np.any(valid_positions)) or label == SnorkelUtil.ABSTAIN:
-                action = -1
-                precondition = -1
-            else:
-                # to suppress the warning
-                pat = ""
-                if label == self.ENABLING:
-                    position = np.argmax(self.L[index, :] == self.ENABLING)
-                    conj = lfs_names[position][:-2].replace("_", " ")
-                    pat = self.enabling_dict[conj]
-                elif label == self.DISABLING:
-                    position = np.argmax(self.L[index, :] == self.DISABLING)
-                    conj = lfs_names[position][:-2].replace("_", " ")
-                    pat = self.disabling_dict[conj]
+            try:
+                lf_weightage = np.multiply((self.L[index, :] == label).astype(float), self.np_lf_recalls)
+                position = np.argmax(lf_weightage)
+                
+                if not any(lf_weightage):
+                    position = np.argmax((self.L[index, :] == label).astype(float))
 
-                try:
-                    precondition, action = self.get_precondition_action(pat, row['text'])
-                except Exception as e:
-                    logger.error(e)
-                    logger.error("pattern=" + pat)
-                    logger.error("text=" + row['text'])
-            actions.append(action)
-            preconditions.append(precondition)
+                conj = lfs_names[position].replace("_", " ")
+                pat = pattern_lookup[label][conj]
+            except KeyError as e:
+                logger.error(f'key error: {e}')
+                actions.append(INVALID)
+                preconditions.append(INVALID)
+                continue
+            except Exception as e:
+                logger.error(f'Some exception in extracting precondition: {e}')
+                IPython.embed()
+                exit()
+
+            try:
+                precondition, action = self.get_precondition_action(pat, row['text'])
+                actions.append(action)
+                preconditions.append(precondition)
+            except Exception as e:
+                text = row['text']
+                logger.error(f"pattern={pat}, text={text}, e={e}")
+                actions.append(INVALID)
+                preconditions.append(INVALID)
+
         logger.info("DF len=" + str(len(df)))
         logger.info("Actions len=" + str(len(actions)))
-        df['Action'] = actions
-        df['Precondition'] = preconditions
-        return df
+        df['action'] = actions
+        df['precondition'] = preconditions
 
-
-    def _populate_labeling_functions_list(self) -> NoReturn:
-        pos_conj = {'only if', 'contingent upon', 'if', "in case", "in the case that", "in the event",
+    def populate_labeling_functions_list(self) -> NoReturn:
+        pos_conj = {'only if', 'contingent upon',  "in case", "in the case that", "in the event",
                     "on condition", "on the assumption",
                     "on these terms", "supposing", "with the proviso"}
-        neg_conj = {"except", "except for", "excepting that", "if not", "lest", "without","unless"}
+        neg_conj = {"except", "except for", "excepting that", "lest", "without", "unless"}
         self.disabling_dict = {
             'but': "{action} but {negative_precondition}",
             # 'unless': "{action} unless {precondition}",
-            'if': "{action} if not {precondition}",
+            'if not': "{action} if not {precondition}",
         }
         self.enabling_dict = {
             'makes possible': "{precondition} makes {action} possible.",
@@ -117,24 +164,73 @@ class SnorkelUtil:
             'if': "{action} if {precondition}",
         }
         self.lfs = []
+        lf_recalls = []
+
+        def gimme_recall(conj):
+            try:
+                return self.LF_RECALS[conj]
+            except KeyError:
+                logger.error(f'Add {conj}')
+                return float(self.config.lf_recall_threshold)
+
         for p_conj in pos_conj:
+            recall = gimme_recall(p_conj)
+            if recall < float(self.config.lf_recall_threshold):
+                continue
+
+            assert p_conj not in self.enabling_dict, p_conj
+
             self.lfs.append(self.make_keyword_lf(p_conj, SnorkelUtil.ENABLING))
             self.enabling_dict[p_conj] = "{action} " + p_conj + " {precondition}"
-        self.lfs.extend([self.makes_possible_1, self.to_understand_event_1, self.statement_is_true_1])
+            lf_recalls.append(recall)
 
+        for p_conj, lf in zip(
+                ['make possible', 'to understand event', 'statement is true', 'if'],
+                [self.makes_possible_1, self.to_understand_event_1, self.statement_is_true_1, self.if_1]):
+            recall = gimme_recall(p_conj)
+            if recall < float(self.config.lf_recall_threshold):
+                continue
+            self.lfs.append(lf)
+            lf_recalls.append(recall)
+
+        # self.lfs.extend([self.makes_possible_1, self.to_understand_event_1, self.statement_is_true_1])
         for n_conj in neg_conj:
+            recall = gimme_recall(n_conj)
+            if recall < float(self.config.lf_recall_threshold):
+                continue
+
+            assert n_conj not in self.disabling_dict, n_conj
             self.lfs.append(self.make_keyword_lf(n_conj, SnorkelUtil.DISABLING))
             self.disabling_dict[n_conj] = "{action} " + n_conj + " {precondition}"
-        self.lfs.extend([self.but_0, self.if_0])
+
+            lf_recalls.append(recall)
+
+        for n_conj, lf in zip(['but', 'if not'], [self.but_0, self.if_not_0]):
+            recall = gimme_recall(n_conj)
+            if recall < float(self.config.lf_recall_threshold):
+                continue
+
+            self.lfs.append(lf)
+            lf_recalls.append(recall)
+
+        self.np_lf_recalls = np.array(lf_recalls)
 
     @staticmethod
-    @labeling_function()
-    def if_0(x):
+    @labeling_function(name='if')
+    def if_1(x):
+        if_not_pat = "{action} if not {precondition}"
+        if_pat = "{action} if {precondition}"
+        if SnorkelUtil.pattern_exists(if_pat, x.text) and not(SnorkelUtil.pattern_exists(if_not_pat, x.text)):
+            return SnorkelUtil.ENABLING
+        else:
+            return SnorkelUtil.ABSTAIN
+
+    @staticmethod
+    @labeling_function(name='if not')
+    def if_not_0(x):
         pat = "{action} if not {precondition}"
         if SnorkelUtil.pattern_exists(pat, x.text):
             return SnorkelUtil.DISABLING
-        elif SnorkelUtil.pattern_exists("{action} if {precondition}", x.text):
-            return SnorkelUtil.ENABLING
         else:
             return SnorkelUtil.ABSTAIN
 
@@ -147,7 +243,7 @@ class SnorkelUtil:
     #     return SnorkelUtil.ABSTAIN
 
     @staticmethod
-    @labeling_function()
+    @labeling_function(name='but')
     def but_0(x):
         pat = "{action} but {negative_precondition}"
         if SnorkelUtil.pattern_exists(pat, x.text):
@@ -156,7 +252,7 @@ class SnorkelUtil:
             return SnorkelUtil.ABSTAIN
 
     @staticmethod
-    @labeling_function()
+    @labeling_function(name='make possible')
     def makes_possible_1(x):
         pat = "{precondition} makes {action} possible."
         if SnorkelUtil.pattern_exists(pat, x.text):
@@ -165,7 +261,7 @@ class SnorkelUtil:
             return SnorkelUtil.ABSTAIN
 
     @staticmethod
-    @labeling_function()
+    @labeling_function(name='to understand event')
     def to_understand_event_1(x):
         pat = r'To understand the event "{event}", it is important to know that {precondition}.'
         if SnorkelUtil.pattern_exists(pat, x.text):
@@ -174,7 +270,7 @@ class SnorkelUtil:
             return SnorkelUtil.ABSTAIN
 
     @staticmethod
-    @labeling_function()
+    @labeling_function(name='statement is true')
     def statement_is_true_1(x):
         pat = r'The statement "{event}" is true because {precondition}.'
         if SnorkelUtil.pattern_exists(pat, x.text):
@@ -192,7 +288,7 @@ class SnorkelUtil:
 
     @staticmethod
     def make_keyword_lf(keyword, label):
-        lf_name = keyword.replace(" ", "_") + f"_{label}"
+        lf_name = keyword.replace(" ", "_")  # + f"_{label}"
         return LabelingFunction(
             name=lf_name,
             f=SnorkelUtil.keyword_lookup,

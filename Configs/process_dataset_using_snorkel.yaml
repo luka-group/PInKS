@@ -1,28 +1,30 @@
-dataset_name: ascent
+dataset_name: "omcs, ascent"
 
 ascent_path: "~/CQplus/Outputs/Corpora/ASCENT/data/kb-05-02-2021.jsonl"
 omcs_path: "~/CQplus/Outputs/Corpora/OMCS/omcs-sentences-more.txt"
-#output_name: "matches.json"
 
-ascent_method: process_all_sentences_snorkel
-
-output_name: snorkel_matches.csv
-output_examples: output_examples.csv
+lf_recall_threshold: 0.0
 
 output_names:
   extract_all_sentences_df: 'all_sentences_df.csv'
+  ascent_sentences_df: 'ascent_sentences_df.csv'
+  omcs_sentences_df: 'omcs_sentences_df.csv'
   process_all_sentences_snorkel: 'snorkel_matches.csv'
   output_examples: 'output_examples.csv'
   labeling_matrix: 'LabelingMatrix.npy'
+  snorkel_output: "snorkel_matches.csv"
+  snorkel_examples: "snorkel_output_examples.csv"
+
+  filtered_output_path: "filtered_dataset.csv"
 
 process_all_sentences:
   do_srl: false
 
 
-predicate: 'used'
 snorkel_epochs: 300
-json_chunck_size: 1000
+
+username: 
 
 hydra:
   run:
-    dir: "~/CQplus/Outputs/${hydra.job.name}/${dataset_name}"
+    dir: "/nas/home/${username}/CQplus/Outputs/${hydra.job.name}"

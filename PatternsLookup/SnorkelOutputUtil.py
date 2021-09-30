@@ -1,9 +1,9 @@
+import IPython
 import hydra
 import nltk
 import omegaconf
 import pandas as pd
 from tqdm import tqdm
-
 
 from SnorkelUtil import SnorkelUtil
 import langdetect
@@ -17,9 +17,9 @@ logger = logging.getLogger(__name__)
 class ProcessOutputUtil:
 
     @staticmethod
-    def filter_dataset(config: omegaconf.dictconfig.DictConfig) -> NoReturn:
-
-        merged_df = pd.read_csv(config.merged_dataset)
+    def filter_dataset(config: omegaconf.dictconfig.DictConfig, df: pd.DataFrame):
+        df_valid = df.dropna(axis=0)
+        # df = pd.read_csv(config.merged_dataset)
 
         question_start_words = ["who", "what", "when", "where", "why", "how", "is", "can", "does", "do"]
         VERB_CODES = {
@@ -35,7 +35,7 @@ class ProcessOutputUtil:
         filtered_dataset = pd.DataFrame(columns=column_names)
 
         count = 0
-        for index, row in tqdm(merged_df.iterrows()):
+        for index, row in tqdm(df_valid.iterrows(), desc='Filter Dataset'):
             if not (ProcessOutputUtil.isQuestion(row['text'])) and ProcessOutputUtil.hasVerb(
                     row['precondition']) and ProcessOutputUtil.isEnglish(row['text']):
                 new_row = {"text": row['text'], "action": row['action'], "precondition": row['precondition'],
@@ -43,16 +43,15 @@ class ProcessOutputUtil:
                 filtered_dataset = filtered_dataset.append(new_row, ignore_index=True)
                 count += 1
         # print("Filtered True count="+str(count))
-        print("Filtered len=" + str(len(filtered_dataset)))
+        logger.info("Filtered len=" + str(len(filtered_dataset)))
 
         count = filtered_dataset["label"].value_counts()
-        print("Label  Count")
-        print(count)
+        logger.info(f"\nLabel  Count\n{count}")
 
-        #Removing duplicate rows
-        filtered_df=filtered_df.drop_duplicates()
+        # Removing duplicate rows
+        filtered_dataset = filtered_dataset.drop_duplicates()
 
-        filtered_df.to_csv(config.filtered_output_path)
+        filtered_dataset.to_csv(config.output_names.filtered_output_path, index=False)
 
     @staticmethod
     def isQuestion(text):
@@ -101,46 +100,44 @@ class ProcessOutputUtil:
             return True
         return False
 
-    @staticmethod
-    def merge(config: omegaconf.dictconfig.DictConfig) -> NoReturn:
-        path1 = config.matches_path1
-        path2 = config.matches_path2
-
-        text = []
-        actions = []
-        preconditions = []
-        labels = []
-
-        df1 = pd.read_csv(config.matches_path1)
-        df2 = pd.read_csv(config.matches_path2)
-
-        ProcessOutputUtil.merge_helper(df1, text, actions, preconditions, labels)
-        ProcessOutputUtil.merge_helper(df2, text, actions, preconditions, labels)
-
-        final_merged_df = pd.DataFrame(list(zip(text, actions, preconditions, labels)),
-                                       columns=['text', 'action', 'precondition', 'label'])
-
-        final_merged_df.to_csv(config.merged_output_path)
-
-
-    @staticmethod
-    def merge_helper(df, text, actions, preconditions, labels):
-        for index, row in tqdm(df.iterrows()):
-            action = row["Action"]
-            precondition = row["Precondition"]
-            label = row["label"]
-            if label == 2:
-                continue
-                # precondition=row['Precondition']
-                # action=row['Action']
-                # precondition, label = disambiguate(row["text"])
-            text.append(row["text"])
-            actions.append(action)
-            preconditions.append(precondition)
-            labels.append(label)
-        return
+    # @staticmethod
+    # def merge(config: omegaconf.dictconfig.DictConfig):
+    #     path1 = config.filtered_omcs_path
+    #     path2 = config.filtered_ascent_path
+    #
+    #     text = []
+    #     actions = []
+    #     preconditions = []
+    #     labels = []
+    #
+    #     df1 = pd.read_csv(path1)
+    #     df2 = pd.read_csv(path2)
+    #
+    #     ProcessOutputUtil.merge_helper(df1, text, actions, preconditions, labels)
+    #     ProcessOutputUtil.merge_helper(df2, text, actions, preconditions, labels)
+    #
+    #     final_merged_df = pd.DataFrame(list(zip(text, actions, preconditions, labels)),
+    #                                    columns=['text', 'action', 'precondition', 'label'])
+    #
+    #     final_merged_df.to_csv(config.merged_output_path, axis=False)
 
     # @staticmethod
+    # def merge_helper(df, text, actions, preconditions, labels):
+    #     for index, row in tqdm(df.iterrows()):
+    #         action = row["action"]
+    #         precondition = row["precondition"]
+    #         label = row["label"]
+    #         if label == 2:
+    #             continue
+    #             # precondition=row['Precondition']
+    #             # action=row['Action']
+    #             # precondition, label = disambiguate(row["text"])
+    #         text.append(row["text"])
+    #         actions.append(action)
+    #         preconditions.append(precondition)
+    #         labels.append(label)
+    #     return
+    #
     # def create_lf_annotation(filtered_df):
     #     for index,row in tqdm(filtered_df.iterrows()):
     #     text=row["text"]
@@ -169,13 +166,4 @@ class ProcessOutputUtil:
     #     lf_instances_df.head(100).to_csv(output_path)
 
 
-@hydra.main(config_path="../Configs", config_name="snorkel_output_util_config")
-def main(config: omegaconf.dictconfig.DictConfig):
-    if config.util_method == "filter":
-        ProcessOutputUtil.filter_dataset(config)
-    elif config.util_method == "merge":
-        ProcessOutputUtil.merge(config)
 
-
-if __name__ == '__main__':
-    main()
