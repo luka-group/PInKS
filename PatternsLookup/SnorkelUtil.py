@@ -46,12 +46,12 @@ class SnorkelUtil:
         "to understand event": .87,
         "unless": 1.0,
         # Not in the labeled data
-        "with the proviso": 0.0,
-        "on these terms": 0.0,
-        "only if": 0.0,
-        "make possible": 0.0,
-        "without": 0.0,
-        "excepting that": 0.0,
+        # "with the proviso": 0.0,
+        # "on these terms": 0.0,
+        # "only if": 0.0,
+        # "make possible": 0.0,
+        # "without": 0.0,
+        # "excepting that": 0.0,
     }
 
     def __init__(self, config: omegaconf.dictconfig.DictConfig):
@@ -102,25 +102,33 @@ class SnorkelUtil:
             self.ENABLING: self.enabling_dict,
             self.DISABLING: self.disabling_dict,
         }
+
+        INVALID = np.nan
+
         for index, row in tqdm.tqdm(df.iterrows(), desc='Extracting Action/Precondition'):
 
             label = row["label"]
             if label == self.ABSTAIN or (not np.any(self.L[index, :] == label)):
-                actions.append(-1)
-                preconditions.append(-1)
+                actions.append(INVALID)
+                preconditions.append(INVALID)
                 continue
 
             try:
-                lf_weightage=np.multiply((self.L[index, :] == label).astype(float), self.np_lf_recalls)
+                lf_weightage = np.multiply((self.L[index, :] == label).astype(float), self.np_lf_recalls)
                 position = np.argmax(lf_weightage)
                 
                 if not any(lf_weightage):
-                    position=np.argmax((self.L[index, :] == label).astype(float))
+                    position = np.argmax((self.L[index, :] == label).astype(float))
 
                 conj = lfs_names[position].replace("_", " ")
                 pat = pattern_lookup[label][conj]
+            except KeyError as e:
+                logger.error(f'key error: {e}')
+                actions.append(INVALID)
+                preconditions.append(INVALID)
+                continue
             except Exception as e:
-                logger.error(f'{e}')
+                logger.error(f'Some exception in extracting precondition: {e}')
                 IPython.embed()
                 exit()
 
@@ -131,8 +139,8 @@ class SnorkelUtil:
             except Exception as e:
                 text = row['text']
                 logger.error(f"pattern={pat}, text={text}, e={e}")
-                actions.append(-1)
-                preconditions.append(-1)
+                actions.append(INVALID)
+                preconditions.append(INVALID)
 
         logger.info("DF len=" + str(len(df)))
         logger.info("Actions len=" + str(len(actions)))

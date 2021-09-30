@@ -1,3 +1,4 @@
+import IPython
 import hydra
 import nltk
 import omegaconf
@@ -17,7 +18,7 @@ class ProcessOutputUtil:
 
     @staticmethod
     def filter_dataset(config: omegaconf.dictconfig.DictConfig, df: pd.DataFrame):
-
+        df_valid = df.dropna(axis=0)
         # df = pd.read_csv(config.merged_dataset)
 
         question_start_words = ["who", "what", "when", "where", "why", "how", "is", "can", "does", "do"]
@@ -34,7 +35,7 @@ class ProcessOutputUtil:
         filtered_dataset = pd.DataFrame(columns=column_names)
 
         count = 0
-        for index, row in tqdm(df.iterrows()):
+        for index, row in tqdm(df_valid.iterrows(), desc='Filter Dataset'):
             if not (ProcessOutputUtil.isQuestion(row['text'])) and ProcessOutputUtil.hasVerb(
                     row['precondition']) and ProcessOutputUtil.isEnglish(row['text']):
                 new_row = {"text": row['text'], "action": row['action'], "precondition": row['precondition'],
