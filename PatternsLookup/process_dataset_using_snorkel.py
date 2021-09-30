@@ -91,7 +91,7 @@ def _prepare_corpora(config) -> pd.DataFrame:
         input_path = config.omcs_path
         df_list.append(pd.read_csv(input_path, sep="\t", error_bad_lines=False))
         # df=pd.read_csv(input_path, sep="\t", error_bad_lines=False)
-        logger.info("OMCS len="+str(len(df)))
+        logger.info("OMCS len="+str(len(df_list)))
 
     if "ascent" in config.dataset_name.lower():
         logger.info(f'Add ASCENT data.')
@@ -106,7 +106,7 @@ def _prepare_corpora(config) -> pd.DataFrame:
             # df=pd.read_csv(output_path)
             # print("Ascent DF columns="+ df.columns)
             # df = df.rename(columns={',text': 'text'})
-            logger.info("ASCENT len="+str(len(df)))
+            logger.info("ASCENT len="+str(len(df_list)))
 
     df = pd.concat(df_list)
     df['text'] = df['text'].astype(str)
