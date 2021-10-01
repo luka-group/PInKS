@@ -106,7 +106,7 @@ def _prepare_corpora(config) -> pd.DataFrame:
         else:
             logger.info(f'Reading processed ASCENT sentences from: {output_path}')
             df_ascent=pd.read_csv(output_path)
-            text_rows.extend(df_omcs['text'])
+            text_rows.extend(df_ascent['text'])
            
             df_list.append(pd.read_csv(output_path))
 
