@@ -94,21 +94,22 @@ def _prepare_corpora(config) -> pd.DataFrame:
 
         text_rows.extend(df_omcs['text'])
 
-        df_list.append(pd.read_csv(input_path, sep="\t", error_bad_lines=False))
+        # df_list.append(pd.read_csv(input_path, sep="\t", error_bad_lines=False))
 
     if "ascent" in config.dataset_name.lower():
         logger.info(f'Add ASCENT data.')
         output_path = pathlib.Path(config.output_names.ascent_sentences_df).expanduser()
         if not output_path.exists():
             logger.info(f'Extracting ASCENT sentences from {config.ascent_path}')
-            df_list.append(ascent_extract_all_sentences_df(config))
-            df_list[-1].to_csv(output_path, index=False)
+            df_ascent=ascent_extract_all_sentences_df(config)
+            df_ascent.to_csv(output_path, index=False)
+            text_rows.extend(df_ascent['text'])
         else:
             logger.info(f'Reading processed ASCENT sentences from: {output_path}')
             df_ascent=pd.read_csv(output_path)
             text_rows.extend(df_ascent['text'])
            
-            df_list.append(pd.read_csv(output_path))
+            # df_list.append(pd.read_csv(output_path))
 
     # df = pd.concat(df_list)
     logger.info("text_rows len="+str(len(text_rows)))
