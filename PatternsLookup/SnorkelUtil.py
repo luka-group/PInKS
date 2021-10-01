@@ -104,6 +104,7 @@ class SnorkelUtil:
         }
 
         INVALID = np.nan
+        invalid_count=0
 
         for index, row in tqdm.tqdm(df.iterrows(), desc='Extracting Action/Precondition'):
 
@@ -126,6 +127,7 @@ class SnorkelUtil:
                 logger.error(f'key error: {e}')
                 actions.append(INVALID)
                 preconditions.append(INVALID)
+                invalid_count+=1
                 continue
             except Exception as e:
                 logger.error(f'Some exception in extracting precondition: {e}')
@@ -144,6 +146,7 @@ class SnorkelUtil:
 
         logger.info("DF len=" + str(len(df)))
         logger.info("Actions len=" + str(len(actions)))
+        logger.info("Invalid Count="+str(invalid_count))
         df['action'] = actions
         df['precondition'] = preconditions
 
