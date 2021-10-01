@@ -85,13 +85,15 @@ def main(config: omegaconf.dictconfig.DictConfig):
 
 def _prepare_corpora(config) -> pd.DataFrame:
     df_list = []
+    text_rows=[]
     logger.info("Processing Dataset: " + config.dataset_name)
     if "omcs" in config.dataset_name.lower():
         logger.info(f'Add OMCS data.')
         input_path = config.omcs_path
         df_omcs=pd.read_csv(input_path, sep="\t", error_bad_lines=False)
-        print("OMCS DF Head:")
-        print(df_omcs.head())
+
+        text_rows.extend(df_omcs['text'])
+
         df_list.append(pd.read_csv(input_path, sep="\t", error_bad_lines=False))
 
     if "ascent" in config.dataset_name.lower():
@@ -104,12 +106,18 @@ def _prepare_corpora(config) -> pd.DataFrame:
         else:
             logger.info(f'Reading processed ASCENT sentences from: {output_path}')
             df_ascent=pd.read_csv(output_path)
-            print("Ascent DF Head:")
-            print(df_ascent.head())            
+            text_rows.extend(df_omcs['text'])
+           
             df_list.append(pd.read_csv(output_path))
 
-    df = pd.concat(df_list)
+    # df = pd.concat(df_list)
+    logger.info("text_rows len="+str(len(text_rows)))
+    df = pd.DataFrame(text_rows, columns =['text'])
+
     df['text'] = df['text'].astype(str)
+
+    print("Merged Df head=")
+    print(df.head())
 
     df.to_csv(config.output_names.extract_all_sentences_df, index=False)
     return df
