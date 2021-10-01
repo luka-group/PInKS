@@ -89,6 +89,9 @@ def _prepare_corpora(config) -> pd.DataFrame:
     if "omcs" in config.dataset_name.lower():
         logger.info(f'Add OMCS data.')
         input_path = config.omcs_path
+        df_omcs=pd.read_csv(input_path, sep="\t", error_bad_lines=False)
+        print("OMCS DF Head:")
+        print(df_omcs.head())
         df_list.append(pd.read_csv(input_path, sep="\t", error_bad_lines=False))
 
     if "ascent" in config.dataset_name.lower():
@@ -100,6 +103,9 @@ def _prepare_corpora(config) -> pd.DataFrame:
             df_list[-1].to_csv(output_path, index=False)
         else:
             logger.info(f'Reading processed ASCENT sentences from: {output_path}')
+            df_ascent=pd.read_csv(output_path)
+            print("Ascent DF Head:")
+            print(df_ascent.head())            
             df_list.append(pd.read_csv(output_path))
 
     df = pd.concat(df_list)
