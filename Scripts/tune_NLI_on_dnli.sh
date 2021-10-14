@@ -9,6 +9,7 @@ python Models/Tune_Eval_NLI.py \
     +nli_module_class='NLIModule' \
     data_module.train_composition=[dnli] \
     +n_weakcq_samples=5000 \
+    +n_cq_samples=500 \
     +n_dnli_samples=10000 \
     +n_atomic_samples=5000 \
     +n_mnli_samples=5000 \

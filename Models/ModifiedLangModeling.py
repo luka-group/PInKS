@@ -38,6 +38,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
         distributed_backend=None,
         accumulate_grad_batches=config['trainer_args']['accumulate_grad_batches'],
         limit_train_batches=config['trainer_args']['limit_train_batches'],
+        logger=pl.loggers.WandbLogger(name=f"Mod-MLM", project="CQ++"),
     )
 
     trainer.fit(lmmodel, datamodule=data_module)

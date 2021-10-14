@@ -108,8 +108,6 @@ class NLIDataModule(pl.LightningDataModule):
 
         self._update_class_weights()
 
-        # IPython.embed()
-        # exit()
         self._group_data_in_train_test_dev(columns_names)
         # self.data_collator = transformers.DataCollatorWithPadding(
         #     tokenizer=tokenizer,
@@ -145,18 +143,35 @@ class NLIDataModule(pl.LightningDataModule):
 
         # read the cq data for evaluation and testing, also possible to use the train portion
         cq_dataset = self._load_cq()
-        extra_dataset = []
+        extra_train_dataset = []
         if 'cq' in self.config.data_module.train_composition:
-            extra_dataset = [cq_dataset['cq_train']]
+            extra_train_dataset = [cq_dataset['cq_train']]
 
+        assert set(self.config.data_module.train_composition).intersection(
+            set(self.config.data_module.test_composition)).difference(
+            set('cq')) == set(), f'INVALID train/test composition'
+
+        extra_test_dataset = []
+        if 'cq' in self.config.data_module.test_composition:
+            extra_test_dataset = [self._fix_dataset_bug(cq_dataset['cq_test'])]
+
+        # temp_train = ([func_lut[name]() for name in self.config.data_module.train_composition if name != 'cq'] +
+        #                 extra_train_dataset)
+        # temp_test = ([func_lut[name]() for name in self.config.data_module.test_composition if name != 'cq'] +
+        #                 extra_test_dataset)
+        # temp_eval = cq_dataset['cq_valid']
+        # IPython.embed()
         # real and put together all portions of the dataset.
         all_datasets = datasets.DatasetDict({
             'train': datasets.concatenate_datasets(
                 [func_lut[name]() for name in self.config.data_module.train_composition if name != 'cq'] +
-                extra_dataset
+                extra_train_dataset
             ),
-            'test': cq_dataset['cq_test'],
-            'eval': cq_dataset['cq_valid'],
+            'test': datasets.concatenate_datasets(
+                [func_lut[name]() for name in self.config.data_module.test_composition if name != 'cq'] +
+                extra_test_dataset
+            ),
+            'eval': self._fix_dataset_bug(cq_dataset['cq_valid']),
         })
 
         return all_datasets
@@ -182,6 +197,10 @@ class NLIDataModule(pl.LightningDataModule):
         # FIXME there is problem here when we do not run the select and skip this if.
         #  Not sure why but the system throws keyMismatch error during the concatenation. As if like the rename
         #  column has not worked at all
+        return self._fix_dataset_bug(_dataset)
+
+    @staticmethod
+    def _fix_dataset_bug(_dataset):
         return _dataset.select([i for i in range(int(len(_dataset)))])
 
     def _load_dnli(self):
@@ -223,13 +242,14 @@ class NLIDataModule(pl.LightningDataModule):
         cq_eval_path = cq_test_path.parent / cq_test_path.name.replace('test', 'eval')
         cq_train_path = cq_test_path.parent / cq_test_path.name.replace('test', 'train')
 
-        cq_train_dataset = datasets.load_dataset('csv', data_files=str(cq_train_path))['train'].rename_columns({
-            'question': 'action',
-            'context': 'precondition',
-        })
-
         _dataset = datasets.DatasetDict({
-            'cq_train': self._trim_size_if_applicable(cq_train_dataset, name='cq'),
+            'cq_train': self._trim_size_if_applicable(
+                datasets.load_dataset('csv', data_files=str(cq_train_path))['train'].rename_columns({
+                    'question': 'action',
+                    'context': 'precondition',
+                }),
+                name='cq'
+            ),
             'cq_valid': datasets.load_dataset('csv', data_files=str(cq_eval_path))['train'].rename_columns({
                 'question': 'action',
                 'context': 'precondition',

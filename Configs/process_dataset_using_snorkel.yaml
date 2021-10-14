@@ -3,7 +3,7 @@ dataset_name: "omcs, ascent"
 ascent_path: "~/CQplus/Outputs/Corpora/ASCENT/data/kb-05-02-2021.jsonl"
 omcs_path: "~/CQplus/Outputs/Corpora/OMCS/omcs-sentences-more.txt"
 
-lf_recall_threshold: 0.0
+lf_recall_threshold: 0.6
 
 output_names:
   extract_all_sentences_df: 'all_sentences_df.csv'
@@ -27,4 +27,4 @@ username:
 
 hydra:
   run:
-    dir: "/nas/home/${username}/CQplus/Outputs/${hydra.job.name}"
+    dir: "/nas/home/${username}/CQplus/Outputs/${hydra.job.name}/${lf_recall_threshold}"

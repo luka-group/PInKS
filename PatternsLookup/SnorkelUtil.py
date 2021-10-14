@@ -61,6 +61,9 @@ class SnorkelUtil:
 
         self.np_lf_recalls = None
 
+        self.disabling_dict = None
+        self.enabling_dict = None
+
     def apply_labeling_functions(self, df: pd.DataFrame) -> NoReturn:
 
         self.populate_labeling_functions_list()
@@ -116,6 +119,7 @@ class SnorkelUtil:
 
             try:
                 lf_weightage = np.multiply((self.L[index, :] == label).astype(float), self.np_lf_recalls)
+
                 position = np.argmax(lf_weightage)
                 
                 if not any(lf_weightage):
@@ -132,17 +136,20 @@ class SnorkelUtil:
             except Exception as e:
                 logger.error(f'Some exception in extracting precondition: {e}')
                 IPython.embed()
-                exit()
+                raise e
 
             try:
                 precondition, action = self.get_precondition_action(pat, row['text'])
                 actions.append(action)
                 preconditions.append(precondition)
             except Exception as e:
+                IPython.embed()
+                exit()
                 text = row['text']
                 logger.error(f"pattern={pat}, text={text}, e={e}")
                 actions.append(INVALID)
                 preconditions.append(INVALID)
+                continue
 
         logger.info("DF len=" + str(len(df)))
         logger.info("Actions len=" + str(len(actions)))
@@ -155,17 +162,21 @@ class SnorkelUtil:
                     "on condition", "on the assumption",
                     "on these terms", "supposing", "with the proviso"}
         neg_conj = {"except", "except for", "excepting that", "lest", "without", "unless"}
+
         self.disabling_dict = {
             'but': "{action} but {negative_precondition}",
             # 'unless': "{action} unless {precondition}",
             'if not': "{action} if not {precondition}",
+            'makes impossible': "{precondition} makes {action} impossible.",
         }
+
         self.enabling_dict = {
             'makes possible': "{precondition} makes {action} possible.",
             'to understand event': r'To understand the event "{event}", it is important to know that {precondition}.',
             'statement is true': r'The statement "{event}" is true because {precondition}.',
             'if': "{action} if {precondition}",
         }
+
         self.lfs = []
         lf_recalls = []
 
@@ -304,11 +315,6 @@ class SnorkelUtil:
         replacements = {k: PatternUtils.REPLACEMENT_REGEX[k] for k in pattern_keys}
         regex_pattern = pattern.format(**replacements)
         m_list = re.findall(regex_pattern, line)
-
-        # print(pattern_keys)
-        # print(replacements)
-        # print(regex_pattern)
-        # print(m_list)
 
         for m in m_list:
             match_full_sent = line

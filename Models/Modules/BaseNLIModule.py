@@ -179,10 +179,14 @@ class NLIModule(pl.LightningModule):
             predicate = {'CausesDesire'}
 
         try:
-            assert len(predicate) == 1, f'Found {predicate} match for {text}'
+            assert len(predicate) <= 1, f'Found {predicate} match for {text}'
         except AssertionError as e:
             IPython.embed()
             raise e
+
+        if len(predicate) == 0:
+            return 'Others'
+
         return predicate.pop()
 
     def _collect_evaluation_results(self, outputs, mytag):
@@ -229,12 +233,15 @@ class NLIModule(pl.LightningModule):
             columns=['C', 'N', 'E'],
             index=['C', 'N', 'E'],
         )
+
+        sep = self._get_separator_token()
+
         df_errors = (
             df[df['true_label'] != df['predicted_label']].apply(
                 axis=1,
                 func=lambda r: pd.Series({
-                    'fact': r['text'].split('.')[1],
-                    'context': r['text'].split('.')[0],
+                    'fact': r['text'].split(sep)[1],
+                    'context': r['text'].split(sep)[0],
                     'type': "False Negative" if r['true_label'] == 1 else "False Positive"
                 })
             )
@@ -280,6 +287,19 @@ class NLIModule(pl.LightningModule):
             f'{spl_name}_{predicate}_f1_score': _f1_score,
         }
         return per_predicate_results
+
+    def _get_separator_token(self):
+        model_name = self.hparams['model_setup.model_name']
+        templates = {
+            'roberta': '</s></s>',
+            'bart': '</s></s>',
+            'deberta': '[SEP]'
+        }
+        sep = '.'
+        for k, v in templates.items():
+            if k in model_name:
+                sep = v
+        return sep
 
     @staticmethod
     def _df_to_wandb_table(dataframe: pd.DataFrame):

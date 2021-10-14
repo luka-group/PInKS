@@ -129,6 +129,7 @@ def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
 
     logger.info('Tuned Results')
     _module.extra_tag = 'tuned'
+    logger.info(f'Testing on {config.data_module.test_composition}')
     trainer.test(_module, datamodule=_data)
 
 

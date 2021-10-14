@@ -1,4 +1,5 @@
 import functools
+import os
 import random
 
 import IPython
@@ -30,9 +31,10 @@ class ModMLMDataModule(pl.LightningDataModule):
         self.data_collator = None
 
     def setup(self, stage: Optional[str] = None):
+        HOME_DIR = os.path.expanduser('~')
         tokenizer = AutoTokenizer.from_pretrained(
             self.config.lm_module.model_name_or_path,
-            cache_dir="/nas/home/pkhanna/model_cache",
+            cache_dir=f"/nas/home/{HOME_DIR}/model_cache",
         )
         extension = self.config.data_module.train_file.split(".")[-1]
         if extension in ("txt", "raw"):

@@ -63,7 +63,13 @@ class ProcessOutputUtil:
 
     @staticmethod
     def hasVerb(text):
-        text = nltk.word_tokenize(text)
+        try:
+            text = nltk.word_tokenize(text)
+        except Exception as e:
+            logger.error(e)
+            IPython.embed()
+            exit()
+
         VERB_CODES = {
             'VB',  # Verb, base form
             'VBD',  # Verb, past tense

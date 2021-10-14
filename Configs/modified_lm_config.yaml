@@ -12,7 +12,7 @@ trainer_args:
 
 
 hardware:
-  gpus: '3'
+  gpus: "2"
 
 data_module:
   train_file:
@@ -35,6 +35,8 @@ data_module:
   #    column_names: ["line"]
 
 
+username: "qasemi"
+
 hydra:
   run:
-    dir: /nas/home/pkhanna/CQplus/Outputs/${hydra.job.name}
+    dir: "/nas/home/${username}/CQplus/Outputs/${hydra.job.name}"
