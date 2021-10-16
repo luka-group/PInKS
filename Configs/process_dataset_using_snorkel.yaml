@@ -3,7 +3,7 @@ dataset_name: "omcs, ascent"
 ascent_path: "~/CQplus/Outputs/Corpora/ASCENT/data/kb-05-02-2021.jsonl"
 omcs_path: "~/CQplus/Outputs/Corpora/OMCS/omcs-sentences-more.txt"
 
-lf_recall_threshold: 0.6
+lf_recall_threshold: 0.7
 
 output_names:
   extract_all_sentences_df: 'all_sentences_df.csv'
@@ -14,8 +14,8 @@ output_names:
   labeling_matrix: 'LabelingMatrix.npy'
   snorkel_output: "snorkel_matches.csv"
   snorkel_examples: "snorkel_output_examples.csv"
-
   filtered_output_path: "filtered_dataset.csv"
+  augmented_dataset_path: "augmented_dataset.json"
 
 process_all_sentences:
   do_srl: false

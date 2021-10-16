@@ -10,11 +10,18 @@ import langdetect
 
 import logging
 
+from transformers import pipeline
+import random
+
+nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
+
 nltk.download("wordnet")
 logger = logging.getLogger(__name__)
 
 
 class ProcessOutputUtil:
+    unmasker = pipeline('fill-mask', model='bert-base-uncased')
 
     @staticmethod
     def filter_dataset(config: omegaconf.dictconfig.DictConfig, df: pd.DataFrame):
@@ -52,6 +59,7 @@ class ProcessOutputUtil:
         filtered_dataset = filtered_dataset.drop_duplicates()
 
         filtered_dataset.to_csv(config.output_names.filtered_output_path, index=False)
+
 
     @staticmethod
     def isQuestion(text):
@@ -105,6 +113,70 @@ class ProcessOutputUtil:
         if SnorkelUtil.pattern_exists(pat, text):
             return True
         return False
+
+    @staticmethod
+    def data_augmentation(config: omegaconf.dictconfig.DictConfig):
+        
+        filtered_df=pd.read_csv(config.output_names.filtered_output_path)
+        aug_sents = []
+        count = 0
+
+        for index, row in tqdm(filtered_df.iterrows()):
+            try:
+                aug_sents.extend(ProcessOutputUtil.fill_mask(row['text'], row['label']))
+                count += 1
+            except Exception as e:
+                print(e)
+                continue
+
+            if index % 20000 == 0:
+                with open(config.output_names.augmented_dataset_path, "w") as outfile:
+                    json.dump(aug_sents, outfile)
+                print("Saved at index=" + str(index))
+
+        # Saving for the final time
+        with open(config.output_names.augmented_dataset_path, "w") as outfile:
+            json.dump(aug_sents, outfile)
+
+        logger.info("Count of augmented sentence=" + str(count))
+
+    
+    @staticmethod
+    def fill_mask(text, label):
+        NOUN_CODES = {'NN', 'NNS', 'NNPS', 'NNP'}
+        ADJECTIVE_CODES = {"JJ", "JJR", "JJS"}
+        LEAVE_OUT_WORDS = {'understand', 'event', 'important', 'know', 'statement', 'true'}
+
+        aug_sents_dicts = []
+        text = nltk.word_tokenize(text)
+        result = nltk.pos_tag(text)
+        for idx, (word, tag) in enumerate(result):
+            if word.lower() in LEAVE_OUT_WORDS:
+                continue
+            tmp_result = [list(ele) for ele in result]
+            if (tag in NOUN_CODES) or (tag in ADJECTIVE_CODES):
+                new_aug_dict = {
+                    'original_sentence': ' '.join(word[0] for word in tmp_result),
+                    'masked_word': tmp_result[idx][0],
+                    'masked_position': idx,
+                    'label': label
+                }
+                tmp_result[idx][0] = "[MASK]"
+                new_sent_masked = ' '.join(word[0] for word in tmp_result)
+                unmasked_list = list(ProcessOutputUtil.unmasker(new_sent_masked))[:3]
+                new_aug_dict['predictions'] = unmasked_list
+                aug_sents_dicts.append(new_aug_dict)
+
+        aug_sents_dicts = ProcessOutputUtil.aug_selection_strategy(aug_sents_dicts, 15)
+        return aug_sents_dicts
+
+    @staticmethod
+    def aug_selection_strategy(aug_sents_dicts, n_samples):
+        return random.sample(aug_sents_dicts, min(n_samples, len(aug_sents_dicts)))
+
+
+
+
 
     # @staticmethod
     # def merge(config: omegaconf.dictconfig.DictConfig):
