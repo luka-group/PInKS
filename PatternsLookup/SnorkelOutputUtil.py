@@ -5,6 +5,8 @@ import omegaconf
 import pandas as pd
 from tqdm import tqdm
 
+import json
+
 from SnorkelUtil import SnorkelUtil
 import langdetect
 

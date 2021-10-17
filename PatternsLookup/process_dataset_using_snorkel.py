@@ -57,6 +57,7 @@ def ascent_extract_all_sentences_df(config: omegaconf.dictconfig.DictConfig):
 def main(config: omegaconf.dictconfig.DictConfig):
     """With SnorkelUtil"""
 
+"""
     # df = _prepare_corpora(config).iloc[:500000]
     df = _prepare_corpora(config)
 
@@ -77,7 +78,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
 
     # Filtering
     ProcessOutputUtil.filter_dataset(config, df)
-
+"""
     #Data Augmentation
     logger.info('Augmenting data using BERT mask-filling.')
     ProcessOutputUtil.data_augmentation(config)
