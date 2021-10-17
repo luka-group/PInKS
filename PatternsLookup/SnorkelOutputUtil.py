@@ -4,6 +4,7 @@ import nltk
 import omegaconf
 import pandas as pd
 from tqdm import tqdm
+import os
 
 import json
 
@@ -122,7 +123,7 @@ class ProcessOutputUtil:
         filtered_df=pd.read_csv(config.output_names.filtered_output_path)
         aug_sents = []
         count = 0
-
+        logger.info("Current working dir="+os.getcwd())
         for index, row in tqdm(filtered_df.iterrows()):
             try:
                 aug_sents.extend(ProcessOutputUtil.fill_mask(row['text'], row['label']))
