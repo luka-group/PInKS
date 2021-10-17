@@ -58,7 +58,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     """With SnorkelUtil"""
 
 
-    """
+    
     df = _prepare_corpora(config)
 
     snorkel_util = SnorkelUtil(config)
@@ -78,7 +78,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
 
     # Filtering
     ProcessOutputUtil.filter_dataset(config, df)
-    """
+    
 
     #Data Augmentation
     logger.info('Augmenting data using BERT mask-filling.')
