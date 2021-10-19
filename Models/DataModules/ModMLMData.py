@@ -34,11 +34,11 @@ class ModMLMDataModule(pl.LightningDataModule):
 
     def setup(self, stage: Optional[str] = None):
         HOME_DIR = os.path.expanduser('~')
-        logger.info("cache_dir="+f"/nas/home/{HOME_DIR}/model_cache")
-        
+        # logger.info("cache_dir="+f"/nas/home/{HOME_DIR}/model_cache")
+
         tokenizer = AutoTokenizer.from_pretrained(
             self.config.lm_module.model_name_or_path,
-            cache_dir=f"/nas/home/{HOME_DIR}/model_cache",
+            cache_dir=f"{HOME_DIR}/model_cache",
         )
         extension = self.config.data_module.train_file.split(".")[-1]
         if extension in ("txt", "raw"):
