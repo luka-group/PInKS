@@ -158,6 +158,7 @@ class DataCollatorForPreconditionWordMask(DataCollatorForWholeWordMask):
         return u'\u0120' not in s
 
     @staticmethod
+    @property
     def _bert_gen_is_sub_word(s):
         return s.startswith("##")
 
