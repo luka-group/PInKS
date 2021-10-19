@@ -166,7 +166,7 @@ class DataCollatorForPreconditionWordMask(DataCollatorForWholeWordMask):
         if 'roberta' in model_name:
             return DataCollatorForPreconditionWordMask._roberta_gen_is_sub_word
         if 'bert' in model_name:
-            return DataCollatorForPreconditionWordMask.bert_gen_is_sub_word()
+            return DataCollatorForPreconditionWordMask._bert_gen_is_sub_word
 
     @staticmethod
     def _roberta_gen_clean_token(s):
@@ -181,7 +181,7 @@ class DataCollatorForPreconditionWordMask(DataCollatorForWholeWordMask):
         if 'roberta' in model_name:
             return DataCollatorForPreconditionWordMask._roberta_gen_clean_token
         if 'bert' in model_name:
-            return DataCollatorForPreconditionWordMask._bert_gen_clean_token()
+            return DataCollatorForPreconditionWordMask._bert_gen_clean_token
 
     def _whole_word_mask(self, input_tokens: List[str], max_predictions=512):
         """
