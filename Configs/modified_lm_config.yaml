@@ -1,5 +1,6 @@
 lm_module:
-  model_name_or_path: 'distilbert-base-cased'
+  model_name_or_path: 'bert-base-uncased'
+  # model_name_or_path: 'distilbert-base-cased'
 #  model_name_or_path: 'distilbert-base-uncased'
   learning_rate: 5e-5
   adam_beta1: 0.9
