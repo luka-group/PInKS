@@ -97,6 +97,7 @@ def _run_modlm_train_test(config: omegaconf.dictconfig.DictConfig):
     trainer = pl.Trainer(
         gradient_clip_val=0,
         gpus=config['hardware']['gpus'],
+        auto_select_gpus=True,
         max_epochs=1,
         min_epochs=1,
         resume_from_checkpoint=None,
