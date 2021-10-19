@@ -51,7 +51,7 @@ def tune_modlm_asha(config: omegaconf.dictconfig.DictConfig):
         exec(f'sweep_dict[k] = {v}')
 
     scheduler = tune.schedulers.ASHAScheduler(
-        max_t=config.train_setup.max_epochs,
+        max_t=1,
         grace_period=1,
         reduction_factor=2)
 
