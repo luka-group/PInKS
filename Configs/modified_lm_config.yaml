@@ -15,7 +15,7 @@ hardware:
   gpus: "2"
 
 data_module:
-  train_file:
+  train_file: /nas/home/${username}/CQplus/Outputs/process_dataset_using_snorkel/0.7/filtered_dataset.csv
   train_batch_size: 2 #4
 
   validation_file:
@@ -33,6 +33,15 @@ data_module:
   datasetloader_kwargs:
       skiprows: 0
   #    column_names: ["line"]
+
+
+ray:
+  num_samples: 10
+#  gpus_per_trial: 1
+  sweep_dict:
+   "lm_module.learning_rate": "tune.loguniform(1e-6, 1e-4)"
+   "data_module.train_batch_size": "tune.choice([2, 4])"
+   "data_module.max_seq_length": "tune.choice([200, 300, 400, 450])"
 
 
 username: "qasemi"

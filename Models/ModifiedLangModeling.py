@@ -12,10 +12,72 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# @hydra.main(config_path='../Configs/modified_lm_config.yaml')
-@hydra.main(config_path="../Configs", config_name="modified_lm_config")
-def main(config: omegaconf.dictconfig.DictConfig):
+def prepare_and_feed_config(updates: Dict, base_config: omegaconf.dictconfig.DictConfig):
+    config = _get_updated_config(base_config, updates)
+    config.pop('ray')
+    # logger.warning(f'config:\n{config}\n')
+    # tune.report(loss=0.1, mean_accuracy=0.9, f1=0.2)
+    # IPython.embed()
+    # exit()
+    _run_modlm_train_test(config)
 
+
+def _get_updated_config(base_config, updates):
+    base_dict = Utils.flatten_config(base_config)
+    base_dict.update(updates)
+    base_config_dict = Utils.unflatten_config(base_dict)
+
+    config = omegaconf.dictconfig.DictConfig(content=base_config_dict)
+    # d = dict(base_config).update(updates)
+    # config = Namespace(**update_config(dict(base_config), update_dict))
+    return config
+
+
+def tune_modlm_asha(config: omegaconf.dictconfig.DictConfig):
+    assert "ray" in config, f'config does not have `ray`: {config}'
+    # sweep_dict = {
+    #     "train_setup.learning_rate": tune.loguniform(1e-6, 1e-4),
+    #     # "data_module": {
+    #     #     'train_batch_size': tune.choice([2, 4]),
+    #     #     'max_seq_length': tune.choice([200, 300, 400, 450]),
+    #     # },
+    # }
+    # setup the sweep values based on config
+    sweep_dict = {}
+    for k, v in dict(config.ray.sweep_dict).items():
+        exec(f'sweep_dict[k] = {v}')
+
+    scheduler = tune.schedulers.ASHAScheduler(
+        max_t=config.train_setup.max_epochs,
+        grace_period=1,
+        reduction_factor=2)
+
+    reporter = tune.CLIReporter(
+        # parameter_columns=["learning_rate", "train_batch_size", "max_seq_length"],
+        metric_columns=["loss", "mean_accuracy", "f1"])
+
+    analysis = tune.run(
+        tune.with_parameters(
+            prepare_and_feed_config,
+            base_config=config
+            ),
+        resources_per_trial={
+            "cpu": 1,
+            "gpu": 4
+        },
+        metric="loss",
+        mode="min",
+        config=sweep_dict,
+        num_samples=config.ray.num_samples,
+        scheduler=scheduler,
+        progress_reporter=reporter,
+        name="tune_nli_asha")
+
+    logger.warning("Best hyperparameters found were: ", analysis.best_config)
+
+
+
+def _run_modlm_train_test(config: omegaconf.dictconfig.DictConfig):
     # ------------
     # data
     # ------------
@@ -44,6 +106,14 @@ def main(config: omegaconf.dictconfig.DictConfig):
     trainer.fit(lmmodel, datamodule=data_module)
     trainer.save_checkpoint('Checkpoint/ModifiedLMModule.ckpt')
     trainer.test(lmmodel, datamodule=data_module)
+
+
+
+# @hydra.main(config_path='../Configs/modified_lm_config.yaml')
+@hydra.main(config_path="../Configs", config_name="modified_lm_config")
+def main(config: omegaconf.dictconfig.DictConfig):
+    tune_modlm_asha(config)
+
 
 
 if __name__ == '__main__':
