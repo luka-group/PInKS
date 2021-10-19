@@ -15,7 +15,7 @@ hardware:
   gpus: "2"
 
 data_module:
-  train_file: /nas/home/${username}/CQplus/Outputs/process_dataset_using_snorkel/0.7/filtered_dataset.csv
+  train_file: 
   train_batch_size: 2 #4
 
   validation_file:
