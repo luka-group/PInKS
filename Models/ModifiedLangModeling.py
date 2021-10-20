@@ -9,6 +9,8 @@ from ray import tune
 
 # from loguru import logger
 import Models.Utils as Utils
+from DataModules.ModMLMData import ModMLMDataModule
+from Modules.ModifiedLangModelingModule import ModifiedLMModule
 # from LMBenchmarkEvaluator import BaseEvaluationModule
 
 
@@ -86,9 +88,8 @@ def tune_modlm_asha(config: omegaconf.dictconfig.DictConfig):
 def _run_modlm_train_test(config: omegaconf.dictconfig.DictConfig):
 
 
-    print('TUNE_EX\n\n', sys.path, '\n\n')
-    from .DataModules.ModMLMData import ModMLMDataModule
-    from .Modules.ModifiedLangModelingModule import ModifiedLMModule
+    # print('TUNE_EX\n\n', sys.path, '\n\n')
+
     # ------------
     # data
     # ------------
