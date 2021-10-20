@@ -19,10 +19,10 @@ def prepare_and_feed_config(updates: Dict, base_config: omegaconf.dictconfig.Dic
     config = _get_updated_config(base_config, updates)
     config.pop('ray')
 
-    logger.warning(f'config:\n{config}\n')
-    tune.report(loss=0.1, mean_accuracy=0.9, f1=0.2)
-    IPython.embed()
-    exit()
+    # logger.warning(f'config:\n{config}\n')
+    # tune.report(loss=0.1, mean_accuracy=0.9, f1=0.2)
+    # IPython.embed()
+    # exit()
 
     _run_modlm_train_test(config)
 
@@ -63,7 +63,7 @@ def tune_modlm_asha(config: omegaconf.dictconfig.DictConfig):
 
     analysis = tune.run(
         tune.with_parameters(
-            prepare_and_feed_config,
+            _run_modlm_train_test,
             base_config=config
             ),
         resources_per_trial={
@@ -76,7 +76,7 @@ def tune_modlm_asha(config: omegaconf.dictconfig.DictConfig):
         num_samples=config.ray.num_samples,
         scheduler=scheduler,
         progress_reporter=reporter,
-        name="tune_nli_asha")
+        name="tune_modlm_asha")
 
     logger.warning("Best hyperparameters found were: ", analysis.best_config)
 
