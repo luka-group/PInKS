@@ -62,7 +62,7 @@ def tune_modlm_asha(config: omegaconf.dictconfig.DictConfig):
 
     analysis = tune.run(
         tune.with_parameters(
-            _run_modlm_train_test,
+            prepare_and_feed_config,
             base_config=config
             ),
         resources_per_trial={
