@@ -1,4 +1,5 @@
 import hydra
+import os, sys
 from typing import List, Union, Dict
 import omegaconf
 import pytorch_lightning as pl
@@ -84,8 +85,10 @@ def tune_modlm_asha(config: omegaconf.dictconfig.DictConfig):
 
 def _run_modlm_train_test(config: omegaconf.dictconfig.DictConfig):
 
-    from DataModules.ModMLMData import ModMLMDataModule
-    from Modules.ModifiedLangModelingModule import ModifiedLMModule
+
+    print('TUNE_EX\n\n', sys.path, '\n\n')
+    from ..DataModules.ModMLMData import ModMLMDataModule
+    from ..Modules.ModifiedLangModelingModule import ModifiedLMModule
     # ------------
     # data
     # ------------
