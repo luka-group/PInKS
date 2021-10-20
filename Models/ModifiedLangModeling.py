@@ -18,10 +18,12 @@ logger = logging.getLogger(__name__)
 def prepare_and_feed_config(updates: Dict, base_config: omegaconf.dictconfig.DictConfig):
     config = _get_updated_config(base_config, updates)
     config.pop('ray')
-    # logger.warning(f'config:\n{config}\n')
-    # tune.report(loss=0.1, mean_accuracy=0.9, f1=0.2)
-    # IPython.embed()
-    # exit()
+
+    logger.warning(f'config:\n{config}\n')
+    tune.report(loss=0.1, mean_accuracy=0.9, f1=0.2)
+    IPython.embed()
+    exit()
+
     _run_modlm_train_test(config)
 
 
