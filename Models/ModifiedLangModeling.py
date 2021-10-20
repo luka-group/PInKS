@@ -5,8 +5,9 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray import tune
-# from loguru import logger
 
+# from loguru import logger
+import Models.Utils as Utils
 # from LMBenchmarkEvaluator import BaseEvaluationModule
 
 
