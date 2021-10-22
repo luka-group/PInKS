@@ -117,6 +117,7 @@ class ProcessOutputUtil:
             return True
         return False
 
+    #Iterates through the filtered df and calls the fill_mask function for each text instance. Saves the results in a json after every 20k iterations.
     @staticmethod
     def data_augmentation(config: omegaconf.dictconfig.DictConfig):
         
@@ -144,11 +145,9 @@ class ProcessOutputUtil:
 
         logger.info("Count of augmented sentence=" + str(count))
 
-    
+    #Takes the text and label of a common sense assertion and masks some words (based on the valid_pos_tag function), and unmasks them using bert-base-uncased unmasker.
     @staticmethod
     def fill_mask(text, label):
-        NOUN_CODES = {'NN', 'NNS', 'NNPS', 'NNP'}
-        ADJECTIVE_CODES = {"JJ", "JJR", "JJS"}
         LEAVE_OUT_WORDS = {'understand', 'event', 'important', 'know', 'statement', 'true'}
 
         aug_sents_dicts = []
@@ -158,7 +157,7 @@ class ProcessOutputUtil:
             if word.lower() in LEAVE_OUT_WORDS:
                 continue
             tmp_result = [list(ele) for ele in result]
-            if (tag in NOUN_CODES) or (tag in ADJECTIVE_CODES):
+            if ProcessOutputUtil.valid_pos_tag(tag):
                 new_aug_dict = {
                     'original_sentence': ' '.join(word[0] for word in tmp_result),
                     'masked_word': tmp_result[idx][0],
@@ -174,11 +173,19 @@ class ProcessOutputUtil:
         aug_sents_dicts = ProcessOutputUtil.aug_selection_strategy(aug_sents_dicts, 15)
         return aug_sents_dicts
 
+    #Selection strategy for selecting the augmented sentences. Current strategy is selecting a max of 15 sentences at random.
     @staticmethod
     def aug_selection_strategy(aug_sents_dicts, n_samples):
         return random.sample(aug_sents_dicts, min(n_samples, len(aug_sents_dicts)))
 
-
+    #Return true if the pos tag is either a Noun or an Adjective.
+    @staticmethod
+    def valid_pos_tag(tag):
+        NOUN_CODES = {'NN', 'NNS', 'NNPS', 'NNP'}
+        ADJECTIVE_CODES = {"JJ", "JJR", "JJS"}
+        if (tag in NOUN_CODES) or (tag in ADJECTIVE_CODES):
+            return True
+        return False
 
 
 
