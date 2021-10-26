@@ -46,12 +46,12 @@ class SnorkelUtil:
         "to understand event": .87,
         "unless": 1.0,
         # Not in the labeled data
-        # "with the proviso": 0.0,
-        # "on these terms": 0.0,
-        # "only if": 0.0,
-        # "make possible": 0.0,
-        # "without": 0.0,
-        # "excepting that": 0.0,
+        "with the proviso": 0.0,
+        "on these terms": 0.0,
+        "only if": 0.0,
+        "make possible": 0.0,
+        "without": 0.0,
+        "excepting that": 0.0,
     }
 
     def __init__(self, config: omegaconf.dictconfig.DictConfig):
@@ -99,6 +99,7 @@ class SnorkelUtil:
     def add_action_precondition(self, df: pd.DataFrame):
         actions = []
         preconditions = []
+        recalls = []
         lfs_names = list(self.LFA_df.index)
 
         pattern_lookup = {
@@ -107,7 +108,7 @@ class SnorkelUtil:
         }
 
         INVALID = np.nan
-        invalid_count=0
+        invalid_count = 0
 
         for index, row in tqdm.tqdm(df.iterrows(), desc='Extracting Action/Precondition'):
 
@@ -115,6 +116,7 @@ class SnorkelUtil:
             if label == self.ABSTAIN or (not np.any(self.L[index, :] == label)):
                 actions.append(INVALID)
                 preconditions.append(INVALID)
+                recalls.append(INVALID)
                 continue
 
             try:
@@ -127,11 +129,17 @@ class SnorkelUtil:
 
                 conj = lfs_names[position].replace("_", " ")
                 pat = pattern_lookup[label][conj]
+                recl = self.LF_RECALS[conj]
             except KeyError as e:
+                if conj not in self.LF_RECALS:
+                    IPython.embed()
+                    exit()
                 logger.error(f'key error: {e}')
+
                 actions.append(INVALID)
                 preconditions.append(INVALID)
-                invalid_count+=1
+                recalls.append(INVALID)
+                invalid_count += 1
                 continue
             except Exception as e:
                 logger.error(f'Some exception in extracting precondition: {e}')
@@ -140,15 +148,19 @@ class SnorkelUtil:
 
             try:
                 precondition, action = self.get_precondition_action(pat, row['text'])
+
                 actions.append(action)
                 preconditions.append(precondition)
+                recalls.append(recl)
             except Exception as e:
                 IPython.embed()
                 exit()
                 text = row['text']
                 logger.error(f"pattern={pat}, text={text}, e={e}")
+
                 actions.append(INVALID)
                 preconditions.append(INVALID)
+                recalls.append(INVALID)
                 continue
 
         logger.info("DF len=" + str(len(df)))
@@ -156,6 +168,8 @@ class SnorkelUtil:
         logger.info("Invalid Count="+str(invalid_count))
         df['action'] = actions
         df['precondition'] = preconditions
+        df['recall'] = recalls
+
 
     def populate_labeling_functions_list(self) -> NoReturn:
         pos_conj = {'only if', 'contingent upon',  "in case", "in the case that", "in the event",

@@ -15,19 +15,15 @@ from typing import List
 import IPython
 import hydra
 import nltk
-nltk.download('punkt')
 import numpy as np
 import omegaconf
 import pandas as pd
 from tqdm import tqdm
 
-
-
-
 from SnorkelUtil import SnorkelUtil
-
 from SnorkelOutputUtil import ProcessOutputUtil
 
+nltk.download('punkt')
 nltk.download("wordnet")
 
 logger = logging.getLogger(__name__)
@@ -57,8 +53,7 @@ def ascent_extract_all_sentences_df(config: omegaconf.dictconfig.DictConfig):
 def main(config: omegaconf.dictconfig.DictConfig):
     """With SnorkelUtil"""
 
-
-    
+    # df = _prepare_corpora(config).iloc[:500000]
     df = _prepare_corpora(config)
 
     snorkel_util = SnorkelUtil(config)
@@ -78,16 +73,12 @@ def main(config: omegaconf.dictconfig.DictConfig):
 
     # Filtering
     ProcessOutputUtil.filter_dataset(config, df)
-    
 
-    #Data Augmentation
+    IPython.embed()
+    exit()
+    # Data Augmentation
     logger.info('Augmenting data using BERT mask-filling.')
     ProcessOutputUtil.data_augmentation(config)
-
-
-
-    # IPython.embed()
-    # exit()
 
     # Extract Examples
     # logger.info("Saving Examples....")
@@ -128,8 +119,8 @@ def _prepare_corpora(config) -> pd.DataFrame:
         text_rows.extend(_prepare_ascent(config))
 
     # df = pd.concat(df_list)
-    logger.info("text_rows len="+str(len(text_rows)))
-    df = pd.DataFrame(text_rows, columns =['text'], dtype=str)
+    logger.info("text_rows len=" + str(len(text_rows)))
+    df = pd.DataFrame(text_rows, columns=['text'], dtype=str)
 
     df['text'] = df['text'].astype(str)
 

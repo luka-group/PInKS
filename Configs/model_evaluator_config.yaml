@@ -52,6 +52,9 @@ data_module:
 
   train_composition: ['weakcq', 'dnli', 'mnli', 'cq', 'atomic']
   test_composition: ['cq']
+
+  train_strategy: "continual" # "multitask"
+
   use_class_weights: false
 
 hydra:

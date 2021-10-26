@@ -25,10 +25,10 @@ data_module:
   pad_to_max_length: false
   preprocessing_num_workers: 4
   overwrite_cache: false
-  max_seq_length: 256
+  max_seq_length: 384
   mlm_probability: 0.15 # It is not important
 
-  dataloader_num_workers: 1 #4
+  dataloader_num_workers: 4 #4
 
   datasetloader_kwargs:
       skiprows: 0

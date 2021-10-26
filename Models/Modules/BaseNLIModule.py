@@ -4,6 +4,7 @@ import pathlib
 from typing import Dict, List, Any
 
 import IPython
+import numpy as np
 import pandas as pd
 
 import pytorch_lightning as pl
@@ -12,7 +13,7 @@ import torch
 import wandb
 
 from sklearn.metrics import f1_score, accuracy_score, confusion_matrix
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, AdamW
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, AdamW, get_linear_schedule_with_warmup
 
 from Models import Utils
 
@@ -84,14 +85,41 @@ class NLIModule(pl.LightningModule):
             'labels': batch['labels'],
         })
         loss = self._compute_loss(batch, results)
-
+        _logits = results.logits
         if self.logger is not None:
             self.logger.log_metrics({'train_loss': loss})
 
         return {
             "loss": loss,
             # "text": batch['unmasked_text'],
+            "predicted_label": torch.argmax(_logits, dim=1).detach().cpu().numpy(),
+            'true_label': batch["labels"].detach().cpu().numpy(),
         }
+
+    def training_epoch_end(self, outputs: List[Any]) -> None:
+        true_label = np.concatenate([o[f"true_label"] for o in outputs], axis=0)
+        predicted_label = np.concatenate([o[f"predicted_label"] for o in outputs], axis=0)
+
+        _acc = accuracy_score(y_true=true_label, y_pred=predicted_label)
+        _f1 = f1_score(y_true=true_label, y_pred=predicted_label, average='micro')
+
+        self.log(f'train_acc', _acc)
+        self.log(f'train_f1', _f1)
+
+        logger.info(f'train_acc = {_acc}')
+        logger.info(f'train_f1 = {_f1}')
+
+        self.logger.log_metrics({
+            'train_acc': _acc,
+            'train_f1': _f1,
+            'train_conf_matrix': wandb.plot.confusion_matrix(
+                probs=None,
+                y_true=true_label,
+                preds=predicted_label,
+                class_names=['C', 'N', 'E'],
+                title=f'train_conf_mat',
+            ),
+        })
 
     def _compute_loss(self, batch, results):
         if self.hparams['data_module.use_class_weights']:
@@ -333,11 +361,15 @@ class NLIModule(pl.LightningModule):
         optimizer = AdamW(
             model.parameters(),
             lr=float(self.hparams['train_setup.learning_rate']),
-            # eps=float(self.hparams['train_setup.adam_epsilon']),
-            # betas=(
-            #     self.hparams['train_setup.beta1'],
-            #     self.hparams['train_setup.beta2']
-            # ),
+            eps=float(self.hparams['train_setup.adam_epsilon']),
+            betas=(
+                self.hparams['train_setup.beta1'],
+                self.hparams['train_setup.beta2']
+            ),
         )
+
+        # scheduler = get_linear_schedule_with_warmup(
+        #     optimizer, num_warmup_steps=args.warmup_steps, num_training_steps=t_total
+        # )
 
         return optimizer

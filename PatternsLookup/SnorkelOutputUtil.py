@@ -15,6 +15,7 @@ import logging
 
 from transformers import pipeline
 import random
+tqdm.pandas()
 
 nltk.download('punkt')
 nltk.download('averaged_perceptron_tagger')
@@ -29,29 +30,21 @@ class ProcessOutputUtil:
     @staticmethod
     def filter_dataset(config: omegaconf.dictconfig.DictConfig, df: pd.DataFrame):
         df_valid = df.dropna(axis=0)
-        # df = pd.read_csv(config.merged_dataset)
 
-        question_start_words = ["who", "what", "when", "where", "why", "how", "is", "can", "does", "do"]
-        VERB_CODES = {
-            'VB',  # Verb, base form
-            'VBD',  # Verb, past tense
-            'VBG',  # Verb, gerund or present participle
-            'VBN',  # Verb, past participle
-            'VBP',  # Verb, non-3rd person singular present
-            'VBZ',  # Verb, 3rd person singular present
-        }
-
-        column_names = ["text", "action", "precondition", "label"]
-        filtered_dataset = pd.DataFrame(columns=column_names)
-
-        count = 0
-        for index, row in tqdm(df_valid.iterrows(), desc='Filter Dataset'):
-            if not (ProcessOutputUtil.isQuestion(row['text'])) and ProcessOutputUtil.hasVerb(
-                    row['precondition']) and ProcessOutputUtil.isEnglish(row['text']):
-                new_row = {"text": row['text'], "action": row['action'], "precondition": row['precondition'],
-                           "label": row['label']}
-                filtered_dataset = filtered_dataset.append(new_row, ignore_index=True)
-                count += 1
+        filtered_dataset = df_valid[df_valid.progress_apply(
+            axis=1,
+            func=ProcessOutputUtil._is_valid_weakcq
+        )]
+        # for index, row in tqdm(df_valid.iterrows(), desc='Filter Dataset'):
+        #     if ProcessOutputUtil._is_valid_weakcq(row):
+        #         new_row = {
+        #             "text": row['text'],
+        #             "action": row['action'],
+        #             "precondition": row['precondition'],
+        #             "label": row['label']
+        #         }
+        #         filtered_dataset = filtered_dataset.append(new_row, ignore_index=True)
+        #         count += 1
         # print("Filtered True count="+str(count))
         logger.info("Filtered len=" + str(len(filtered_dataset)))
 
@@ -63,6 +56,20 @@ class ProcessOutputUtil:
 
         filtered_dataset.to_csv(config.output_names.filtered_output_path, index=False)
 
+
+    @staticmethod
+    def _is_valid_weakcq(row):
+        question_start_words = ["who", "what", "when", "where", "why", "how", "is", "can", "does", "do"]
+        VERB_CODES = {
+            'VB',  # Verb, base form
+            'VBD',  # Verb, past tense
+            'VBG',  # Verb, gerund or present participle
+            'VBN',  # Verb, past participle
+            'VBP',  # Verb, non-3rd person singular present
+            'VBZ',  # Verb, 3rd person singular present
+        }
+        return not (ProcessOutputUtil.isQuestion(row['text'])) and ProcessOutputUtil.hasVerb(
+            row['precondition']) and ProcessOutputUtil.isEnglish(row['text'])
 
     @staticmethod
     def isQuestion(text):

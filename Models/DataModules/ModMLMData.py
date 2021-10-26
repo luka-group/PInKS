@@ -2,8 +2,6 @@ import functools
 import os
 import random
 
-
-
 import IPython
 import hydra
 from typing import *
@@ -34,6 +32,7 @@ class ModMLMDataModule(pl.LightningDataModule):
 
     def setup(self, stage: Optional[str] = None):
         HOME_DIR = os.path.expanduser('~')
+        logger.warning(f'Finding home {HOME_DIR}')
         # logger.info("cache_dir="+f"/nas/home/{HOME_DIR}/model_cache")
 
         tokenizer = AutoTokenizer.from_pretrained(

@@ -1,7 +1,0 @@
-corpus_path: /nas/home/pkhanna/CQplus/Outputs/merge_matches/final_merged.csv
-output_name: possible_replacements.json
-
-
-hydra:
-  run:
-    dir: ../Outputs/${hydra.job.name}

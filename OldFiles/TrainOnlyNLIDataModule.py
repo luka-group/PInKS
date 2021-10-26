@@ -1,32 +1,16 @@
-import functools
-import pathlib
-from typing import Callable, Dict, Any, Optional
-
-import IPython
 import datasets
-import omegaconf
-import pandas as pd
-import pytorch_lightning as pl
-from torch.utils.data import DataLoader
-from transformers import AutoTokenizer
 
-from Models.DataModules.BaseNLIDataModule import BaseNLIDataModule
+from OldFiles.BaseNLIDataModule import BaseNLIDataModule
 
 
-class CQOnlyNLIDataModule(BaseNLIDataModule):
+class DNLIDataModule(BaseNLIDataModule):
+
     def _load_all_datasets(self):
-        test_path = pathlib.Path(self.config.cq_path)
         train_path = test_path.parent / test_path.name.replace('test', 'train')
         all_datasets = datasets.DatasetDict({
             'train': datasets.load_dataset(
                 'csv', data_files=str(train_path)
             )['train'].shuffle().select([i for i in range(250)]).rename_columns({
-                'question': 'action',
-                'context': 'precondition',
-            }),
-            'test': datasets.load_dataset(
-                'csv', data_files=str(test_path)
-            )['train'].rename_columns({
                 'question': 'action',
                 'context': 'precondition',
             }),

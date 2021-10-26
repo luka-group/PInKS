@@ -1,7 +1,0 @@
-corpus_path: /nas/home/pkhanna/omcs/
-output_name: matches.json
-
-
-hydra:
-  run:
-    dir: /nas/home/pkhanna/CQplus/Outputs/omcs_regex_${hydra.job.name}

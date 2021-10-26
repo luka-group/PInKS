@@ -6,9 +6,8 @@ import omegaconf
 import pytorch_lightning as pl
 
 from DataModules.BaseNLIDataModule import MnliTuneCqTestDataModule
-from Models.DataModules.CQOnlyNLIDataModule import CQOnlyNLIDataModule
+from OldFiles.CQOnlyNLIDataModule import CQOnlyNLIDataModule
 from Modules.NLIModuleWithTunedLM import NLIModuleWithTunedLM
-import Utils
 
 logger = logging.getLogger(__name__)
 
