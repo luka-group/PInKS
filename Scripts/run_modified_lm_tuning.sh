@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
+cd ../Models
 
-cd ..
-export PYTHONPATH="$(pwd)"
+# cd ..
+# export PYTHONPATH="$(pwd)"
 
 
 python Models/ModifiedLangModeling.py \
