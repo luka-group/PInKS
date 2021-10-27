@@ -152,13 +152,6 @@ class NLIDataModule(pl.LightningDataModule):
             set(self.config.data_module.test_composition)
         )}
 
-        train = datasets.concatenate_datasets(
-                [all_loaded[name]['train'] for name in self.config.data_module.train_composition]
-            )
-        test = datasets.concatenate_datasets(
-                [all_loaded[name]['test'] for name in self.config.data_module.test_composition]
-            )
-        IPython.embed()
         all_datasets = datasets.DatasetDict({
             'train': datasets.concatenate_datasets(
                 [all_loaded[name]['train'] for name in self.config.data_module.train_composition]
@@ -172,49 +165,7 @@ class NLIDataModule(pl.LightningDataModule):
             ),
         })
 
-        IPython.embed()
-        exit()
-
         return all_datasets
-
-    # def _load_all_datasets(self):
-    #     func_lut = {
-    #         'mnli': self._load_mnli,
-    #         'dnli': self._load_dnli,
-    #         'weakcq': self._load_weakcq,
-    #         'atomic': self._load_atomic,
-    #     }
-    #
-    #     # read the cq data for evaluation and testing, also possible to use the train portion
-    #     cq_dataset = self._load_cq()
-    #     extra_train_dataset = []
-    #
-    #     if 'cq' in self.config.data_module.train_composition:
-    #         extra_train_dataset = [cq_dataset['train']]
-    #
-    #     assert set(self.config.data_module.train_composition).intersection(
-    #         set(self.config.data_module.test_composition)).difference(
-    #         {'cq', 'dnli'}) == set(), f'INVALID train/test composition'
-    #
-    #     extra_test_dataset = []
-    #     if 'cq' in self.config.data_module.test_composition:
-    #         extra_test_dataset = [self._fix_dataset_bug(cq_dataset['test'])]
-    #
-    #
-    #
-    #     all_datasets = datasets.DatasetDict({
-    #         'train': datasets.concatenate_datasets(
-    #             [func_lut[name]() for name in self.config.data_module.train_composition if name != 'cq'] +
-    #             extra_train_dataset
-    #         ),
-    #         'test': datasets.concatenate_datasets(
-    #             [func_lut[name]() for name in self.config.data_module.test_composition if name != 'cq'] +
-    #             extra_test_dataset
-    #         ),
-    #         'eval': self._fix_dataset_bug(cq_dataset['valid']),
-    #     })
-    #
-    #     return all_datasets
 
     def _load_mnli(self):
         return datasets.DatasetDict({
@@ -245,32 +196,30 @@ class NLIDataModule(pl.LightningDataModule):
         return _dataset.select([i for i in range(int(len(_dataset)))])
 
     def _load_dnli(self):
-        dnli_test_path = pathlib.Path(self.config.cq_path)
-        dnli_eval_path = dnli_test_path.parent / dnli_test_path.name.replace('test', 'eval')
+        dnli_test_path = pathlib.Path(self.config.dnli_path)
+        dnli_eval_path = dnli_test_path.parent / dnli_test_path.name.replace('test', 'dev')
         dnli_train_path = dnli_test_path.parent / dnli_test_path.name.replace('test', 'train')
+
+        column_lut = {
+            'question': 'action',
+            'context': 'precondition',
+            'label': 'label',
+        }
 
         _dataset = datasets.DatasetDict({
             'train': self._trim_size_if_applicable(
                 datasets.load_dataset('csv', data_files=str(dnli_train_path))['train'].shuffle(),
                 name='dnli'
-            ).rename_columns({
-                'question': 'action',
-                'context': 'precondition',
-                'label': 'label',
-            }),
-            'eval': datasets.load_dataset('csv', data_files=str(dnli_eval_path))['train'].rename_columns({
-                'question': 'action',
-                'context': 'precondition',
-                'label': 'label',
-            }),
-            'test': datasets.load_dataset('csv', data_files=str(dnli_test_path))['train'].rename_columns({
-                'question': 'action',
-                'context': 'precondition',
-                'label': 'label',
-            }),
+            ).rename_columns(column_lut),
+            'eval': self._fix_dataset_bug(
+                datasets.load_dataset('csv', data_files=str(dnli_eval_path))['train'].rename_columns(column_lut)
+            ),
+            'test': self._fix_dataset_bug(
+                datasets.load_dataset('csv', data_files=str(dnli_test_path))['train'].rename_columns(column_lut)
+            ),
         })
 
-        return _dataset
+        return self._filter_extra_columns(_dataset)
 
     def _load_anli(self):
         pass
@@ -287,8 +236,8 @@ class NLIDataModule(pl.LightningDataModule):
         return datasets.DatasetDict({
             'train': self._trim_size_if_applicable(
                 datasets.load_dataset('csv', data_files=self.config.atomic_nli_path)['train']
-                    .shuffle()
-                    .rename_columns({
+                .shuffle()
+                .rename_columns({
                     'question': 'action',
                     'context': 'precondition',
                     'label': 'label',
@@ -302,24 +251,28 @@ class NLIDataModule(pl.LightningDataModule):
         cq_eval_path = cq_test_path.parent / cq_test_path.name.replace('test', 'eval')
         cq_train_path = cq_test_path.parent / cq_test_path.name.replace('test', 'train')
 
+        column_lut = {
+            'question': 'action',
+            'context': 'precondition',
+        }
         _dataset = datasets.DatasetDict({
             'train': self._trim_size_if_applicable(
-                datasets.load_dataset('csv', data_files=str(cq_train_path))['train'].rename_columns({
-                    'question': 'action',
-                    'context': 'precondition',
-                }),
+                datasets.load_dataset('csv', data_files=str(cq_train_path))['train'].rename_columns(column_lut),
                 name='cq'
             ),
-            'eval': datasets.load_dataset('csv', data_files=str(cq_eval_path))['train'].rename_columns({
-                'question': 'action',
-                'context': 'precondition',
-            }),
-            'test': datasets.load_dataset('csv', data_files=str(cq_test_path))['train'].rename_columns({
-                'question': 'action',
-                'context': 'precondition',
-            }),
+            'eval': self._fix_dataset_bug(
+                datasets.load_dataset('csv', data_files=str(cq_eval_path))['train'].rename_columns(column_lut)
+            ),
+            'test': self._fix_dataset_bug(
+                datasets.load_dataset('csv', data_files=str(cq_test_path))['train'].rename_columns(column_lut)
+            ),
         })
-        return _dataset
+        return self._filter_extra_columns(_dataset)
+
+    def _filter_extra_columns(self, _dataset):
+        return _dataset.remove_columns(
+            column_names=set(_dataset['train'].features.keys()).difference({'action', 'precondition', 'label'})
+        )
 
     def _group_data_in_train_test_dev(self, columns_names):
         # eval_dataset = tokenized_datasets["validation"]
