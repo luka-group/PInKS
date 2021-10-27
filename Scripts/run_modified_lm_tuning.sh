@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-cd ../Models
-
-# cd ..
-# export PYTHONPATH="$(pwd)"
 
 
-python ModifiedLangModeling.py \
-    username=$(whoami) \
+cd ..
+export PYTHONPATH="$(pwd)"
+
+
+python Models/ModifiedLangModeling.py \
+    username="pkhanna" \
     lm_module.model_name_or_path="roberta-large" \
-    data_module.train_file="/nas/home/$(whoami)/CQplus/Outputs/process_dataset_using_snorkel/0.7/filtered_dataset.csv"
+    data_module.train_file="/nas/home/pkhanna/CQplus/Outputs/process_dataset_using_snorkel/0.7/filtered_dataset.csv"
