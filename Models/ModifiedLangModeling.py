@@ -68,7 +68,7 @@ def tune_modlm_asha(config: omegaconf.dictconfig.DictConfig):
         tune.with_parameters(
             _run_modlm_train_test
             # prepare_and_feed_config,
-            config=config
+            base_config=config
             ),
         resources_per_trial={
             "cpu": 1,
