@@ -36,6 +36,7 @@ data_module:
 
 
 ray:
+#  num_samples: 10
   num_samples: 10
 #  gpus_per_trial: 1
   sweep_dict:

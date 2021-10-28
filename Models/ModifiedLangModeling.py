@@ -3,18 +3,18 @@ import os, sys
 from typing import List, Union, Dict
 import omegaconf
 import pytorch_lightning as pl
+import ray
 from pytorch_lightning.loggers import WandbLogger
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray import tune
 
-# from loguru import logger
 import Models.Utils as Utils
-from DataModules.ModMLMData import ModMLMDataModule
-from Modules.ModifiedLangModelingModule import ModifiedLMModule
-# from LMBenchmarkEvaluator import BaseEvaluationModule
+from Models.DataModules.ModMLMData import ModMLMDataModule
+from Models.Modules.ModifiedLangModelingModule import ModifiedLMModule
 
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -22,11 +22,7 @@ def prepare_and_feed_config(updates: Dict, base_config: omegaconf.dictconfig.Dic
     config = _get_updated_config(base_config, updates)
     config.pop('ray')
 
-    # logger.warning(f'config:\n{config}\n')
-    # tune.report(loss=0.1, mean_accuracy=0.9, f1=0.2)
-    # IPython.embed()
-    # exit()
-
+    # tune.report(loss=0.1)
     _run_modlm_train_test(config)
 
 
@@ -62,13 +58,13 @@ def tune_modlm_asha(config: omegaconf.dictconfig.DictConfig):
 
     reporter = tune.CLIReporter(
         # parameter_columns=["learning_rate", "train_batch_size", "max_seq_length"],
-        metric_columns=["loss", "mean_accuracy", "f1"])
+        metric_columns=["loss"])
 
     analysis = tune.run(
         tune.with_parameters(
             prepare_and_feed_config,
             base_config=config
-            ),
+        ),
         resources_per_trial={
             "cpu": 1,
             "gpu": 4
@@ -84,12 +80,9 @@ def tune_modlm_asha(config: omegaconf.dictconfig.DictConfig):
     logger.warning("Best hyperparameters found were: ", analysis.best_config)
 
 
-
 def _run_modlm_train_test(config: omegaconf.dictconfig.DictConfig):
-
-
     # print('TUNE_EX\n\n', sys.path, '\n\n')
-
+    logger.warning(f'Running _run_modlm_train_test')
     # ------------
     # data
     # ------------
@@ -103,6 +96,16 @@ def _run_modlm_train_test(config: omegaconf.dictconfig.DictConfig):
     # ------------
     # training
     # ------------
+    callbacks_list = [
+        # pl.callbacks.EarlyStopping(monitor="val_loss", min_delta=1e-4),
+    ]
+    if 'no_hyper_tune' not in config:
+        callbacks_list.append(
+            TuneReportCallback({
+                "loss": "train_loss",
+            }, on="batch_start")
+        )
+
     trainer = pl.Trainer(
         gradient_clip_val=0,
         gpus=config['hardware']['gpus'],
@@ -121,13 +124,10 @@ def _run_modlm_train_test(config: omegaconf.dictconfig.DictConfig):
     trainer.test(lmmodel, datamodule=data_module)
 
 
-
-# @hydra.main(config_path='../Configs/modified_lm_config.yaml')
 @hydra.main(config_path="../Configs", config_name="modified_lm_config")
 def main(config: omegaconf.dictconfig.DictConfig):
     tune_modlm_asha(config)
     # _run_modlm_train_test(config)
-
 
 
 if __name__ == '__main__':

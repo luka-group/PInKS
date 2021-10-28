@@ -3,7 +3,7 @@ import os
 import pytorch_lightning as pl
 from transformers import AutoModelForMaskedLM, AdamW
 
-from Models.Utils import flatten_config
+from Models import Utils
 
 import logging
 logger = logging.getLogger(__name__)
@@ -11,9 +11,12 @@ logger = logging.getLogger(__name__)
 
 class ModifiedLMModule(pl.LightningModule):
     def __init__(self, config):
-        super().__init__()
-        self.save_hyperparameters(flatten_config(config))
-        # self.hparams = flatten_config(config)
+        super(ModifiedLMModule, self).__init__()
+        self.hparams = Utils.flatten_config(config)
+        if self.logger is not None:
+            self.logger.log_hyperparams(self.hparams)
+        self.save_hyperparameters()
+
         logger.info(f'hparams: {self.hparams}')
         # self.save_hyperparameters()
 

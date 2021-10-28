@@ -110,11 +110,6 @@ class NLIDataModule(pl.LightningDataModule):
         self._update_class_weights()
 
         self._group_data_in_train_test_dev(columns_names)
-        # self.data_collator = transformers.DataCollatorWithPadding(
-        #     tokenizer=tokenizer,
-        #     padding='max_length',
-        #     max_length=self.config.model_setup.max_length,
-        # )
 
     def _update_class_weights(self):
         train_labels = self.all_tokenized['train']['nli_label']
@@ -225,12 +220,22 @@ class NLIDataModule(pl.LightningDataModule):
         pass
 
     def _load_weakcq(self):
-        return datasets.DatasetDict({
-            'train': self._trim_size_if_applicable(
-                datasets.load_dataset('csv', data_files=self.config.weak_cq_path)['train'].shuffle(),
-                name='weakcq'
+        _dataset = datasets.load_dataset('csv', data_files=self.config.weak_cq_path)['train'].shuffle()
+        old_len = len(_dataset)
+        if 'weakcq_recal_threshold' in self.config:
+            def check_recal(r, lim):
+                return r['recall'] >= lim
+            _dataset = _dataset.filter(
+                function=functools.partial(check_recal, lim=float(self.config.weakcq_recal_threshold)),
+                num_proc=self.config.data_module.preprocessing_num_workers,
+                load_from_cache_file=not self.config.data_module.overwrite_cache,
             )
-        })
+            logger.info(f'Filter weakCQ on threshold {self.config.weakcq_recal_threshold}, '
+                        f'old_len:{old_len}, new_len:{len(_dataset)}')
+
+        return self._filter_extra_columns(datasets.DatasetDict({
+            'train': self._trim_size_if_applicable(_dataset, name='weakcq')
+        }))
 
     def _load_atomic(self):
         return datasets.DatasetDict({

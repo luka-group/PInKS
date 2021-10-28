@@ -236,8 +236,10 @@ class NLIModule(pl.LightningModule):
         _f1_score = f1_score(y_true=df['true_label'], y_pred=df['predicted_label'], average='micro')
 
         per_predicate_results = self._compute_metrics(df, mytag, 'All')
-        for pred, gdf in df.groupby('predicate'):
-            per_predicate_results.update(self._compute_metrics(gdf, mytag, pred))
+
+        # FIXME skipping predicates for now as we are not using the results
+        # for pred, gdf in df.groupby('predicate'):
+        #     per_predicate_results.update(self._compute_metrics(gdf, mytag, pred))
 
         self.log(f'{mytag}_acc', per_predicate_results[f'{mytag}_All_accuracy'])
         self.log(f'{mytag}_loss', per_predicate_results[f'{mytag}_All_mean_loss'])
@@ -368,8 +370,8 @@ class NLIModule(pl.LightningModule):
             ),
         )
 
-        # scheduler = get_linear_schedule_with_warmup(
-        #     optimizer, num_warmup_steps=args.warmup_steps, num_training_steps=t_total
-        # )
+        scheduler = get_linear_schedule_with_warmup(
+            optimizer, num_warmup_steps=self.hparams['warmup_steps'], num_training_steps=25000
+        )
 
-        return optimizer
+        return {'optimizer': optimizer, 'lr_scheduler': scheduler}
