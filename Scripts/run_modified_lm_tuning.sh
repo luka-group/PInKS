@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+
 cd ..
 export PYTHONPATH="$(pwd)"
 
