@@ -13,8 +13,8 @@ class ModifiedLMModule(pl.LightningModule):
     def __init__(self, config):
         super(ModifiedLMModule, self).__init__()
         print("Pytorch-lightning verion="+str(pl.__version__))
-        
-        if pl.__version__>=1.4:
+
+        if float(pl.__version__)>=1.4:
             self.save_hyperparameters(Utils.flatten_config(config))
         else:
             self.hparams = Utils.flatten_config(config)
