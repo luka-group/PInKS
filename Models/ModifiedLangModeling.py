@@ -126,7 +126,7 @@ def _run_modlm_train_test(config: omegaconf.dictconfig.DictConfig):
 
 @hydra.main(config_path="../Configs", config_name="modified_lm_config")
 def main(config: omegaconf.dictconfig.DictConfig):
-    tune_modlm_asha(config)
+    # tune_modlm_asha(config)
     # _run_modlm_train_test(config)
 
 
