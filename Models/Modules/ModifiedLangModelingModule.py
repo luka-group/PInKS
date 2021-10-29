@@ -2,6 +2,7 @@ import os
 
 import pytorch_lightning as pl
 from transformers import AutoModelForMaskedLM, AdamW
+from packaging import version
 
 from Models import Utils
 
@@ -14,7 +15,7 @@ class ModifiedLMModule(pl.LightningModule):
         super(ModifiedLMModule, self).__init__()
         print("Pytorch-lightning verion="+str(pl.__version__))
 
-        if float(pl.__version__)>=1.4:
+        if version.parse(pl.__version__) >= version.parse("1.4"):
             self.save_hyperparameters(Utils.flatten_config(config))
         else:
             self.hparams = Utils.flatten_config(config)
