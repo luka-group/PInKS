@@ -57,7 +57,7 @@ class NLIDataModule(pl.LightningDataModule):
         df = pd.DataFrame.from_dict(_examples).fillna('')
         sents = df.apply(
             axis=1,
-            func=lambda r: _to_text_func(r['action'], r['precondition'])
+            func=lambda r: _to_text_func(r['hypothesis'], r['premise'])
         ).fillna('').values.tolist()
 
         labels = df['label'].apply({
@@ -73,7 +73,7 @@ class NLIDataModule(pl.LightningDataModule):
                                        **{0: 0, 1: 2, 2: 2}
                                    }.get)
 
-        return {**_tokenizer(sents, ), "unmasked_text": sents, "nli_label": labels.values.tolist()}
+        return {**_tokenizer(sents, ), "unmasked_text": sents, "integer_label": labels.values.tolist()}
 
     def setup(self, stage: Optional[str] = None):
         tokenizer = AutoTokenizer.from_pretrained(
@@ -103,7 +103,7 @@ class NLIDataModule(pl.LightningDataModule):
             ),
             batched=True,
             num_proc=self.config.data_module.preprocessing_num_workers,
-            remove_columns=['label', 'action', 'precondition'],
+            remove_columns=['label', 'hypothesis', 'premise'],
             load_from_cache_file=not self.config.data_module.overwrite_cache,
         )
 
@@ -136,6 +136,7 @@ class NLIDataModule(pl.LightningDataModule):
             'weakcq': self._load_weakcq,
             'atomic': self._load_atomic,
             'cq': self._load_cq,
+            'winoventi': self._load_winoventi,
         }
 
         assert set(self.config.data_module.train_composition).intersection(
@@ -169,8 +170,10 @@ class NLIDataModule(pl.LightningDataModule):
                 name='mnli'
             )
             .rename_columns({
-                'sentence1': 'action',
-                'sentence2': 'precondition',
+                # 'sentence1': 'action',
+                'sentence1': 'hypothesis',
+                # 'sentence2': 'precondition',
+                'sentence2': 'premise',
                 'gold_label': 'label',
             })
         })
@@ -196,8 +199,8 @@ class NLIDataModule(pl.LightningDataModule):
         dnli_train_path = dnli_test_path.parent / dnli_test_path.name.replace('test', 'train')
 
         column_lut = {
-            'question': 'action',
-            'context': 'precondition',
+            'question': 'hypothesis',
+            'context': 'premise',
             'label': 'label',
         }
 
@@ -216,8 +219,14 @@ class NLIDataModule(pl.LightningDataModule):
 
         return self._filter_extra_columns(_dataset)
 
-    def _load_anli(self):
-        pass
+    def _load_winoventi(self):
+        return datasets.DatasetDict({
+            'train': self._trim_size_if_applicable(
+                datasets.load_dataset('csv', data_files=self.config.winoventi_nli_path)['train']
+                .shuffle(),
+                name='winoventi'
+            )
+        })
 
     def _load_weakcq(self):
         _dataset = datasets.load_dataset('csv', data_files=self.config.weak_cq_path)['train'].shuffle()
@@ -243,8 +252,8 @@ class NLIDataModule(pl.LightningDataModule):
                 datasets.load_dataset('csv', data_files=self.config.atomic_nli_path)['train']
                 .shuffle()
                 .rename_columns({
-                    'question': 'action',
-                    'context': 'precondition',
+                    'question': 'hypothesis',
+                    'context': 'premise',
                     'label': 'label',
                 }),
                 name='atomic'
@@ -257,8 +266,9 @@ class NLIDataModule(pl.LightningDataModule):
         cq_train_path = cq_test_path.parent / cq_test_path.name.replace('test', 'train')
 
         column_lut = {
-            'question': 'action',
-            'context': 'precondition',
+            'question': 'hypothesis',
+            'context': 'premise',
+            'label': 'label'
         }
         _dataset = datasets.DatasetDict({
             'train': self._trim_size_if_applicable(
@@ -281,15 +291,17 @@ class NLIDataModule(pl.LightningDataModule):
 
     def _group_data_in_train_test_dev(self, columns_names):
         # eval_dataset = tokenized_datasets["validation"]
+        IPython.embed()
+        exit()
         self.train_dataset = self.all_tokenized['train'].rename_columns({
-            'nli_label': 'labels'
+            'integer_label': 'labels'
         })
         self.test_dataset = self.all_tokenized['test'].rename_columns({
-            'nli_label': 'labels'
+            'integer_label': 'labels'
         })
 
         self.eval_dataset = self.all_tokenized['eval'].rename_columns({
-            'nli_label': 'labels'
+            'integer_label': 'labels'
         })
 
         # Not sure if it is userfull
