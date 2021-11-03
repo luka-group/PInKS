@@ -7,6 +7,7 @@ mnli_path: "/nas/home/qasemi/CQplus/Outputs/Corpora/MNLI/multinli_1.0/multinli_1
 
 dnli_path: "/nas/home/qasemi/CQplus/Outputs/Other_NLI/dnli_nli_test.csv"
 atomic_nli_path: "/nas/home/qasemi/CQplus/Outputs/Other_NLI/atomic_nli.csv"
+winoventi_nli_path: "/nas/home/qasemi/CQplus/Outputs/Other_NLI/winoventi_nli.csv"
 
 model_setup:
   model_name: ""

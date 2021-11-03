@@ -8,7 +8,7 @@ python Models/Tune_Eval_NLI.py \
     model_setup.model_name="roberta-large-mnli" \
     model_setup.tuned_model_path="/nas/home/qasemi/CQplus/Outputs/ModifiedLangModeling/Checkpoint/ModifiedLMModule.ckpt" \
     +nli_module_class='NLIModule' \
-    data_module.train_composition=[weakcq] \
+    data_module.train_composition=[winoventi] \
     data_module.test_composition=[dnli] \
     +weakcq_recal_threshold=0.90 \
     +n_weakcq_samples=50000 \
@@ -18,7 +18,7 @@ python Models/Tune_Eval_NLI.py \
     +n_cq_samples=500 \
     data_module.use_class_weights=true \
     train_setup.do_train=true \
-    hardware.gpus="2" \
+    hardware.gpus="3" \
     train_setup.max_epochs=5 \
     train_setup.batch_size=8 \
     +no_hyper_tune=true \
