@@ -12,7 +12,7 @@ trainer_args:
 
 
 hardware:
-  gpus: "2,3"
+  gpus: "3"
 
 data_module:
   train_file: 
