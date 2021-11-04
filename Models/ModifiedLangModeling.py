@@ -116,7 +116,7 @@ def _run_modlm_train_test(config: omegaconf.dictconfig.DictConfig):
         distributed_backend=None,
         accumulate_grad_batches=config['trainer_args']['accumulate_grad_batches'],
         limit_train_batches=config['trainer_args']['limit_train_batches'],
-        logger=pl.loggers.WandbLogger(name=f"Mod-MLM", project="CQ++"),
+        logger=pl.loggers.WandbLogger(name=f"Mod-MLM-Trial3", project="CQ++"),
     )
 
     trainer.fit(lmmodel, datamodule=data_module)
