@@ -137,6 +137,7 @@ class NLIDataModule(pl.LightningDataModule):
             'atomic': self._load_atomic,
             'cq': self._load_cq,
             'winoventi': self._load_winoventi,
+            'anion': self._load_anion,
         }
 
         assert set(self.config.data_module.train_composition).intersection(
@@ -226,6 +227,21 @@ class NLIDataModule(pl.LightningDataModule):
                 .shuffle(),
                 name='winoventi'
             )
+        })
+
+    def _load_anion(self):
+        anion_test = str(pathlib.Path(self.config.anion_nli_path))
+        anion_train = str(pathlib.Path(self.config.anion_nli_path)).replace('test', 'train')
+        anion_eval = str(pathlib.Path(self.config.anion_nli_path)).replace('test', 'dev')
+
+        return datasets.DatasetDict({
+            'train': self._trim_size_if_applicable(
+                datasets.load_dataset('csv', data_files=anion_train)['train']
+                .shuffle(),
+                name='anion'
+            ),
+            'eval': datasets.load_dataset('csv', data_files=anion_eval)['train'],
+            'test': datasets.load_dataset('csv', data_files=anion_test)['train'],
         })
 
     def _load_weakcq(self):
