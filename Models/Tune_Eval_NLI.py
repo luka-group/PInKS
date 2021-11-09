@@ -133,7 +133,8 @@ def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
     trainer.test(_module, datamodule=_data)
 
 
-@hydra.main(config_path='../Configs/model_evaluator_config.yaml')
+
+@hydra.main(config_path="../Configs", config_name="model_evaluator_config")
 def main(config: omegaconf.dictconfig.DictConfig):
     # _run_train_test(config)
     if 'ray' in config and 'no_hyper_tune' not in config:
