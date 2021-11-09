@@ -12,7 +12,7 @@ python Models/Tune_Eval_NLI.py \
     train_setup.do_train=true \
     hardware.gpus='2' \
     train_setup.batch_size=8 \
-    hydra.run.dir="/nas/home/qasemi/CQplus/Outputs/Tune_Eval_NLI/\${nli_module_class}/BaseNLIDataModule_CQOnlyNLIDataModule"
+    hydra.run.dir="/nas/home/$(username)/CQplus/Outputs/Tune_Eval_NLI/\${nli_module_class}/BaseNLIDataModule_CQOnlyNLIDataModule"
 
 
 #+data_class=["WeakTuneCqTestDataModule","CQOnlyNLIDataModule"] \
