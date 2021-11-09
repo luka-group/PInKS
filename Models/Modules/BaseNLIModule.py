@@ -14,6 +14,7 @@ import wandb
 
 from sklearn.metrics import f1_score, accuracy_score, confusion_matrix
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, AdamW, get_linear_schedule_with_warmup
+from packaging import version
 
 from Models import Utils
 
@@ -24,7 +25,13 @@ logger = logging.getLogger(__name__)
 class NLIModule(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
-        self.hparams = Utils.flatten_config(config)
+
+        if version.parse(pl.__version__) >= version.parse("1.4"):
+            self.save_hyperparameters(Utils.flatten_config(config))
+        else:
+            self.hparams = Utils.flatten_config(config)
+
+
         if self.logger is not None:
             self.logger.log_hyperparams(self.hparams)
         self.save_hyperparameters()
