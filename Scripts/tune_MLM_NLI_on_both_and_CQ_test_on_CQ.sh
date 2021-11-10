@@ -6,9 +6,8 @@ export PYTHONPATH="$(pwd)"
 python Models/Tune_Eval_NLI.py \
     model_setup.model_name="roberta-large-mnli" \
     model_setup.tuned_model_path="/nas/home/pkhanna/CQplus/Outputs/ModifiedLangModeling/Checkpoint/ModifiedLMModule.ckpt" \
-    +n_MNLI_samples='40000'\
     +nli_module_class='NLIModuleWithTunedLM' \
-    data_module.train_composition=[weakcq,cq] \
+    data_module.train_composition=[mnli,weakcq] \
     data_module.test_composition=[cq] \
     +weakcq_recal_threshold=0.90 \
     +n_weakcq_samples=100000 \
