@@ -50,10 +50,10 @@ data_module:
 
   max_seq_length: 400
 
-  train_composition: ['weakcq', 'dnli', 'mnli', 'cq', 'atomic']
+  train_composition: ['weakcq', 'dnli', 'mnli', 'cq', 'atomic', 'anion', 'winoventi']
   test_composition: ['cq']
 
-  train_strategy: "continual" # "multitask"
+  train_strategy: "multitask" # "multitask" "curriculum"
 
   use_class_weights: false
 

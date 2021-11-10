@@ -88,13 +88,11 @@ def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
         "NLIModule": NLIModule,
     }[config.nli_module_class](config)
 
-    # _module = _model_class(config)
-
     assert 'train_composition' in config.data_module, f'Invalid: {config.data_module}'
-    _data = NLIDataModule(config=config)
+    assert config.data_module.train_strategy in ['curriculum', 'multitask']
 
     callbacks_list = [
-        pl.callbacks.EarlyStopping(monitor="val_loss", min_delta=1e-4),
+        pl.callbacks.EarlyStopping(monitor="val_loss", min_delta=1e-4, patience=5),
 
     ]
 
@@ -123,14 +121,24 @@ def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
         callbacks=callbacks_list,
     )
 
-    logger.info(f'Tuning on {config.data_module.train_composition}')
-    _module.extra_tag = 'fit'
-    trainer.fit(_module, datamodule=_data)
+    full_data = NLIDataModule(config=config)
+    logger.warning(f"Start {config.data_module.train_strategy} learning.")
+    if config.data_module.train_strategy == 'multitask':
+        logger.info(f'Tuning on {config.data_module.train_composition}')
+        _module.extra_tag = 'fit'
+        trainer.fit(_module, datamodule=full_data)
+    elif config.data_module.train_strategy == 'curriculum':
+        for curic_name in config.data_module.train_composition:
+            curic_config = _get_updated_config(config, {'data_module.train_composition': [curic_name]})
+            _data = NLIDataModule(config=curic_config)
+            logger.info(f'Tuning on {curic_name}')
+            _module.extra_tag = f'fit_{curic_name}'
+            trainer.fit(_module, datamodule=_data)
 
     logger.info('Tuned Results')
     _module.extra_tag = 'tuned'
     logger.info(f'Testing on {config.data_module.test_composition}')
-    trainer.test(_module, datamodule=_data)
+    trainer.test(_module, datamodule=full_data)
 
 
 @hydra.main(config_path='../Configs/model_evaluator_config.yaml')

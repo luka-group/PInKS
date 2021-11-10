@@ -35,6 +35,8 @@ class NLIDataModule(pl.LightningDataModule):
         self.data_collator: Optional[transformers.DataCollator] = None
         self.class_weight: Optional[Dict[int, float]] = None
 
+        self.all_tokenized: Optional[datasets.Dataset] = None
+
         logger.warning(f'Remove old class_weights.csv')
         if pathlib.Path('class_weights.csv').exists():
             pathlib.Path('class_weights.csv').unlink()
@@ -42,13 +44,13 @@ class NLIDataModule(pl.LightningDataModule):
     def _get_preprocess_func_4_model(self) -> Callable[[str, str], str]:
         model_name = self.config.model_setup.model_name
         template = {
-            'roberta': '{action} </s></s> {precondition}',
-            'bart': '{action} </s></s> {precondition}',
-            'deberta': '[CLS] {action} [SEP] {precondition} [SEP]'
+            'roberta': '{hypothesis} </s></s> {premise}',
+            'bart': '{hypothesis} </s></s> {premise}',
+            'deberta': '[CLS] {hypothesis} [SEP] {premise} [SEP]'
         }
         for k, temp in template.items():
             if k in model_name:
-                return functools.partial(lambda t, q, c: t.format(action=q, precondition=c), temp)
+                return functools.partial(lambda t, q, c: t.format(hypothesis=q, premise=c), temp)
         raise ValueError(f'Invalid model name: {model_name}')
 
     @staticmethod
@@ -61,17 +63,17 @@ class NLIDataModule(pl.LightningDataModule):
         ).fillna('').values.tolist()
 
         labels = df['label'].apply({
-                                       # Weak CQ data
-                                       **{'CONTRADICT': 0, 'ENTAILMENT': 2},
-                                       # MNLI data
-                                       **{
-                                           'entailment': 2,
-                                           'neutral': 1,
-                                           'contradiction': 0,
-                                       },
-                                       # CQ data
-                                       **{0: 0, 1: 2, 2: 2}
-                                   }.get)
+           # Weak CQ data
+           **{'CONTRADICT': 0, 'ENTAILMENT': 2},
+           # MNLI data
+           **{
+               'entailment': 2,
+               'neutral': 1,
+               'contradiction': 0,
+           },
+           # CQ data
+           **{0: 0, 1: 2, 2: 2}
+       }.get)
 
         return {**_tokenizer(sents, ), "unmasked_text": sents, "integer_label": labels.values.tolist()}
 
@@ -86,6 +88,8 @@ class NLIDataModule(pl.LightningDataModule):
         columns_names = all_datasets.column_names
 
         _prep_func = self._get_preprocess_func_4_model()
+
+        logger.info(f'Tokenizing dataset')
         self.all_tokenized = all_datasets.map(
             functools.partial(
                 self.tokenize_function,
@@ -107,12 +111,13 @@ class NLIDataModule(pl.LightningDataModule):
             load_from_cache_file=not self.config.data_module.overwrite_cache,
         )
 
+        logger.info(f'Grouping dataset')
         self._update_class_weights()
 
         self._group_data_in_train_test_dev(columns_names)
 
     def _update_class_weights(self):
-        train_labels = self.all_tokenized['train']['nli_label']
+        train_labels = self.all_tokenized['train']['integer_label']
         self.class_weight = dict(zip(
             np.unique(train_labels),
             class_weight.compute_class_weight(
@@ -149,6 +154,7 @@ class NLIDataModule(pl.LightningDataModule):
             set(self.config.data_module.test_composition)
         )}
 
+        logger.info(f'Loading all the datasets')
         all_datasets = datasets.DatasetDict({
             'train': datasets.concatenate_datasets(
                 [all_loaded[name]['train'] for name in self.config.data_module.train_composition]
@@ -221,6 +227,7 @@ class NLIDataModule(pl.LightningDataModule):
         return self._filter_extra_columns(_dataset)
 
     def _load_winoventi(self):
+        logger.info(f'Loading Winoventi')
         return datasets.DatasetDict({
             'train': self._trim_size_if_applicable(
                 datasets.load_dataset('csv', data_files=self.config.winoventi_nli_path)['train']
@@ -230,6 +237,7 @@ class NLIDataModule(pl.LightningDataModule):
         })
 
     def _load_anion(self):
+        logger.info(f'Loading ANION')
         anion_test = str(pathlib.Path(self.config.anion_nli_path))
         anion_train = str(pathlib.Path(self.config.anion_nli_path)).replace('test', 'train')
         anion_eval = str(pathlib.Path(self.config.anion_nli_path)).replace('test', 'dev')
@@ -245,7 +253,16 @@ class NLIDataModule(pl.LightningDataModule):
         })
 
     def _load_weakcq(self):
-        _dataset = datasets.load_dataset('csv', data_files=self.config.weak_cq_path)['train'].shuffle()
+        _dataset = (
+            datasets.load_dataset('csv', data_files=self.config.weak_cq_path)['train']
+            .shuffle()
+            .rename_columns({
+                'action': 'hypothesis',
+                'precondition': 'premise',
+                'label': 'label',
+            })
+        )
+
         old_len = len(_dataset)
         if 'weakcq_recal_threshold' in self.config:
             def check_recal(r, lim):
@@ -302,13 +319,11 @@ class NLIDataModule(pl.LightningDataModule):
 
     def _filter_extra_columns(self, _dataset):
         return _dataset.remove_columns(
-            column_names=set(_dataset['train'].features.keys()).difference({'action', 'precondition', 'label'})
+            column_names=set(_dataset['train'].features.keys()).difference({'premise', 'hypothesis', 'label'})
         )
 
     def _group_data_in_train_test_dev(self, columns_names):
         # eval_dataset = tokenized_datasets["validation"]
-        IPython.embed()
-        exit()
         self.train_dataset = self.all_tokenized['train'].rename_columns({
             'integer_label': 'labels'
         })
