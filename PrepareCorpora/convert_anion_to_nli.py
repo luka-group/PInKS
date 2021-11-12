@@ -1,3 +1,4 @@
+import ast
 import itertools
 from typing import Callable, List
 from tqdm import tqdm
@@ -27,12 +28,11 @@ def anion_to_nli(ani: pd.Series) -> List[pd.Series]:
     hypothesis_orig = replace_values_in_string(ani['original']+'.', person_lut)
 
     personx = person_lut['PersonX']
-    x_effect = [f'{personx} {s}.' for s in ani['xEffect'] if s is not 'none']
-    x_react = [f'{personx} is {s}.' for s in ani['xReact'] if s is not 'none']
-    x_want = [f'{personx} wants {s}.' for s in ani['xWant'] if s is not 'none']
-    x_intent = [f'{personx} wants {s}.' for s in ani['xIntent'] if s is not 'none']
-    x_need = [f'{personx} needs {s}.' for s in ani['xIntent'] if s is not 'none']
-
+    x_effect = [f'{personx} {s}.' for s in ast.literal_eval(ani['xEffect']) if s != 'none']
+    x_react = [f'{personx} is {s}.' for s in ast.literal_eval(ani['xReact']) if s != 'none']
+    x_want = [f'{personx} wants {s}.' for s in ast.literal_eval(ani['xWant']) if s != 'none']
+    x_intent = [f'{personx} wants {s}.' for s in ast.literal_eval(ani['xIntent']) if s != 'none']
+    x_need = [f'{personx} needs {s}.' for s in ast.literal_eval(ani['xNeed']) if s != 'none']
     return [
         pd.Series({
             "premise": prem,
@@ -51,7 +51,7 @@ for split in ['train', 'test', 'dev']:
         'dev': 'dev',
     }[split] + '.csv')
 
-    df = pd.read_csv(file_path).fillna('')
+    df = pd.read_csv(file_path).fillna('[\"none\"]')
     out_df_list = []
     for i, r in tqdm(df.iterrows(), desc='wino examples', total=len(df)):
         try:

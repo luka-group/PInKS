@@ -5,8 +5,9 @@
       <sourceFolder url="file://$MODULE_DIR$" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/Outputs/DNLI" />
       <excludeFolder url="file://$MODULE_DIR$/OldFiles" />
+      <excludeFolder url="file://$MODULE_DIR$/Outputs" />
     </content>
-    <orderEntry type="jdk" jdkName="Remote Python 3.7.10 (sftp://qasemi@ckg02.isi.edu:22/nas/home/qasemi/miniconda3/envs/cqplus/bin/python3)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="cqplus@ckg03" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

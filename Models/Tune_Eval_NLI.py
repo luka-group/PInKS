@@ -88,11 +88,15 @@ def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
         "NLIModule": NLIModule,
     }[config.nli_module_class](config)
 
-    assert 'train_composition' in config.data_module, f'Invalid: {config.data_module}'
     assert config.data_module.train_strategy in ['curriculum', 'multitask']
+    assert 'train_composition' in config.data_module, f'Invalid: {config.data_module}'
 
     callbacks_list = [
-        pl.callbacks.EarlyStopping(monitor="val_loss", min_delta=1e-4, patience=5),
+        pl.callbacks.EarlyStopping(
+            monitor="val_loss",
+            min_delta=1e-4,
+            patience=5
+        ),
 
     ]
 
@@ -128,6 +132,7 @@ def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
         _module.extra_tag = 'fit'
         trainer.fit(_module, datamodule=full_data)
     elif config.data_module.train_strategy == 'curriculum':
+        logger.warning(f'Running curriculum learning with {len(config.data_module.train_composition)} dataset')
         for curic_name in config.data_module.train_composition:
             curic_config = _get_updated_config(config, {'data_module.train_composition': [curic_name]})
             _data = NLIDataModule(config=curic_config)

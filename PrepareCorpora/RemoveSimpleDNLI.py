@@ -15,11 +15,12 @@ tqdm.pandas()
 
 @hydra.main(config_path='../Configs/model_evaluator_config.yaml')
 def main(config: omegaconf.dictconfig.DictConfig):
-
-    data_path = pathlib.Path(config.dnli_path)
-    output_csv_name = 'dnli_filtered.csv'
-
-    filter_data_and_dump(config, data_path, output_csv_name)
+    # test_path = pathlib.Path("/nas/home/qasemi/CQplus/Outputs/Other_NLI/dnli_nli_test.csv").expanduser()
+    # data_path = pathlib.Path(config.dnli_path)
+    for subset in ['train', 'test', 'dev']:
+        _path = str(pathlib.Path(config.dnli_path).expanduser()).replace('_test.csv', f'_{subset}.csv')
+        output_csv_name = f'dnli_{subset}_filtered.csv'
+        filter_data_and_dump(config, _path, output_csv_name)
 
 
 def filter_data_and_dump(config, data_path, output_csv_name):
@@ -40,7 +41,7 @@ def filter_data_and_dump(config, data_path, output_csv_name):
     weak_cq_path = data_path
     logger.info('Loading data from {}'.format(weak_cq_path))
     df: pd.DataFrame = pd.read_csv(weak_cq_path).fillna('')
-    IPython.embed()
+    # IPython.embed()
     df["text"] = df.apply(
         axis=1,
         func=lambda r: "{} </s></s> {}".format(r['question'], r['context'])
