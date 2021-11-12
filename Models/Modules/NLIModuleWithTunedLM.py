@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class NLIModuleWithTunedLM(NLIModule):
-    def __init__(self, config):
+    def __init__(self, config={}):
         # skip running parent's init function and just run the grandparent's
         super(NLIModuleWithTunedLM, self).__init__(config)
 
