@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class NLIModuleWithTunedLM(NLIModule):
-    def __init__(self, config={}):
+    def __init__(self, config):
         # skip running parent's init function and just run the grandparent's
         super(NLIModuleWithTunedLM, self).__init__(config)
 
@@ -36,7 +36,7 @@ class NLIModuleWithTunedLM(NLIModule):
 
         assert self.hparams['model_setup.tuned_model_path'] is not None
         assert 'roberta' in self.hparams["model_setup.model_name"]
-        self.tuned_lm = ModifiedLMModule.load_from_checkpoint(self.hparams['model_setup.tuned_model_path'])
+        self.tuned_lm = ModifiedLMModule.load_from_checkpoint(self.hparams['model_setup.tuned_model_path'], config=config)
         logger.info(f'Replacing the weights')
         self.embedder.roberta.load_state_dict(self.tuned_lm.model.roberta.state_dict())
         logger.info(f'Deleting redundant model')

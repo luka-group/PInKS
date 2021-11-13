@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 class ModifiedLMModule(pl.LightningModule):
     def __init__(self, config):
         super(ModifiedLMModule, self).__init__()
-        print("Pytorch-lightning verion="+str(pl.__version__))
 
+        print("Pytorch-lightning verion="+str(pl.__version__))
         if version.parse(pl.__version__) >= version.parse("1.4"):
             self.save_hyperparameters(Utils.flatten_config(config))
         else:
