@@ -79,6 +79,25 @@ class SnorkelUtil:
         label_model.fit(self.L, n_epochs=self.config.snorkel_epochs, log_freq=50, seed=123)
         df["label"] = label_model.predict(L=self.L, tie_break_policy="abstain")
 
+        #Print lf and pattern
+        self.print_lf_pattern()
+
+
+    def print_lf_pattern(self) -> NoReturn:
+        lf_patterns=[]
+        for lf in self.lfs:
+            if lf in self.enabling_dict:
+                lf_patterns.append(self.enabling_dict[lf])
+            elif lf in self.disabling_dict:
+                lf_patterns.append(self.disabling_dict[lf])
+
+        lf_pattern_df = pd.DataFrame(list(zip(self.lfs, lf_patterns)),columns =['LF Conjunction', 'LF Pattern'])
+        logger.info("Final (Filtered out) LF Patterns:")
+        logger.info(lf_pattern_df)
+        return
+
+
+
     def return_examples(self, df: pd.DataFrame, num: int = 100) -> pd.DataFrame:
         lfs_names = list(self.LFA_df.index)
         df_data = None
