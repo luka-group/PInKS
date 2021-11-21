@@ -120,7 +120,7 @@ def _prepare_corpora(config) -> pd.DataFrame:
 
     # df = pd.concat(df_list)
     logger.info("text_rows len=" + str(len(text_rows)))
-    df = pd.DataFrame(text_rows, columns=['text'], dtype=str)
+    df = pd.DataFrame(text_rows, columns=['text'])
 
     df['text'] = df['text'].astype(str)
 
