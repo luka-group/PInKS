@@ -1,4 +1,5 @@
 import functools
+import itertools
 import pathlib
 from typing import Callable, Dict, Any, Optional, Union, List
 
@@ -8,6 +9,7 @@ import numpy as np
 import omegaconf
 import pandas as pd
 import pytorch_lightning as pl
+import sklearn.model_selection
 import transformers
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
@@ -117,7 +119,7 @@ class NLIDataModule(pl.LightningDataModule):
         self._group_data_in_train_test_dev(columns_names)
 
     def _update_class_weights(self):
-        train_labels = self.all_tokenized['train']['integer_label']
+        train_labels = self.all_tokenized['train']['labels']
         self.class_weight = dict(zip(
             np.unique(train_labels),
             class_weight.compute_class_weight(
@@ -145,9 +147,9 @@ class NLIDataModule(pl.LightningDataModule):
             'anion': self._load_anion,
         }
 
-        assert set(self.config.data_module.train_composition).intersection(
-            set(self.config.data_module.test_composition)).difference(
-            {'cq', 'dnli'}) == set(), f'INVALID train/test composition'
+        # assert set(self.config.data_module.train_composition).intersection(
+        #     set(self.config.data_module.test_composition)).difference(
+        #     {'cq', 'dnli'}) == set(), f'INVALID train/test composition'
 
         all_loaded = {dname: func_lut[dname]() for dname in set(
             self.config.data_module.train_composition).union(
@@ -155,24 +157,33 @@ class NLIDataModule(pl.LightningDataModule):
         )}
 
         logger.info(f'Loading all the datasets')
-        all_datasets = datasets.DatasetDict({
+        _datasets_dict = {
             'train': datasets.concatenate_datasets(
                 [all_loaded[name]['train'] for name in self.config.data_module.train_composition]
             ),
             'test': datasets.concatenate_datasets(
                 [all_loaded[name]['test'] for name in self.config.data_module.test_composition]
             ),
-            'eval': datasets.concatenate_datasets(
-                [all_loaded[name]['eval'] for name in self.config.data_module.test_composition
-                 if 'eval' in all_loaded[name]]
-            ),
-        })
+        }
+
+        eval_datasets = [
+            all_loaded[name]['eval'] for name in self.config.data_module.test_composition
+            if 'eval' in all_loaded[name]
+        ]
+        if len(eval_datasets) > 0:
+            _datasets_dict['eval'] = datasets.concatenate_datasets(eval_datasets)
+
+        all_datasets = datasets.DatasetDict(_datasets_dict)
 
         return all_datasets
 
     def _load_mnli(self):
+        data_key = 'train'
+        if 'mnli' in self.config.data_module.test_composition:
+            data_key = 'test'
+
         _dataset =  datasets.DatasetDict({
-            'train': self._translate_labels(
+            data_key: self._translate_labels(
                 self._trim_size_if_applicable(
                     datasets.load_dataset('json', data_files=self.config.mnli_path)['train'].shuffle().rename_columns({
                         # 'sentence1': 'action',
@@ -205,7 +216,14 @@ class NLIDataModule(pl.LightningDataModule):
         n_key = 'n_{}_samples'.format(name)
 
         if n_key in self.config and self.config[n_key] is not None and self.config[n_key] > 0:
-            return _dataset.select([i for i in range(min(int(self.config[n_key]), len(_dataset)))])
+            labels = _dataset['label']
+            max_len = int(self.config[n_key])
+            index_train, _ = sklearn.model_selection.train_test_split(
+                list(range(len(_dataset))),
+                stratify=labels, train_size=max_len
+            )
+            return _dataset.select([i for i in index_train])
+            # return datasets.concatenate_datasets(output_data + extra_dataset)
 
         # FIXME there is problem here when we do not run the select and skip this if.
         #  Not sure why but the system throws keyMismatch error during the concatenation. As if like the rename
@@ -253,16 +271,31 @@ class NLIDataModule(pl.LightningDataModule):
 
     def _load_winoventi(self):
         logger.info(f'Loading Winoventi')
-        return datasets.DatasetDict({
+        _dataset = datasets.DatasetDict({
             'train': self._translate_labels(
                 self._trim_size_if_applicable(
-                    datasets.load_dataset('csv', data_files=self.config.winoventi_nli_path)['train']
-                    .shuffle(),
-                    name='winoventi'
-                ),
-                d = {0: 0, 1: 2, 2: 2}
-            )
+                    datasets.load_dataset('csv', data_files=self.config.winoventi_nli_path,
+                                          split='train[:45%]').shuffle(),
+                    name='winoventi'),
+                d={0: 0, 1: 2, 2: 2}
+            ),
+            'eval': self._translate_labels(
+                self._trim_size_if_applicable(
+                    datasets.load_dataset('csv', data_files=self.config.winoventi_nli_path,
+                                          split='train[45%:55%]').shuffle(),
+                    name='winoventi'),
+                d={0: 0, 1: 2, 2: 2}
+            ),
+            'test': self._translate_labels(
+                self._trim_size_if_applicable(
+                    datasets.load_dataset('csv', data_files=self.config.winoventi_nli_path,
+                                          split='train[55%:100%]').shuffle(),
+                    name='winoventi'),
+                d={0: 0, 1: 2, 2: 2}
+            ),
         })
+
+        return self._filter_extra_columns(_dataset)
 
     def _load_anion(self):
         logger.info(f'Loading ANION')
@@ -277,11 +310,11 @@ class NLIDataModule(pl.LightningDataModule):
                     .shuffle(),
                     name='anion'
                 ),
-                d = {0: 0, 1: 2, 2: 2}
+                d={0: 0, 1: 2, 2: 2}
             ),
             'eval': self._translate_labels(
                 self._fix_dataset_bug(datasets.load_dataset('csv', data_files=anion_eval)['train']),
-                d = {0: 0, 1: 2, 2: 2}
+                d={0: 0, 1: 2, 2: 2}
             ),
             'test': self._translate_labels(
                 self._fix_dataset_bug(datasets.load_dataset('csv', data_files=anion_test)['train']),
@@ -312,32 +345,62 @@ class NLIDataModule(pl.LightningDataModule):
             logger.info(f'Filter weakCQ on threshold {self.config.weakcq_recal_threshold}, '
                         f'old_len:{old_len}, new_len:{len(_dataset)}')
 
+        data_key = 'train'
+        if 'weakcq' in self.config.data_module.test_composition:
+            data_key = 'test'
+        _processed_data = self._translate_labels(
+            self._trim_size_if_applicable(_dataset, name='weakcq'),
+            d={0: 0, 1: 2, 2: 2, 'CONTRADICT': 0, 'ENTAILMENT': 2}
+        )
         return self._filter_extra_columns(datasets.DatasetDict({
-            'train': self._translate_labels(
-                self._trim_size_if_applicable(_dataset, name='weakcq'),
-                d={
-                    0: 0, 1: 2, 2: 2,
-                    'CONTRADICT': 0, 'ENTAILMENT': 2
-                }
-            )
+            data_key: _processed_data,
+            'eval': _processed_data.select([len(_processed_data)-1 * i for i in range(100)])
         }))
 
     def _load_atomic(self):
-        return datasets.DatasetDict({
+        # if 'atomic' in self.config.data_module.test_composition:
+        #     data_key = 'test'
+        # _processed_data = self._translate_labels(self._trim_size_if_applicable(
+        #     datasets.load_dataset('csv', data_files=self.config.atomic_nli_path)['train']
+        #         .shuffle()
+        #         .rename_columns({'question': 'hypothesis', 'context': 'premise', 'label': 'label', }), name='atomic'),
+        #     d={0: 0, 1: 2, 2: 2})
+        # return self._filter_extra_columns(datasets.DatasetDict({
+        #     data_key: _processed_data,
+        #     'eval': _processed_data.select([-1 * i for i in range(100)])
+        # }))
+
+        _dataset = datasets.DatasetDict({
             'train': self._translate_labels(
                 self._trim_size_if_applicable(
-                    datasets.load_dataset('csv', data_files=self.config.atomic_nli_path)['train']
+                    datasets.load_dataset('csv', data_files=self.config.atomic_nli_path,
+                                          split='train[:45%]')
                     .shuffle()
-                    .rename_columns({
-                        'question': 'hypothesis',
-                        'context': 'premise',
-                        'label': 'label',
-                    }),
-                    name='atomic'
-                ),
+                    .rename_columns({'question': 'hypothesis', 'context': 'premise', 'label': 'label', }),
+                    name='atomic'),
                 d={0: 0, 1: 2, 2: 2}
-            )
+            ),
+            'eval': self._translate_labels(
+                self._trim_size_if_applicable(
+                    datasets.load_dataset('csv', data_files=self.config.atomic_nli_path,
+                                          split='train[45%:55%]')
+                    .shuffle()
+                    .rename_columns({'question': 'hypothesis', 'context': 'premise', 'label': 'label', }),
+                    name='atomic'),
+                d={0: 0, 1: 2, 2: 2}
+            ),
+            'test': self._translate_labels(
+                self._trim_size_if_applicable(
+                    datasets.load_dataset('csv', data_files=self.config.atomic_nli_path,
+                                          split='train[55%:100%]')
+                    .shuffle()
+                    .rename_columns({'question': 'hypothesis', 'context': 'premise', 'label': 'label', }),
+                    name='atomic'),
+                d={0: 0, 1: 2, 2: 2}
+            ),
         })
+
+        return self._filter_extra_columns(_dataset)
 
     def _load_cq(self):
         cq_test_path = pathlib.Path(self.config.cq_path)
@@ -381,7 +444,6 @@ class NLIDataModule(pl.LightningDataModule):
         # eval_dataset = tokenized_datasets["validation"]
         self.train_dataset = self.all_tokenized['train']
         self.test_dataset = self.all_tokenized['test']
-        self.eval_dataset = self.all_tokenized['eval']
 
         # Not sure if it is userfull
         self.train_dataset.set_format(
@@ -394,11 +456,16 @@ class NLIDataModule(pl.LightningDataModule):
             columns=['input_ids', 'token_type_ids', 'attention_mask', 'labels'],
             output_all_columns=True,
         )
+
+
+        self.eval_dataset = self.all_tokenized['eval']
+
         self.eval_dataset.set_format(
             type='torch',
             columns=['input_ids', 'token_type_ids', 'attention_mask', 'labels'],
             output_all_columns=True,
         )
+
 
     def train_dataloader(self):
         return DataLoader(

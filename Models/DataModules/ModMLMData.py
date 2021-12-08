@@ -43,10 +43,13 @@ class ModMLMDataModule(pl.LightningDataModule):
         if extension in ("txt", "raw"):
             extension = "text"
 
-        data_files = {}
-        data_files["train"] = self.config.data_module.train_file
+
+        data_files = {
+            "train": self.config.data_module.train_file,
+        }
         # data_files["validation"] = self.config.data_module.validation_file
         datasets = load_dataset(extension, data_files=data_files, **dict(self.config.data_module.datasetloader_kwargs))
+
 
         column_names = datasets["train"].column_names
         text_column_name = "text" if "text" in column_names else column_names[0]
@@ -127,25 +130,46 @@ class DataCollatorForPreconditionWordMask(DataCollatorForWholeWordMask):
         self.mask_word_list = [
             c.split(' ')
             for c in [
+                # 'unless',
+                # 'only if',
+                # 'only if',
+                # 'so',
+                # 'hence',
+                # 'consequently',
+                # 'thus',
+                # 'therefore',
+                # 'as a result',
+                # 'thus',
+                # 'accordingly',
+                # 'because of that',
+                # 'as a consequence',
+                # 'as a result'
+                # # more enablings
+                # 'only if', 'subject to', 'in case', 'contingent upon', 'given', 'if', 'in the case that',
+                # "in case", "in the case that", "in the event", "on condition", "on the assumption",
+                # "on these terms", "subject to", "supposing", "with the proviso",
+                # # more disablings
+                # "but", "except", "except for", "excepting that", "if not", "lest", "saving", "without", "unless",
+
                 'unless',
-                'only if',
+                'only',
                 'so',
                 'hence',
                 'consequently',
                 'thus',
                 'therefore',
-                'as a result',
+                'result',
                 'thus',
                 'accordingly',
-                'because of that',
-                'as a consequence',
-                'as a result'
+                'because',
+                'consequence',
+                'result'
                 # more enablings
-                'only if', 'subject to', 'in case', 'contingent upon', 'given', 'if', 'in the case that',
-                "in case", "in the case that", "in the event", "on condition", "on the assumption",
-                "on these terms", "subject to", "supposing", "with the proviso",
+                'only', 'subject', 'case', 'contingent', 'given', 'if', 'case',
+                "case", "case", "event", "condition", "assumption",
+                "terms", "subject", "supposing", "proviso",
                 # more disablings
-                "but", "except", "except for", "excepting that", "if not", "lest", "saving", "without", "unless",
+                "but", "except", "except", "excepting", "if", "lest", "saving", "without", "unless",
             ]
         ]
 

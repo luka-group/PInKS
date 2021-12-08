@@ -31,7 +31,6 @@ class NLIModule(pl.LightningModule):
         else:
             self.hparams = Utils.flatten_config(config)
 
-
         if self.logger is not None:
             self.logger.log_hyperparams(self.hparams)
         self.save_hyperparameters()
@@ -299,6 +298,7 @@ class NLIModule(pl.LightningModule):
                 f'{prefix}_loss': _loss_mean,
                 f'{prefix}_acc': _val_acc,
                 f'{prefix}_f1_macro': _f1_score,
+
                 # confusion matrix
                 f"{prefix}_conf_matrix": wandb.plot.confusion_matrix(
                     probs=None,
@@ -306,15 +306,16 @@ class NLIModule(pl.LightningModule):
                     preds=df['predicted_label'].values,
                     class_names=['C', 'N', 'E'],
                     title=f'{prefix}_conv_mat',
-                ),
+                ) if not self.hparams['log.trim'] else None,
+
                 # dump csv files
                 # f'{prefix}_dump': self._df_to_wandb_table(dataframe=df),
                 # f'{prefix}_errors': self._df_to_wandb_table(dataframe=df_errors),
             })
-            self.logger.log_metrics({})
 
-        df_errors.to_csv(f'{prefix}_errors.csv')
-        df.to_csv(f"{prefix}_dump.csv")
+        if not self.hparams['log.trim']:
+            df_errors.to_csv(f'{prefix}_errors.csv')
+            df.to_csv(f"{prefix}_dump.csv")
 
         # preparing output
         per_predicate_results = {

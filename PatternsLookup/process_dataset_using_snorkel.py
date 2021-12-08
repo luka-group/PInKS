@@ -74,8 +74,10 @@ def main(config: omegaconf.dictconfig.DictConfig):
     # Filtering
     ProcessOutputUtil.filter_dataset(config, df)
 
-    IPython.embed()
-    exit()
+    if config.augmentation_path is not None and 'augment' in config.dataset_name.lower():
+        logger.info(f'Skip additional augmentation!')
+        return
+
     # Data Augmentation
     logger.info('Augmenting data using BERT mask-filling.')
     ProcessOutputUtil.data_augmentation(config)
@@ -112,6 +114,10 @@ def _prepare_ascent(config) -> List[str]:
 def _prepare_corpora(config) -> pd.DataFrame:
     text_rows = []
     logger.info("Processing Dataset: " + config.dataset_name)
+
+    if config.augmentation_path is not None and 'augment' in config.dataset_name.lower():
+        text_rows.extend(_prepare_augment(config))
+
     if "omcs" in config.dataset_name.lower():
         text_rows.extend(_prepare_omcs(config))
 
@@ -128,6 +134,22 @@ def _prepare_corpora(config) -> pd.DataFrame:
 
     df.to_csv(config.output_names.extract_all_sentences_df, index=False)
     return df
+
+
+def _prepare_augment(config) -> List[str]:
+    sents = pd.read_csv(config.augmentation_path, sep=' ')['0'].apply(
+        lambda s: s.replace('` `', '\"')
+                   .replace(' ,', ',')
+                   .replace(' .', '.')
+                   .replace(' !', '!')
+                   .replace(' ?', '?')
+                   .replace('. \",', '\",')
+                   .replace(',\",', '\",')
+                   .replace('\'\'', '\"')
+                   .replace('\"\'', '\"')
+                   .lower()
+    ).values.tolist()
+    return sents
 
 
 if __name__ == '__main__':

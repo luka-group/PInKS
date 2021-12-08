@@ -64,6 +64,8 @@ class SnorkelUtil:
         self.disabling_dict = None
         self.enabling_dict = None
 
+        self.lfs = []
+
     def apply_labeling_functions(self, df: pd.DataFrame) -> NoReturn:
 
         self.populate_labeling_functions_list()
@@ -80,8 +82,8 @@ class SnorkelUtil:
         df["label"] = label_model.predict(L=self.L, tie_break_policy="abstain")
 
     def return_examples(self, df: pd.DataFrame, num: int = 100) -> pd.DataFrame:
-        lfs_names = list(self.LFA_df.index)
-        df_data = None
+        # lfs_names = list(self.LFA_df.index)
+        # df_data = None
         examples_df = pd.DataFrame()
 
         for index, row in self.LFA_df.iterrows():
@@ -128,6 +130,15 @@ class SnorkelUtil:
                     position = np.argmax((self.L[index, :] == label).astype(float))
 
                 conj = lfs_names[position].replace("_", " ")
+            except KeyError as e:
+                logger.error(f'key error: {e}')
+                actions.append(INVALID)
+                preconditions.append(INVALID)
+                recalls.append(INVALID)
+                invalid_count += 1
+                continue
+
+            try:
                 pat = pattern_lookup[label][conj]
                 recl = self.LF_RECALS[conj]
             except KeyError as e:
@@ -161,6 +172,7 @@ class SnorkelUtil:
                 actions.append(INVALID)
                 preconditions.append(INVALID)
                 recalls.append(INVALID)
+                invalid_count += 1
                 continue
 
         logger.info("DF len=" + str(len(df)))
@@ -169,7 +181,6 @@ class SnorkelUtil:
         df['action'] = actions
         df['precondition'] = preconditions
         df['recall'] = recalls
-
 
     def populate_labeling_functions_list(self) -> NoReturn:
         pos_conj = {'only if', 'contingent upon',  "in case", "in the case that", "in the event",
@@ -186,8 +197,8 @@ class SnorkelUtil:
 
         self.enabling_dict = {
             'makes possible': "{precondition} makes {action} possible.",
-            'to understand event': r'To understand the event "{event}", it is important to know that {precondition}.',
-            'statement is true': r'The statement "{event}" is true because {precondition}.',
+            'to understand event': r'to understand the event "{event}", it is important to know that {precondition}.',
+            'statement is true': r'the statement "{event}" is true because {precondition}.',
             'if': "{action} if {precondition}",
         }
 
@@ -291,7 +302,7 @@ class SnorkelUtil:
     @staticmethod
     @labeling_function(name='to understand event')
     def to_understand_event_1(x):
-        pat = r'To understand the event "{event}", it is important to know that {precondition}.'
+        pat = r'to understand the event "{event}", it is important to know that {precondition}.'
         if SnorkelUtil.pattern_exists(pat, x.text):
             return SnorkelUtil.ENABLING
         else:
@@ -300,7 +311,7 @@ class SnorkelUtil:
     @staticmethod
     @labeling_function(name='statement is true')
     def statement_is_true_1(x):
-        pat = r'The statement "{event}" is true because {precondition}.'
+        pat = r'the statement "{event}" is true because {precondition}.'
         if SnorkelUtil.pattern_exists(pat, x.text):
             return SnorkelUtil.ENABLING
         else:

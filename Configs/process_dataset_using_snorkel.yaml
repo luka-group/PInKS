@@ -3,6 +3,8 @@ dataset_name: "omcs, ascent"
 ascent_path: "~/CQplus/Outputs/Corpora/ASCENT/data/kb-05-02-2021.jsonl"
 omcs_path: "~/CQplus/Outputs/Corpora/OMCS/omcs-sentences-more.txt"
 
+augmentation_path:
+
 lf_recall_threshold: 0.7
 
 output_names:

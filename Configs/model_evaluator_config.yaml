@@ -1,5 +1,6 @@
 #weak_cq_path: "/nas/home/qasemi/CQplus/Outputs/RemoveSimpleWeakPNLI/weakcq_filtered.csv"
-weak_cq_path: "/nas/home/qasemi/CQplus/Outputs/process_dataset_using_snorkel/0.0/filtered_dataset.csv"
+#weak_cq_path: "/nas/home/qasemi/CQplus/Outputs/process_dataset_using_snorkel/0.0/filtered_dataset.csv"
+weak_cq_path: "/nas/home/qasemi/CQplus/Outputs/process_dataset_using_snorkel/backup/filtered_dataset.csv"
 
 #cq_path: "/nas/home/qasemi/Mowgli-CoreQuisite/outputs/EvaluateBatch/MCQ-2000/BasicBenchmark/test.csv"
 cq_path: "/nas/home/qasemi/CQplus/Outputs/RemoveSimplePNLI/test_filtered.csv"
@@ -61,6 +62,9 @@ hydra:
   run:
     dir: /nas/home/qasemi/CQplus/Outputs/${hydra.job.name}
 
+
+log:
+  trim: true
 
 # ray:
   # num_samples: 10

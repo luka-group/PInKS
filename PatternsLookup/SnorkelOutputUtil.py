@@ -4,6 +4,7 @@ import nltk
 import omegaconf
 import pandas as pd
 from tqdm import tqdm
+import string
 import os
 
 import json
@@ -15,6 +16,7 @@ import logging
 
 from transformers import pipeline
 import random
+
 tqdm.pandas()
 
 nltk.download('punkt')
@@ -56,23 +58,25 @@ class ProcessOutputUtil:
 
         filtered_dataset.to_csv(config.output_names.filtered_output_path, index=False)
 
-
     @staticmethod
     def _is_valid_weakcq(row):
-        question_start_words = ["who", "what", "when", "where", "why", "how", "is", "can", "does", "do"]
-        VERB_CODES = {
-            'VB',  # Verb, base form
-            'VBD',  # Verb, past tense
-            'VBG',  # Verb, gerund or present participle
-            'VBN',  # Verb, past participle
-            'VBP',  # Verb, non-3rd person singular present
-            'VBZ',  # Verb, 3rd person singular present
-        }
-        return not (ProcessOutputUtil.isQuestion(row['text'])) and ProcessOutputUtil.hasVerb(
-            row['precondition']) and ProcessOutputUtil.isEnglish(row['text'])
+        # question_start_words = ["who", "what", "when", "where", "why", "how", "is", "can", "does", "do"]
+        # VERB_CODES = {
+        #     'VB',  # Verb, base form
+        #     'VBD',  # Verb, past tense
+        #     'VBG',  # Verb, gerund or present participle
+        #     'VBN',  # Verb, past participle
+        #     'VBP',  # Verb, non-3rd person singular present
+        #     'VBZ',  # Verb, 3rd person singular present
+        # }
+        return (
+                (not ProcessOutputUtil.is_question(row['text'])) and
+                ProcessOutputUtil.has_verb(row['precondition']) and
+                ProcessOutputUtil.is_english(row['text'])
+        )
 
     @staticmethod
-    def isQuestion(text):
+    def is_question(text):
         question_start_words = ["who", "what", "when", "where", "why", "how", "is", "can", "does", "do"]
         text = text.strip()
         if ('?' in text) or (text.split()[0].lower() in question_start_words):
@@ -80,7 +84,7 @@ class ProcessOutputUtil:
         return False
 
     @staticmethod
-    def hasVerb(text):
+    def has_verb(text):
         try:
             text = nltk.word_tokenize(text)
         except Exception as e:
@@ -103,13 +107,13 @@ class ProcessOutputUtil:
         return False
 
     @staticmethod
-    def isEnglish(text):
+    def is_english(text):
         if langdetect.detect(text) == 'en':
             return True
         return False
 
     @staticmethod
-    def containsIf(text):
+    def contains_if(text):
         if_not_pat = "{action} if not {precondition}"
         if SnorkelUtil.pattern_exists(if_not_pat, text):
             return False
@@ -118,21 +122,22 @@ class ProcessOutputUtil:
         return False
 
     @staticmethod
-    def containsBut(text):
+    def contains_but(text):
         pat = "{action} but {precondition}"
         if SnorkelUtil.pattern_exists(pat, text):
             return True
         return False
 
-    #Iterates through the filtered df and calls the fill_mask function for each text instance. Saves the results in a json after every 20k iterations.
+    # Iterates through the filtered df and calls the fill_mask function for each text instance. Saves the results in
+    # a json after every 20k iterations.
     @staticmethod
     def data_augmentation(config: omegaconf.dictconfig.DictConfig):
-        
-        filtered_df=pd.read_csv(config.output_names.filtered_output_path)
+
+        filtered_df = pd.read_csv(config.output_names.filtered_output_path)
         aug_sents = []
         count = 0
         # logger.info("Current working dir="+os.getcwd())
-        logger.info("Filtered DF len="+str(len(filtered_df)))
+        logger.info("Filtered DF len=" + str(len(filtered_df)))
         for index, row in tqdm(filtered_df.iterrows()):
             try:
                 aug_sents.extend(ProcessOutputUtil.fill_mask(row['text'], row['label']))
@@ -152,7 +157,8 @@ class ProcessOutputUtil:
 
         logger.info("Count of augmented sentence=" + str(count))
 
-    #Takes the text and label of a common sense assertion and masks some words (based on the valid_pos_tag function), and unmasks them using bert-base-uncased unmasker.
+    # Takes the text and label of a common sense assertion and masks some words (based on the valid_pos_tag
+    # function), and unmasks them using bert-base-uncased unmasker.
     @staticmethod
     def fill_mask(text, label):
         LEAVE_OUT_WORDS = {'understand', 'event', 'important', 'know', 'statement', 'true'}
@@ -173,19 +179,23 @@ class ProcessOutputUtil:
                 }
                 tmp_result[idx][0] = "[MASK]"
                 new_sent_masked = ' '.join(word[0] for word in tmp_result)
-                unmasked_list = list(ProcessOutputUtil.unmasker(new_sent_masked))[:3]
+                unmasked_list = list(filter(
+                    lambda d: d['token_str'] not in string.punctuation,
+                    ProcessOutputUtil.unmasker(new_sent_masked)
+                ))[:3]
                 new_aug_dict['predictions'] = unmasked_list
                 aug_sents_dicts.append(new_aug_dict)
 
         aug_sents_dicts = ProcessOutputUtil.aug_selection_strategy(aug_sents_dicts, 15)
         return aug_sents_dicts
 
-    #Selection strategy for selecting the augmented sentences. Current strategy is selecting a max of 15 sentences at random.
+    # Selection strategy for selecting the augmented sentences. Current strategy is selecting a max of 15 sentences
+    # at random.
     @staticmethod
     def aug_selection_strategy(aug_sents_dicts, n_samples):
         return random.sample(aug_sents_dicts, min(n_samples, len(aug_sents_dicts)))
 
-    #Return true if the pos tag is either a Noun or an Adjective.
+    # Return true if the pos tag is either a Noun or an Adjective.
     @staticmethod
     def valid_pos_tag(tag):
         NOUN_CODES = {'NN', 'NNS', 'NNPS', 'NNP'}
@@ -193,8 +203,6 @@ class ProcessOutputUtil:
         if (tag in NOUN_CODES) or (tag in ADJECTIVE_CODES):
             return True
         return False
-
-
 
     # @staticmethod
     # def merge(config: omegaconf.dictconfig.DictConfig):
@@ -260,6 +268,3 @@ class ProcessOutputUtil:
     #     lf_instances_df = lf_instances_df.reindex(sorted(lf_instances_df.columns), axis=1)
 
     #     lf_instances_df.head(100).to_csv(output_path)
-
-
-

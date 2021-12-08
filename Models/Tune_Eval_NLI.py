@@ -146,7 +146,6 @@ def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
     trainer.test(_module, datamodule=full_data)
 
 
-
 @hydra.main(config_path="../Configs", config_name="model_evaluator_config")
 def main(config: omegaconf.dictconfig.DictConfig):
     # _run_train_test(config)
