@@ -2,8 +2,9 @@
 
 cd ../PrepareCorpora
 
-python RemoveSimplePNLI.py \
-    model_setup.model_name="roberta-large-mnli"
+python RemoveSimpleCQ.py \
+    model_setup.model_name="roberta-large-mnli" \
+    cq_path='/nas/home/qasemi/CQplus/Outputs/Other_NLI/cq_nli_train.csv'
 
 #python RemoveSimpleWeakPNLI.py \
 #    weak_cq_path='/nas/home/qasemi/CQplus/Outputs/process_ascent/matched_sentences.csv' \

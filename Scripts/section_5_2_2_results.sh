@@ -26,6 +26,5 @@ do
         train_setup.batch_size=64 \
         +no_hyper_tune=true \
         hydra.run.dir="/nas/home/qasemi/CQplus/Outputs/Tune_Eval_NLI/5_2_2"
-    break
   done
 done

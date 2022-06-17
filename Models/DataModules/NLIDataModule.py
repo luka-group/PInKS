@@ -64,18 +64,18 @@ class NLIDataModule(pl.LightningDataModule):
             func=lambda r: _to_text_func(r['hypothesis'], r['premise'])
         ).fillna('').values.tolist()
 
-       #  labels = df['label'].apply({
-       #     # Weak CQ data
-       #     **{'CONTRADICT': 0, 'ENTAILMENT': 2},
-       #     # MNLI data
-       #     **{
-       #         'entailment': 2,
-       #         'neutral': 1,
-       #         'contradiction': 0,
-       #     },
-       #     # CQ data
-       #     **{0: 0, 1: 2, 2: 2}
-       # }.get)
+        #  labels = df['label'].apply({
+        #     # Weak CQ data
+        #     **{'CONTRADICT': 0, 'ENTAILMENT': 2},
+        #     # MNLI data
+        #     **{
+        #         'entailment': 2,
+        #         'neutral': 1,
+        #         'contradiction': 0,
+        #     },
+        #     # CQ data
+        #     **{0: 0, 1: 2, 2: 2}
+        # }.get)
 
         return {**_tokenizer(sents, ), "unmasked_text": sents, "labels": df['label'].values.tolist()}
 
@@ -178,39 +178,87 @@ class NLIDataModule(pl.LightningDataModule):
         return all_datasets
 
     def _load_mnli(self):
-        data_key = 'train'
-        if 'mnli' in self.config.data_module.test_composition:
-            data_key = 'test'
-
-        _dataset =  datasets.DatasetDict({
-            data_key: self._translate_labels(
+        # data_key = 'train'
+        # if 'mnli' in self.config.data_module.test_composition:
+        #     data_key = 'test'
+        #
+        # _dataset = datasets.DatasetDict({
+        #     data_key: self._translate_labels(
+        #         self._trim_size_if_applicable(
+        #             datasets.load_dataset('json', data_files=self.config.mnli_path)['train'].shuffle().rename_columns({
+        #                 # 'sentence1': 'action',
+        #                 'sentence1': 'hypothesis',
+        #                 # 'sentence2': 'precondition',
+        #                 'sentence2': 'premise',
+        #                 'gold_label': 'label',
+        #             }),
+        #             name='mnli'
+        #         ),
+        #         d={
+        #             'entailment': 2,
+        #             'neutral': 1,
+        #             'contradiction': 0,
+        #         }
+        #     )
+        # })
+        _dataset = datasets.DatasetDict({
+            'train': self._translate_labels(
                 self._trim_size_if_applicable(
-                    datasets.load_dataset('json', data_files=self.config.mnli_path)['train'].shuffle().rename_columns({
+                    datasets.load_dataset('json', data_files=self.config.mnli_path,
+                                          split='train[:45%]').shuffle().rename_columns({
                         # 'sentence1': 'action',
                         'sentence1': 'hypothesis',
                         # 'sentence2': 'precondition',
                         'sentence2': 'premise',
                         'gold_label': 'label',
                     }),
-                    name='mnli'
-                ),
-                d = {
-                    'entailment': 2,
-                    'neutral': 1,
-                    'contradiction': 0,
-                }
-            )
+                    name='mnli'),
+                d={'entailment': 2,
+                   'neutral': 1,
+                   'contradiction': 0, }
+            ),
+            'eval': self._translate_labels(
+                self._trim_size_if_applicable(
+                    datasets.load_dataset('json', data_files=self.config.mnli_path,
+                                          split='train[45%:55%]').shuffle().rename_columns({
+                        # 'sentence1': 'action',
+                        'sentence1': 'hypothesis',
+                        # 'sentence2': 'precondition',
+                        'sentence2': 'premise',
+                        'gold_label': 'label',
+                    }),
+                    name='mnli'),
+                d={'entailment': 2,
+                   'neutral': 1,
+                   'contradiction': 0, }
+            ),
+            'test': self._translate_labels(
+                self._trim_size_if_applicable(
+                    datasets.load_dataset('json', data_files=self.config.mnli_path,
+                                          split='train[55%:100%]').shuffle().rename_columns({
+                        # 'sentence1': 'action',
+                        'sentence1': 'hypothesis',
+                        # 'sentence2': 'precondition',
+                        'sentence2': 'premise',
+                        'gold_label': 'label',
+                    }),
+                    name='mnli'),
+                d={'entailment': 2,
+                   'neutral': 1,
+                   'contradiction': 0, }
+            ),
         })
+
         return self._filter_extra_columns(_dataset)
 
     @staticmethod
-    def _translate_labels(_dataset, d:Dict = {}):
+    def _translate_labels(_dataset, d: Dict = {}):
         return _dataset.map(
             function=lambda r: {
                 'hypothesis': r['hypothesis'],
                 'premise': r['premise'],
                 'label': d[r['label']],
-        })
+            })
 
     def _trim_size_if_applicable(self, _dataset, name: str):
         n_key = 'n_{}_samples'.format(name)
@@ -218,11 +266,16 @@ class NLIDataModule(pl.LightningDataModule):
         if n_key in self.config and self.config[n_key] is not None and self.config[n_key] > 0:
             labels = _dataset['label']
             max_len = int(self.config[n_key])
-            index_train, _ = sklearn.model_selection.train_test_split(
-                list(range(len(_dataset))),
-                stratify=labels, train_size=max_len
-            )
-            return _dataset.select([i for i in index_train])
+            if max_len < len(_dataset):
+                index_train, _ = sklearn.model_selection.train_test_split(
+                    list(range(len(_dataset))),
+                    stratify=labels, train_size=max_len
+                )
+                out_data = _dataset.select([i for i in index_train])
+                assert len(out_data) == max_len
+                # IPython.embed()
+                # exit()
+                return out_data
             # return datasets.concatenate_datasets(output_data + extra_dataset)
 
         # FIXME there is problem here when we do not run the select and skip this if.
@@ -307,7 +360,7 @@ class NLIDataModule(pl.LightningDataModule):
             'train': self._translate_labels(
                 self._trim_size_if_applicable(
                     datasets.load_dataset('csv', data_files=anion_train)['train']
-                    .shuffle(),
+                        .shuffle(),
                     name='anion'
                 ),
                 d={0: 0, 1: 2, 2: 2}
@@ -325,8 +378,8 @@ class NLIDataModule(pl.LightningDataModule):
     def _load_weakcq(self):
         _dataset = (
             datasets.load_dataset('csv', data_files=self.config.weak_cq_path)['train']
-            .shuffle()
-            .rename_columns({
+                .shuffle()
+                .rename_columns({
                 'action': 'hypothesis',
                 'precondition': 'premise',
                 'label': 'label',
@@ -337,6 +390,7 @@ class NLIDataModule(pl.LightningDataModule):
         if 'weakcq_recal_threshold' in self.config:
             def check_recal(r, lim):
                 return r['recall'] >= lim
+
             _dataset = _dataset.filter(
                 function=functools.partial(check_recal, lim=float(self.config.weakcq_recal_threshold)),
                 num_proc=self.config.data_module.preprocessing_num_workers,
@@ -354,7 +408,7 @@ class NLIDataModule(pl.LightningDataModule):
         )
         return self._filter_extra_columns(datasets.DatasetDict({
             data_key: _processed_data,
-            'eval': _processed_data.select([len(_processed_data)-1 * i for i in range(100)])
+            'eval': _processed_data.select([len(_processed_data) - 1 * i for i in range(100)])
         }))
 
     def _load_atomic(self):
@@ -375,8 +429,8 @@ class NLIDataModule(pl.LightningDataModule):
                 self._trim_size_if_applicable(
                     datasets.load_dataset('csv', data_files=self.config.atomic_nli_path,
                                           split='train[:45%]')
-                    .shuffle()
-                    .rename_columns({'question': 'hypothesis', 'context': 'premise', 'label': 'label', }),
+                        .shuffle()
+                        .rename_columns({'question': 'hypothesis', 'context': 'premise', 'label': 'label', }),
                     name='atomic'),
                 d={0: 0, 1: 2, 2: 2}
             ),
@@ -384,8 +438,8 @@ class NLIDataModule(pl.LightningDataModule):
                 self._trim_size_if_applicable(
                     datasets.load_dataset('csv', data_files=self.config.atomic_nli_path,
                                           split='train[45%:55%]')
-                    .shuffle()
-                    .rename_columns({'question': 'hypothesis', 'context': 'premise', 'label': 'label', }),
+                        .shuffle()
+                        .rename_columns({'question': 'hypothesis', 'context': 'premise', 'label': 'label', }),
                     name='atomic'),
                 d={0: 0, 1: 2, 2: 2}
             ),
@@ -393,8 +447,8 @@ class NLIDataModule(pl.LightningDataModule):
                 self._trim_size_if_applicable(
                     datasets.load_dataset('csv', data_files=self.config.atomic_nli_path,
                                           split='train[55%:100%]')
-                    .shuffle()
-                    .rename_columns({'question': 'hypothesis', 'context': 'premise', 'label': 'label', }),
+                        .shuffle()
+                        .rename_columns({'question': 'hypothesis', 'context': 'premise', 'label': 'label', }),
                     name='atomic'),
                 d={0: 0, 1: 2, 2: 2}
             ),
@@ -457,7 +511,6 @@ class NLIDataModule(pl.LightningDataModule):
             output_all_columns=True,
         )
 
-
         self.eval_dataset = self.all_tokenized['eval']
 
         self.eval_dataset.set_format(
@@ -465,7 +518,6 @@ class NLIDataModule(pl.LightningDataModule):
             columns=['input_ids', 'token_type_ids', 'attention_mask', 'labels'],
             output_all_columns=True,
         )
-
 
     def train_dataloader(self):
         return DataLoader(

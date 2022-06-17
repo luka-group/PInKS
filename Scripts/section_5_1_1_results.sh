@@ -3,7 +3,7 @@
 cd ..
 export PYTHONPATH="$(pwd)"
 
-rm -rf /nas/home/qasemi/CQplus/Outputs/Tune_Eval_NLI/5_2/*
+rm -rf /nas/home/qasemi/CQplus/Outputs/Tune_Eval_NLI/5_1_1/*
 
 for TRAINDATA in weakcq
 do
@@ -17,14 +17,14 @@ do
         data_module.train_strategy='curriculum' \
         data_module.test_composition=[$TESTDATA] \
         +weakcq_recal_threshold=0.90 \
-        +n_${TESTDATA}_samples=-1 \
-        +n_${TRAINDATA}_samples=-1 \
+        +n_${TESTDATA}_samples=50000 \
+        +n_${TRAINDATA}_samples=50000 \
         data_module.use_class_weights=true \
         train_setup.do_train=true \
         hardware.gpus="0" \
         train_setup.max_epochs=5 \
-        train_setup.batch_size=32 \
+        train_setup.batch_size=64 \
         +no_hyper_tune=true \
-        hydra.run.dir="/nas/home/qasemi/CQplus/Outputs/Tune_Eval_NLI/5_2"
+        hydra.run.dir="/nas/home/qasemi/CQplus/Outputs/Tune_Eval_NLI/5_1_1"
   done
 done

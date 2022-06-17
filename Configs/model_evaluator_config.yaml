@@ -1,9 +1,9 @@
 #weak_cq_path: "/nas/home/qasemi/CQplus/Outputs/RemoveSimpleWeakPNLI/weakcq_filtered.csv"
-#weak_cq_path: "/nas/home/qasemi/CQplus/Outputs/process_dataset_using_snorkel/0.0/filtered_dataset.csv"
-weak_cq_path: "/nas/home/qasemi/CQplus/Outputs/process_dataset_using_snorkel/backup/filtered_dataset.csv"
+weak_cq_path: "/nas/home/qasemi/CQplus/Outputs/process_dataset_using_snorkel/0.0/filtered_dataset.csv"
 
 #cq_path: "/nas/home/qasemi/Mowgli-CoreQuisite/outputs/EvaluateBatch/MCQ-2000/BasicBenchmark/test.csv"
-cq_path: "/nas/home/qasemi/CQplus/Outputs/RemoveSimplePNLI/test_filtered.csv"
+#cq_path: "/nas/home/qasemi/CQplus/Outputs/RemoveSimplePNLI/test_filtered.csv"
+cq_path: "/nas/home/qasemi/CQplus/Outputs/Other_NLI/cq_nli_train.csv"
 mnli_path: "/nas/home/qasemi/CQplus/Outputs/Corpora/MNLI/multinli_1.0/multinli_1.0_train.jsonl"
 
 dnli_path: "/nas/home/qasemi/CQplus/Outputs/Other_NLI/dnli_nli_test.csv"
@@ -23,7 +23,7 @@ hardware:
 
 train_setup:
   do_train: false
-  accumulate_grad_batches: 4
+  accumulate_grad_batches: 1
 
   max_epochs: 1
   limit_train_batches: 1.0
@@ -37,6 +37,8 @@ train_setup:
   beta2: 0.998
 
   batch_size: ${data_module.train_batch_size}
+
+  early_stopping_patience: 10
 
 data_module:
   train_batch_size: 2 #4
@@ -66,13 +68,14 @@ hydra:
 log:
   trim: true
 
-# ray:
-  # num_samples: 10
-#  gpus_per_trial: 1
-  # sweep_dict:
-#    "train_setup.learning_rate": "tune.loguniform(1e-6, 1e-4)"
-#    "data_module.train_batch_size": "tune.choice([2, 4])"
-#    "data_module.max_seq_length": "tune.choice([200, 300, 400, 450])"
+ray:
+  num_samples: 1
+  gpus_per_trial: 1
+  sweep_dict:
+    "train_setup.learning_rate": "tune.loguniform(1e-9, 1e-7)"
+#    "data_module.train_batch_size": "tune.choice([64])"
+    "data_module.max_seq_length": "tune.choice([400, 450, 500])"
+
 # Comparitibility configs
 lm_module:
   model_name_or_path: ${model_setup.model_name}

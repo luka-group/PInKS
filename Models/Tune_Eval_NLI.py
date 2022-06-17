@@ -1,4 +1,5 @@
 import logging
+import sys
 from typing import List, Union, Dict
 
 import IPython
@@ -15,6 +16,14 @@ from Models.Modules.NLIModuleWithTunedLM import NLIModuleWithTunedLM
 import Models.Utils as Utils
 
 logger = logging.getLogger(__name__)
+
+
+def my_handler(type, value, tb):
+    logger.exception("Uncaught exception: {0}".format(str(value)))
+
+
+# Install exception handler
+sys.excepthook = my_handler
 
 
 def prepare_and_feed_config(updates: Dict, base_config: omegaconf.dictconfig.DictConfig):
@@ -95,7 +104,7 @@ def _run_nli_train_test(config: omegaconf.dictconfig.DictConfig):
         pl.callbacks.EarlyStopping(
             monitor="val_loss",
             min_delta=1e-4,
-            patience=5
+            patience=int(config['train_setup']['early_stopping_patience'])
         ),
 
     ]
