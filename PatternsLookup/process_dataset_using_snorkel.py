@@ -74,7 +74,7 @@ def main(config: omegaconf.dictconfig.DictConfig):
     # Filtering
     ProcessOutputUtil.filter_dataset(config, df)
 
-    if config.augmentation_path is not None and 'augment' in config.dataset_name.lower():
+    if config.augmentation_path is None and 'augment' not in config.dataset_name.lower():
         logger.info(f'Skip additional augmentation!')
         return
 

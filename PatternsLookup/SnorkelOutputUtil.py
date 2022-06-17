@@ -136,6 +136,8 @@ class ProcessOutputUtil:
         filtered_df = pd.read_csv(config.output_names.filtered_output_path)
         aug_sents = []
         count = 0
+        enabling_aug_count=0
+        disabling_aug_count=0
         # logger.info("Current working dir="+os.getcwd())
         logger.info("Filtered DF len=" + str(len(filtered_df)))
         for index, row in tqdm(filtered_df.iterrows()):
@@ -155,7 +157,17 @@ class ProcessOutputUtil:
         with open(config.output_names.augmented_dataset_path, "w") as outfile:
             json.dump(aug_sents, outfile)
 
-        logger.info("Count of augmented sentence=" + str(count))
+        logger.info("Count of Total augmented sentences=" + str(count))
+
+        for augmentation in aug_sents:
+            if augmentation['label']==1:
+                enabling_aug_count+=1
+            elif augmentation['label']==0:
+                disabling_aug_count+=1
+        
+        logger.info("Count of augmented Enabling sentence=" + str(enabling_aug_count))
+        logger.info("Count of augmented Disabling sentence=" + str(disabling_aug_count))
+
 
     # Takes the text and label of a common sense assertion and masks some words (based on the valid_pos_tag
     # function), and unmasks them using bert-base-uncased unmasker.
